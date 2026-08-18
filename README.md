@@ -6,6 +6,8 @@ program (an editor, a generator, an AI agent) rewrites the file.
 
 It is a viewer only — no editing, no sidebar, no workspace management.
 
+Where this is heading is written down in [ROADMAP.md](ROADMAP.md).
+
 ## Run
 
 ```bash
