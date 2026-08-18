@@ -1,50 +1,48 @@
 # Roadmap
 
-Where this project is going, and — just as importantly — where it is not.
+Kam projekt směřuje — a stejně důležité, kam ne.
 
-## What this is
+## Co to je
 
-Today it is a live Markdown viewer. The intent is to grow it into a **project
-console**: one tab per working directory, holding a shell where an agent runs, the
-document you are steering by, and a couple of buttons for the commands you keep
-typing.
+Dnes je to živý prohlížeč Markdownu. Záměrem je vyrůst v **konzoli projektu**: jeden
+tab na jeden pracovní adresář, v něm shell s běžícím agentem, dokument, podle kterého
+se řídíš, a pár tlačítek pro příkazy, které stejně pořád píšeš.
 
-The load-bearing insight: **the intelligence is an external process.** Claude Code
-runs as a CLI in a terminal pane. This app never has to be smart — it is the window
-around something that already works. That is what makes a three-day build realistic
-instead of absurd.
+Nosná myšlenka: **inteligence je externí proces.** Claude Code běží jako CLI
+v terminálovém panelu. Tahle aplikace nikdy nemusí být chytrá — je to okno kolem
+něčeho, co už funguje. Právě proto je třídenní stavba reálná, a ne absurdní.
 
-So this is not "a small Cursor". It is the 5 % of an AI editor that actually gets
-used in an agent-driven workflow, plus three things no editor has.
+Není to tedy „malý Cursor“. Je to těch 5 % AI editoru, které se v práci s agentem
+reálně používají, plus tři věci, které nemá žádný editor.
 
-## Why not VS Code or Cursor
+## Proč ne VS Code nebo Cursor
 
-Both can produce the same layout — terminal, Markdown preview, tasks, git diff — and
-adopting one costs nothing to build. They were considered and rejected deliberately:
+Obojí umí vyrobit stejné rozložení — terminál, náhled Markdownu, tasky, git diff —
+a nasazení nestojí žádnou práci. Byly zváženy a vědomě zamítnuty:
 
-- **VS Code**: does everything, which is the problem. The goal is a small window
-  with four things in it, not an IDE with four things visible.
-- **Cursor**: its value is its own AI layer — indexing, completion, in-editor agent.
-  In this workflow the agent is the Claude Code CLI, so that layer goes unused and
-  what remains is an editor acting as a window.
+- **VS Code**: umí všechno, a to je ten problém. Cílem je malé okno se čtyřmi věcmi,
+  ne IDE, ve kterém jsou čtyři věci vidět.
+- **Cursor**: jeho hodnota je vlastní AI vrstva — indexace, doplňování, agent
+  v editoru. V tomhle workflow je agentem Claude Code v CLI, takže ta vrstva zůstane
+  nevyužitá a zbyde editor v roli okna.
 
-What neither of them does is supervise an agent: show what it just rewrote, tell you
-which of five sessions is waiting for an answer, or let you compose a prompt
-comfortably. Those three are the actual reason to build this.
+Co neumí ani jeden, je dohled nad agentem: ukázat, co právě přepsal, říct, která
+z pěti sessions čeká na odpověď, nebo nechat v klidu složit delší zadání. Tyhle tři
+věci jsou skutečným důvodem, proč to stavět.
 
-Accepted in exchange: roughly three days of work now, a few hours of maintenance a
-year, and a terminal that will be slightly rougher than a dedicated one (see Risks).
+Výměnou se přijímá: zhruba tři dny práce teď, pár hodin údržby ročně a terminál,
+který bude o něco hrubší než dedikovaný (viz Rizika).
 
-## The model: a tab is a directory
+## Model: tab = adresář
 
-One tab = one working directory. The shell's `cwd`, the document paths and the build
-commands all derive from it. One unifying concept, no extra state.
+Jeden tab = jeden pracovní adresář. Z něj se odvozuje `cwd` shellu, cesty k dokumentům
+i příkazy pro build. Jeden sjednocující pojem, žádný stav navíc.
 
 ```text
 ┌─ myproject ──────────────── other-project ──────────────┐
 │ ┌──────────────────────┬────────────────────────────┐   │
-│ │ claude               │ ROADMAP.md (live)          │   │
-│ │ > implement step 3   │  ## Phase 2                │   │
+│ │ claude               │ ROADMAP.md (živě)          │   │
+│ │ > implementuj krok 3 │  ## Fáze 2                 │   │
 │ │                      │  - [x] watcher             │   │
 │ ├──────────────────────┤  - [ ] split view          │   │
 │ │ ▸ build  ▸ test      │                            │   │
@@ -53,56 +51,54 @@ commands all derive from it. One unifying concept, no extra state.
 └─────────────────────────────────────────────────────────┘
 ```
 
-Sessions are not restorable — a restored tab remembers its directory, layout and
-documents, never a running process.
+Sessions se neobnovují — obnovený tab si pamatuje svůj adresář, rozložení a dokumenty,
+nikdy ne běžící proces.
 
-## Delivery in layers
+## Dodávání po vrstvách
 
-Each layer ships on its own and gets used for about a week before the next one
-starts. The order is chosen so the expensive, irreversible step (a native module)
-comes only after the cheap layers have proven the idea.
+Každá vrstva se vydá samostatně a zhruba týden se používá, než začne další. Pořadí je
+zvolené tak, aby drahý a nevratný krok (nativní modul) přišel až ve chvíli, kdy levné
+vrstvy myšlenku ověří.
 
-### L0 — Viewer (done)
+### L0 — Viewer (hotovo)
 
-Tabs, live reload, safe rendering, session restore, Auto/Light/Dark.
+Taby, live reload, bezpečné renderování, obnova session, Auto/Light/Dark.
 
 ### L1 — Split view
 
-Two panes per tab, draggable splitter, per-tab layout persistence. Documents only,
-no shell yet. No new dependencies.
+Dva panely v tabu, tažitelný splitter, ukládání rozložení per tab. Zatím jen
+dokumenty, žádný shell. Bez nových závislostí.
 
-*Done when:* a tab can show two documents side by side and remembers the split
-across restarts.
+*Hotovo, když:* tab umí zobrazit dva dokumenty vedle sebe a rozdělení přežije restart.
 
-### L2 — Terminal pane
+### L2 — Terminálový panel
 
-`node-pty` in the main process, `@xterm/xterm` in the renderer, data over the
-existing preload bridge. The big step: first native dependency, packaging changes,
-keybinding rework.
+`node-pty` v main procesu, `@xterm/xterm` v rendereru, data přes stávající preload
+bridge. Velký krok: první nativní závislost, změny v packagingu, přepracování kláves.
 
-*Done when:* `claude` runs in the left pane, survives resizing, and closing the tab
-kills the process.
+*Hotovo, když:* `claude` běží v levém panelu, přežije změnu velikosti a zavření tabu
+proces ukončí.
 
-### L3 — Tasks
+### L3 — Tasky
 
-Buttons that run a fixed command in the tab's directory, output streamed into a
-pane. Exit code, duration, re-run. Nothing else.
+Tlačítka, která spustí pevně daný příkaz v adresáři tabu, výstup teče do panelu.
+Exit kód, doba běhu, spuštění znovu. Nic dalšího.
 
-*Done when:* build and test run without switching windows.
+*Hotovo, když:* build a testy jdou spustit bez přepínání oken.
 
-### L4 — Drawer
+### L4 — Šuplík
 
-One collapsible panel per tab, closed by default, with a content switcher inside —
-so the base UI gains exactly one element, not five.
+Jeden sbalitelný panel per tab, defaultně zavřený, uvnitř přepínač obsahu — takže
+základní UI získá přesně jeden prvek, ne pět.
 
-- git diff, read-only — what the agent actually changed
-- change feed — which files were touched in the last minutes
-- prompt buffer — compose a long prompt, one key sends it to the terminal
-- log tail
+- git diff, jen ke čtení — co agent reálně změnil
+- feed změn — kterých souborů se za poslední minuty dotkl
+- prompt buffer — složit delší zadání, jednou klávesou poslat do terminálu
+- tail logu
 
-### L5 — Workspace config and command palette
+### L5 — Konfigurace workspace a paleta příkazů
 
-A declarative file in the project root describing panes and tasks:
+Deklarativní soubor v kořeni projektu, který popisuje panely a tasky:
 
 ```json
 {
@@ -117,90 +113,88 @@ A declarative file in the project root describing panes and tasks:
 }
 ```
 
-Commands are strings, never code. Plus `Ctrl+P` for switching tabs, documents,
-tasks and layouts — features get a name, not a button.
+Příkazy jsou řetězce, nikdy ne kód. K tomu `Ctrl+P` pro přepínání tabů, dokumentů,
+tasků a rozložení — funkce dostane jméno, ne tlačítko.
 
-L5 comes last on purpose: hard-code the layout first, and only make declarative the
-three things that turn out to be switched in practice. The other way round produces
-configuration for its own sake.
+L5 je záměrně poslední: nejdřív rozložení natvrdo a teprve pak udělat deklarativní ty
+tři věci, které se v praxi opravdu přepínají. Opačně vzniká konfigurace sama pro sebe.
 
-## The three features that justify building this
+## Tři funkce, které ospravedlňují celou stavbu
 
-Everything else on this list is a reimplementation of an editor. These are not:
+Všechno ostatní na seznamu je reimplementace editoru. Tyhle ne:
 
-1. **Change highlight** — after a live reload, briefly highlight the lines that
-   changed, so you see what the agent just rewrote without rereading the document.
-2. **Tab activity dot** — mark the tab where new output arrived or where the process
-   is waiting for input. Essential the moment several sessions run at once.
-3. **Prompt buffer** — a text field for composing a longer instruction, sent to the
-   terminal with one key. Writing multi-line prompts straight into a TUI is
-   unpleasant.
+1. **Zvýraznění změn** — po live reloadu krátce podbarvit řádky, které se změnily, ať
+   je vidět, co agent právě přepsal, bez čtení celého dokumentu znovu.
+2. **Tečka aktivity na tabu** — označit tab, kam přiteklo něco nového nebo kde proces
+   čeká na vstup. Zásadní ve chvíli, kdy běží několik sessions naráz.
+3. **Prompt buffer** — pole pro složení delšího zadání, odeslané do terminálu jednou
+   klávesou. Psát víceřádkové prompty přímo do TUI je otrava.
 
-Cheap extras in the same spirit, none of which cost a permanent pixel: branch name
-and dirty count in the tab title, and `Ctrl+F` inside a document.
+Levné drobnosti ve stejném duchu, žádná nestojí trvalý pixel: název větve a počet
+změněných souborů v titulku tabu a `Ctrl+F` uvnitř dokumentu.
 
-## Closed feature list
+## Uzavřený seznam funkcí
 
-The finished product is these and nothing more:
+Hotový produkt jsou tyhle věci a nic víc:
 
-| Area   | Feature                                                         |
-| ------ | --------------------------------------------------------------- |
-| Base   | tabs bound to a directory, split panes, layout persistence       |
-| Base   | live Markdown pane (read-only, sanitised)                        |
-| Base   | terminal pane                                                    |
-| Base   | task buttons                                                     |
-| Drawer | git diff (read-only), change feed, prompt buffer, log tail       |
-| Extras | change highlight, activity dot, prompt buffer, `Ctrl+F`, palette |
+| Oblast  | Funkce                                                              |
+| ------- | ------------------------------------------------------------------- |
+| Základ  | taby vázané na adresář, rozdělené panely, ukládání rozložení         |
+| Základ  | živý panel s Markdownem (jen ke čtení, sanitizovaný)                 |
+| Základ  | terminálový panel                                                    |
+| Základ  | tlačítka pro tasky                                                   |
+| Šuplík  | git diff (jen ke čtení), feed změn, prompt buffer, tail logu         |
+| Extra   | zvýraznění změn, tečka aktivity, prompt buffer, `Ctrl+F`, paleta     |
 
-Adding to this list is a decision, not a detail — it needs a line in the decision
-log below.
+Přidání položky na tenhle seznam je rozhodnutí, ne detail — patří k němu řádek
+v decision logu níže.
 
 ## Non-goals
 
-Refused on purpose, because each one is the first step towards the thing this
-project exists to avoid:
+Vědomě odmítnuto, protože každá z těch věcí je první krok k tomu, čemu se projekt
+chce vyhnout:
 
-- a text editor, and a file tree to go with it
-- extensions or plugins; the config stays declarative
-- error parsing from build output and click-through to a line
-- git operations (commit, stage, push) — read-only diff yes, driving git no; the
-  terminal is right there
-- a debugger, language servers, symbol search
-- AI inside the app: the agent stays an external process
-- a settings UI; a config file is enough
+- textový editor a k němu strom souborů
+- rozšíření nebo pluginy; konfigurace zůstane deklarativní
+- parsování chyb z výstupu buildu a proklik na řádek
+- git operace (commit, stage, push) — diff ke čtení ano, ovládání gitu ne; terminál
+  je hned vedle
+- debugger, jazykové servery, hledání symbolů
+- AI uvnitř aplikace: agent zůstává externím procesem
+- UI pro nastavení; konfigurační soubor stačí
 
-## Risks and accepted costs
+## Rizika a přijaté náklady
 
-- **Native module.** `node-pty` means `electron-rebuild`, `asarUnpack` for the
-  binary, and a rebuild on every Electron upgrade. This is the single largest
-  one-off cost and it lands in L2.
-- **The security model changes.** Today the renderer cannot execute anything; the
-  whole design rests on Markdown being display-only. A PTY is by definition an
-  arbitrary-execution channel. Two rules keep the boundary honest: no path from
-  rendered Markdown may reach the PTY (link clicks, images, none of it), and tasks
-  from a project config never run automatically on open — only on an explicit click,
-  with the command visible.
-- **Keybinding conflicts.** `Ctrl+O/W/D` belong to the shell once the terminal has
-  focus. App shortcuts move to `Ctrl+Shift+…`, with routing based on focus.
-- **The terminal will be the weak spot.** xterm.js gets to about 95 %; the remaining
-  5 % — clipboard behaviour, scrollback, mouse selection, resize edge cases, font
-  rendering — is where a dedicated terminal stays better. Accepted knowingly.
-- **Scope creep is the real risk**, not any of the above. The discipline is the
-  product; the code is the easy part.
+- **Nativní modul.** `node-pty` znamená `electron-rebuild`, `asarUnpack` pro binárku
+  a přestavění při každém povýšení Electronu. Je to největší jednorázový náklad
+  a přichází v L2.
+- **Mění se bezpečnostní model.** Dnes renderer nedokáže spustit vůbec nic; celý
+  návrh stojí na tom, že Markdown je jen zobrazovaný obsah. PTY je z definice kanál
+  pro libovolné spuštění kódu. Hranici drží dvě pravidla: z vyrenderovaného Markdownu
+  nesmí vést k PTY žádná cesta (kliknutí na odkaz, obrázky, nic), a tasky
+  z projektové konfigurace se nikdy nespouští automaticky při otevření — jen na
+  explicitní klik a s viditelným příkazem.
+- **Kolize kláves.** `Ctrl+O/W/D` patří shellu ve chvíli, kdy má terminál fokus.
+  Zkratky aplikace se přesunou na `Ctrl+Shift+…` a budou se směrovat podle fokusu.
+- **Terminál bude slabé místo.** xterm.js dojde zhruba na 95 %; zbylých 5 % —
+  chování schránky, scrollback, výběr myší, hraniční případy při změně velikosti,
+  vykreslování fontu — je tam, kde zůstane dedikovaný terminál lepší. Přijato vědomě.
+- **Skutečným rizikem je rozlézání rozsahu**, ne nic z výše uvedeného. Disciplína je
+  ten produkt; kód je ta snadná část.
 
-## Maintenance policy
+## Pravidla údržby
 
-- Electron is pinned and upgraded deliberately, twice a year, not on every
+- Electron je zamčený na verzi a povyšuje se vědomě dvakrát ročně, ne při každém
   `npm outdated`.
-- Dependencies stay countable on one hand. A new one needs a reason written down.
-- Every layer must leave the app usable. No half-migrated states between releases.
+- Závislosti se dají spočítat na prstech jedné ruky. Nová potřebuje sepsaný důvod.
+- Každá vrstva musí nechat aplikaci použitelnou. Žádné rozpracované mezistavy mezi
+  vydáními.
 
 ## Decision log
 
-- **2026-08-18** — Build this rather than adopt VS Code or Cursor. Reason: the agent
-  is external, so the app only has to be a window; what is wanted is four things in
-  a small window plus three agent-supervision features that no editor provides.
-  Accepted cost: ~3 days now, a few hours of maintenance per year, a rougher
-  terminal.
-- **2026-08-18** — Layer order fixed as L1 → L2 → L3 → L4 → L5, with about a week of
-  real use between layers. Config file deliberately last.
+- **18. 8. 2026** — Postavit to vlastními silami místo nasazení VS Code nebo Cursoru.
+  Důvod: agent je externí, takže aplikace musí být jen okno; chtěné jsou čtyři věci
+  v malém okně plus tři funkce pro dohled nad agentem, které žádný editor nemá.
+  Přijatý náklad: ~3 dny teď, pár hodin údržby ročně, hrubší terminál.
+- **18. 8. 2026** — Pořadí vrstev pevně L1 → L2 → L3 → L4 → L5, mezi vrstvami zhruba
+  týden reálného používání. Konfigurační soubor záměrně až nakonec.
