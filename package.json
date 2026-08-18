@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
+    "test": "node --test \"test/**/*.test.ts\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "compile": "electron-vite build",
     "build": "electron-vite build && electron-builder --win",

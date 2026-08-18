@@ -63,6 +63,7 @@ vrstvy myšlenku ověří.
 ### L0 — Viewer (hotovo)
 
 Taby, live reload, bezpečné renderování, obnova session, Auto/Light/Dark.
+Plus zvýraznění změn, viz decision log ze 18. 8. 2026.
 
 ### L1 — Split view
 
@@ -123,8 +124,10 @@ tři věci, které se v praxi opravdu přepínají. Opačně vzniká konfigurace
 
 Všechno ostatní na seznamu je reimplementace editoru. Tyhle ne:
 
-1. **Zvýraznění změn** — po live reloadu krátce podbarvit řádky, které se změnily, ať
-   je vidět, co agent právě přepsal, bez čtení celého dokumentu znovu.
+1. **Zvýraznění změn** (hotovo) - po live reloadu krátce podbarvit bloky, které se
+   změnily, ať je vidět, co agent právě přepsal, bez čtení celého dokumentu znovu.
+   Granularita je blok, ne slovo, a změna mimo viditelnou část dokumentu se neohlásí.
+   Na to druhé je odpověď tečka aktivity, ne autoscroll.
 2. **Tečka aktivity na tabu** — označit tab, kam přiteklo něco nového nebo kde proces
    čeká na vstup. Zásadní ve chvíli, kdy běží několik sessions naráz.
 3. **Prompt buffer** — pole pro složení delšího zadání, odeslané do terminálu jednou
@@ -189,6 +192,10 @@ chce vyhnout:
 - Závislosti se dají spočítat na prstech jedné ruky. Nová potřebuje sepsaný důvod.
 - Každá vrstva musí nechat aplikaci použitelnou. Žádné rozpracované mezistavy mezi
   vydáními.
+- Co je čistá funkce svého vstupu, má test: `npm test`. Dnes je to diff a renderer
+  Markdownu včetně escapovacích pravidel, na kterých stojí bezpečnostní model.
+  UI se ověřuje rukou, a to v `build:dir`, ne v `dev`, protože packaging je to místo,
+  kde se rozbije nativní modul a cesty k assetům.
 
 ## Decision log
 
@@ -198,3 +205,12 @@ chce vyhnout:
   Přijatý náklad: ~3 dny teď, pár hodin údržby ročně, hrubší terminál.
 - **18. 8. 2026** — Pořadí vrstev pevně L1 → L2 → L3 → L4 → L5, mezi vrstvami zhruba
   týden reálného používání. Konfigurační soubor záměrně až nakonec.
+- **18. 8. 2026** - Testy dělané Node runnerem (`node:test`) nad `.ts` přímo.
+  Důvod: nula nových závislostí, což drží pravidlo o závislostech na prstech jedné ruky.
+  Pokrývají se jen čisté funkce; DOM se nechává na ruční průchod, protože DOM harness
+  by byla první skutečná testovací závislost.
+- **18. 8. 2026** - Zvýraznění změn dodáno nad L0, tedy před L1.
+  Důvod: ze tří funkcí, které stavbu ospravedlňují, neměla žádná svou vrstvu, takže
+  hrozilo, že se odpracují L1 až L3 a zbyde horší VS Code bez toho, proč se to staví.
+  Tahle jde postavit bez nových závislostí a bez terminálu, tak jde první.
+  Zbývají tečka aktivity na tabu a prompt buffer; ten druhý potřebuje L2.

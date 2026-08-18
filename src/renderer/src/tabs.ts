@@ -5,6 +5,10 @@ export type Tab = {
   error: string | null
   scrollTop: number
   updatedAt: number | null
+  /** Last content seen on disk; kept so the next reload can be diffed against it. */
+  source: string | null
+  /** A reload produced changed blocks that have not been shown to the user yet. */
+  pendingFlash: boolean
 }
 
 export type TabHandlers = {

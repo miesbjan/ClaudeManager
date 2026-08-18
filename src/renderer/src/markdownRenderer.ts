@@ -1,10 +1,14 @@
 import MarkdownIt from 'markdown-it'
+import type Token from 'markdown-it/lib/token.mjs'
 import hljs from 'highlight.js/lib/common'
 
 type CoreRule = Parameters<MarkdownIt['core']['ruler']['after']>[2]
 
 /** Directory of the document being rendered; used to resolve relative assets. */
 let baseDir = ''
+
+/** Lines (0-based, as in `token.map`) that changed since the last render. */
+let changedLines: Set<number> | null = null
 
 const md: MarkdownIt = new MarkdownIt({
   // Raw HTML in the Markdown source is escaped, never parsed. Together with the
@@ -13,16 +17,17 @@ const md: MarkdownIt = new MarkdownIt({
   linkify: true,
   breaks: false,
   typographer: false,
+  // Returns the highlighted body only; the surrounding <pre> is built by the fence
+  // renderer below, which is the one place that knows the block's attributes.
   highlight: (code, lang) => {
     if (lang && hljs.getLanguage(lang)) {
       try {
-        const value = hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
-        return `<pre class="hljs"><code class="language-${md.utils.escapeHtml(lang)}">${value}</code></pre>`
+        return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value
       } catch {
         // fall through to plain rendering
       }
     }
-    return `<pre class="hljs"><code>${md.utils.escapeHtml(code)}</code></pre>`
+    return md.utils.escapeHtml(code)
   }
 })
 
@@ -72,8 +77,81 @@ const headingIds: CoreRule = (state) => {
   }
 }
 
+/**
+ * Tag the blocks holding changed lines so a live reload can briefly show what the
+ * writer on the other side rewrote.
+ *
+ * Only leaf-level blocks are tagged: tinting a blockquote *and* the paragraph inside
+ * it would stack two backgrounds on the same text. Tight list items are the one
+ * special case - markdown-it marks their paragraphs `hidden`, so those render no
+ * element to carry the class and the enclosing `<li>` is tagged instead.
+ */
+const LEAF_BLOCKS = new Set([
+  'paragraph_open',
+  'heading_open',
+  'fence',
+  'code_block',
+  'hr',
+  'tr_open'
+])
+
+const markChanges: CoreRule = (state) => {
+  const lines = changedLines
+  if (!lines || lines.size === 0) return
+
+  const tokens = state.tokens
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i]
+    if (!token.map || !LEAF_BLOCKS.has(token.type)) continue
+    if (!touchesChange(token.map, lines)) continue
+
+    const target =
+      token.type === 'paragraph_open' && token.hidden ? enclosingListItem(tokens, i) : token
+    target?.attrJoin('class', 'md-changed')
+  }
+}
+
+/** `map` is [firstLine, lastLine + 1) over the source. */
+function touchesChange(map: [number, number], lines: Set<number>): boolean {
+  for (let line = map[0]; line < map[1]; line++) if (lines.has(line)) return true
+  return false
+}
+
+function enclosingListItem(tokens: Token[], index: number): Token | null {
+  let depth = 0
+  for (let i = index - 1; i >= 0; i--) {
+    const type = tokens[i].type
+    if (type === 'list_item_close') depth++
+    else if (type === 'list_item_open') {
+      if (depth === 0) return tokens[i]
+      depth--
+    }
+  }
+  return null
+}
+
 md.core.ruler.after('inline', 'task-lists', taskLists)
 md.core.ruler.push('heading-ids', headingIds)
+md.core.ruler.push('mark-changes', markChanges)
+
+/**
+ * markdown-it's own fence renderer puts token attributes on the inner <code> and
+ * returns early whenever `highlight` hands back a <pre>, so neither the hljs theme
+ * class nor a change marker can reach the <pre>. Building the block here keeps both
+ * on the element that actually carries the background.
+ */
+md.renderer.rules.fence = (tokens, idx, options) => {
+  const token = tokens[idx]
+  const lang = token.info.trim().split(/\s+/)[0]
+  const preClass = ['hljs', token.attrGet('class')].filter(Boolean).join(' ')
+  const codeClass =
+    lang && hljs.getLanguage(lang) ? ` class="language-${md.utils.escapeHtml(lang)}"` : ''
+  const body = options.highlight
+    ? options.highlight(token.content, lang, '')
+    : md.utils.escapeHtml(token.content)
+  return `<pre class="${preClass}"><code${codeClass}>${body}</code></pre>
+`
+}
 
 const defaultImage = md.renderer.rules.image
 md.renderer.rules.image = (tokens, idx, options, env, self) => {
@@ -128,8 +206,17 @@ function toAssetUrl(dir: string, src: string): string {
   return `mdasset://local/${path.split('/').map(encodeURIComponent).join('/')}`
 }
 
-/** Render Markdown to sanitised HTML, resolving assets relative to `dir`. */
-export function renderMarkdown(source: string, dir: string): string {
+/**
+ * Render Markdown to sanitised HTML, resolving assets relative to `dir`.
+ * `changed` holds 0-based source line indices (see ./diff); the blocks containing
+ * them get `class="md-changed"` so the stylesheet can flash them.
+ */
+export function renderMarkdown(source: string, dir: string, changed?: Set<number> | null): string {
   baseDir = dir
-  return md.render(source)
+  changedLines = changed ?? null
+  try {
+    return md.render(source)
+  } finally {
+    changedLines = null
+  }
 }

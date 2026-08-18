@@ -23,7 +23,22 @@ npm run build:dir    # unpacked app only (faster, for smoke tests)
 ```
 
 Other scripts: `npm run compile` (bundle without packaging), `npm start`
-(run the bundled app), `npm run typecheck`.
+(run the bundled app), `npm run typecheck`, `npm test`.
+
+## Tests
+
+```bash
+npm test
+```
+
+Node's own test runner over the `.ts` files directly, so there is no test framework
+and no build step in the way. It covers the two pieces that are pure functions of
+their input: the line diff and the Markdown renderer, including the escaping rules the
+security model depends on. The tab wiring is not covered - it is DOM code, and a DOM
+harness would be the first real test dependency.
+
+Test files import with an explicit `.ts` extension because Node resolves modules that
+way; the app's own imports stay extensionless, since a bundler resolves those.
 
 ### If packaging fails with "Cannot create symbolic link"
 
@@ -65,6 +80,13 @@ Files passed on the command line are opened too, so the app works as a handler f
   (`awaitWriteFinish` + `atomic`, so partial writes and write-temp-then-rename
   saves are handled). An mtime/size poll every 1.5 s is a fallback for events the
   OS watcher drops, e.g. on network shares. Scroll position survives a reload.
+- **Change highlight.** After a reload the blocks that were rewritten hold a tint
+  and a left bar for five seconds, so it is visible at a glance what the other writer
+  touched. The diff is computed on the source lines and mapped back to the blocks
+  they belong to, so a paragraph, list item, table row or code fence lights up as a
+  whole. A deletion marks the block that closed over the gap. The flash is shown
+  once: a tab that changed in the background flashes when it is next opened, and
+  switching away and back does not replay it.
 - **Deleted files** stay open and marked *unavailable*; they reload by themselves
   if the file reappears.
 - **Duplicate names.** Tabs show the file name, extended with as many parent
@@ -110,10 +132,14 @@ src/
     index.html       CSP + minimal shell markup
     src/main.ts      UI wiring: tabs, live reload, shortcuts, drag & drop
     src/tabs.ts      tab bar rendering + duplicate-name labelling
+    src/diff.ts      line diff behind the change highlight
     src/markdownRenderer.ts  markdown-it setup, highlighting, task lists, assets
     src/styles.css   document + chrome styling, light and dark
   shared/
     types.ts         types shared across the three processes
+test/
+  diff.test.ts               line diff, including the coarse fallback boundary
+  markdownRenderer.test.ts   change marking, rendering, escaping, path resolution
 ```
 
 `examples/sample.md` exercises every supported Markdown feature — useful for

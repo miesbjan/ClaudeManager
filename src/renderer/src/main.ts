@@ -1,5 +1,6 @@
 import 'highlight.js/styles/github.css'
 import './styles.css'
+import { changedLines } from './diff'
 import { renderMarkdown } from './markdownRenderer'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
 import type { Theme } from '../../shared/types'
@@ -44,7 +45,16 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       target = existing
       continue
     }
-    const tab: Tab = { path, dir: '', html: '', error: null, scrollTop: 0, updatedAt: null }
+    const tab: Tab = {
+      path,
+      dir: '',
+      html: '',
+      error: null,
+      scrollTop: 0,
+      updatedAt: null,
+      source: null,
+      pendingFlash: false
+    }
     tabs.push(tab)
     target = tabs.length - 1
     await loadTab(tab)
@@ -56,14 +66,26 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
   persistSession()
 }
 
-async function loadTab(tab: Tab): Promise<void> {
+/**
+ * `diff` is off for the first load of a file - every block would count as changed.
+ * On a reload it is on, so the blocks the other writer touched can be flashed.
+ * `tab.source` survives an unavailable file on purpose: when it reappears, the
+ * diff is against what the user last saw, not against nothing.
+ */
+async function loadTab(tab: Tab, diff = false): Promise<void> {
   const result = await window.api.readFile(tab.path)
   tab.path = result.path
   tab.dir = result.dir
   if (result.ok) {
-    tab.html = renderMarkdown(result.content, result.dir)
+    const changed =
+      diff && tab.source !== null && tab.source !== result.content
+        ? changedLines(tab.source, result.content)
+        : null
+    tab.source = result.content
+    tab.html = renderMarkdown(result.content, result.dir, changed)
     tab.error = null
     tab.updatedAt = Date.now()
+    if (changed && changed.size > 0) tab.pendingFlash = true
   } else {
     tab.html = ''
     tab.error = result.error
@@ -110,8 +132,16 @@ function render(): void {
   empty.hidden = true
   content.hidden = false
 
-  if (tab.error) renderError(tab)
-  else content.innerHTML = tab.html
+  if (tab.error) {
+    renderError(tab)
+  } else {
+    // The class has to be in place before the markup is inserted, otherwise the
+    // fade animation does not start. Clearing it when nothing is pending is what
+    // keeps a plain tab switch from replaying an old flash.
+    content.classList.toggle('flash-changes', tab.pendingFlash)
+    tab.pendingFlash = false
+    content.innerHTML = tab.html
+  }
 
   viewer.scrollTop = tab.scrollTop
   document.title = baseName(tab.path) + ' - Markdown Viewer'
@@ -170,7 +200,7 @@ function scheduleReload(path: string): void {
 async function reloadPath(path: string): Promise<void> {
   const index = indexOfPath(path)
   if (index < 0) return
-  await loadTab(tabs[index])
+  await loadTab(tabs[index], true)
   // Only the visible document needs repainting; the rest refresh on switch.
   if (index === activeIndex) render()
   else renderTabBar(tabbar, tabs, activeIndex, tabHandlers)

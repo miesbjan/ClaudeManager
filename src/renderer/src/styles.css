@@ -10,6 +10,7 @@
   --code-bg: #f3f4f6;
   --quote-border: #d0d7de;
   --danger: #b42318;
+  --change: #b45309;
   --font-ui: "Segoe UI", system-ui, sans-serif;
   --font-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
 }
@@ -27,6 +28,7 @@
     --code-bg: #22262e;
     --quote-border: #3a414c;
     --danger: #ff9a92;
+    --change: #fbbf24;
   }
 }
 
@@ -424,6 +426,63 @@ body.dragging::after {
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--code-bg);
+}
+
+/* ---------- changed blocks ---------- */
+
+/*
+ * After a live reload the blocks another writer rewrote hold a tint for a moment and
+ * then fade back to normal. Only colour is animated - never padding, border width or
+ * margin - so nothing the user is reading moves under the cursor.
+ *
+ * There is deliberately no `animation-fill-mode`: when the animation ends each
+ * element falls back to its ordinary style, which is how a table header gets its
+ * own background back instead of being left transparent.
+ *
+ * The class stays on the elements after the fade; the flash is armed by
+ * `.flash-changes` on the container for exactly one paint, so switching tabs and
+ * coming back does not replay it.
+ */
+/* An ordinary block carries both halves of the effect. */
+#content.flash-changes .md-changed:not(tr) {
+  animation:
+    change-tint 5s ease-out,
+    change-bar 5s ease-out;
+  border-radius: 2px;
+}
+
+/*
+ * A table row splits them: the tint goes on the cells, because a header cell has a
+ * background of its own that would hide a tint on the row, and the bar stays on the
+ * row so it is drawn once instead of once per cell.
+ */
+#content.flash-changes tr.md-changed {
+  animation: change-bar 5s ease-out;
+}
+
+#content.flash-changes tr.md-changed > th,
+#content.flash-changes tr.md-changed > td {
+  animation: change-tint 5s ease-out;
+}
+
+@keyframes change-tint {
+  0%,
+  30% {
+    background: color-mix(in srgb, var(--change) 20%, transparent);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+@keyframes change-bar {
+  0%,
+  30% {
+    box-shadow: inset 3px 0 0 var(--change);
+  }
+  100% {
+    box-shadow: inset 3px 0 0 transparent;
+  }
 }
 
 /* highlight.js: the bundled theme is light, so recolour the tokens for dark mode */
