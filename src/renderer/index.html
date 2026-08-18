@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: mdasset:; font-src 'self' data:; connect-src 'self' ws:; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'"
+    />
+    <title>Markdown Viewer</title>
+  </head>
+  <body>
+    <header id="toolbar">
+      <button id="open-btn" class="toolbar-btn" type="button">+ Open Markdown</button>
+      <button id="theme-btn" class="toolbar-btn" type="button" title="Switch theme (Ctrl+D)">
+        Theme: Auto
+      </button>
+      <span id="hint">Ctrl+O open · Ctrl+W close · Ctrl+Tab next · drop .md files here</span>
+    </header>
+
+    <nav id="tabbar"></nav>
+
+    <main id="viewer">
+      <article id="content" class="markdown-body" hidden></article>
+      <div id="empty">
+        <p><strong>No document open.</strong></p>
+        <p>Press <kbd>Ctrl</kbd>+<kbd>O</kbd>, use <em>+ Open Markdown</em>, or drop a <code>.md</code> file into this window.</p>
+      </div>
+    </main>
+
+    <footer id="statusbar">No file open</footer>
+
+    <div id="ctxmenu" hidden></div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

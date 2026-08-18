@@ -1,0 +1,30 @@
+{
+  "name": "md-viewer",
+  "version": "1.0.0",
+  "description": "Minimal live Markdown viewer with tabs and external-change auto reload",
+  "main": "./out/main/index.js",
+  "private": true,
+  "author": "you@example.com",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "compile": "electron-vite build",
+    "build": "electron-vite build && electron-builder --win",
+    "build:dir": "electron-vite build && electron-builder --win --dir"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^22.10.2",
+    "electron": "^33.3.1",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.1.0",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  }
+}

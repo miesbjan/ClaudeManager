@@ -1,0 +1,224 @@
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron'
+import { readFile, stat } from 'node:fs/promises'
+import { dirname, join, normalize } from 'node:path'
+import { pathToFileURL } from 'node:url'
+import { FileWatcher } from './fileWatcher'
+import { loadState, saveState, type AppState } from './store'
+import type { FileReadResult, SessionState, StartupPayload, Theme } from '../shared/types'
+
+const MD_PATTERN = /\.(md|markdown|mdown|mkd|mdx)$/i
+const DEV_URL = process.env['ELECTRON_RENDERER_URL']
+
+/**
+ * Images referenced from Markdown live next to the document, anywhere on disk.
+ * A tiny custom scheme lets the renderer load them without `file://` access and
+ * works identically in dev (http origin) and in the packaged app.
+ */
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'mdasset', privileges: { standard: true, secure: true, supportFetchAPI: true } }
+])
+
+// Keeps the session file at %APPDATA%/md-viewer/state.json in dev and packaged runs.
+app.setName('md-viewer')
+
+let win: BrowserWindow | null = null
+let watcher: FileWatcher | null = null
+
+const state: AppState = loadState()
+let session: SessionState = { files: state.files, active: state.active }
+const cliFiles = collectMarkdownArgs(process.argv)
+let saveTimer: NodeJS.Timeout | null = null
+
+function collectMarkdownArgs(argv: string[]): string[] {
+  return argv.slice(1).filter((arg) => !arg.startsWith('-') && MD_PATTERN.test(arg))
+}
+
+function persistSoon(): void {
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(persistNow, 400)
+  saveTimer.unref?.()
+}
+
+function persistNow(): void {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  if (win && !win.isDestroyed()) {
+    state.maximized = win.isMaximized()
+    if (!state.maximized) state.bounds = win.getBounds()
+  }
+  state.files = session.files
+  state.active = session.active
+  saveState(state)
+}
+
+/** 'system' hands the choice back to Windows; light/dark force the palette. */
+function applyTheme(theme: Theme): void {
+  state.theme = theme
+  nativeTheme.themeSource = theme
+}
+
+function openExternal(url: string): void {
+  if (/^(https?|mailto):/i.test(url)) void shell.openExternal(url)
+}
+
+function createWindow(): void {
+  win = new BrowserWindow({
+    width: state.bounds?.width ?? 900,
+    height: state.bounds?.height ?? 700,
+    x: state.bounds?.x,
+    y: state.bounds?.y,
+    show: false,
+    // Matches the renderer's prefers-color-scheme palette, so there is no flash.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#16181d' : '#ffffff',
+    title: 'Markdown Viewer',
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      spellcheck: false
+    }
+  })
+
+  if (state.maximized) win.maximize()
+  win.once('ready-to-show', () => win?.show())
+
+  // Rendered Markdown must never navigate the app or spawn windows.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    openExternal(url)
+    return { action: 'deny' }
+  })
+  win.webContents.on('will-navigate', (event, url) => {
+    const isAppUrl = DEV_URL ? url.startsWith(DEV_URL) : url.startsWith('file://')
+    if (isAppUrl) return
+    event.preventDefault()
+    openExternal(url)
+  })
+  win.webContents.on('before-input-event', (_event, input) => {
+    if (input.type === 'keyDown' && input.key === 'F12') win?.webContents.toggleDevTools()
+  })
+
+  win.on('close', persistNow)
+  win.on('closed', () => {
+    win = null
+  })
+
+  if (DEV_URL) void win.loadURL(DEV_URL)
+  else void win.loadFile(join(__dirname, '../renderer/index.html'))
+}
+
+function registerIpc(): void {
+  ipcMain.handle('dialog:open', async (): Promise<string[]> => {
+    if (!win) return []
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Open Markdown file',
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'mdx'] },
+        { name: 'All files', extensions: ['*'] }
+      ]
+    })
+    return result.canceled ? [] : result.filePaths
+  })
+
+  ipcMain.handle('file:read', async (_event, path: string): Promise<FileReadResult> => {
+    const full = normalize(path)
+    const dir = dirname(full)
+    try {
+      const info = await stat(full)
+      if (!info.isFile()) return { ok: false, path: full, dir, error: 'Not a file' }
+      const content = await readFile(full, 'utf8')
+      return { ok: true, path: full, dir, content, mtimeMs: info.mtimeMs }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      return { ok: false, path: full, dir, error: message }
+    }
+  })
+
+  ipcMain.handle('watch:add', (_event, path: string) => {
+    watcher?.add(normalize(path))
+  })
+
+  ipcMain.handle('watch:remove', (_event, path: string) => {
+    watcher?.remove(normalize(path))
+  })
+
+  ipcMain.handle('startup:files', (): StartupPayload => {
+    const files = [...session.files]
+    for (const file of cliFiles) if (!files.includes(file)) files.push(file)
+    const active = cliFiles[cliFiles.length - 1] ?? session.active
+    return { files, active, theme: state.theme }
+  })
+
+  ipcMain.handle('theme:set', (_event, theme: Theme) => {
+    applyTheme(theme)
+    persistSoon()
+  })
+
+  ipcMain.on('session:save', (_event, next: SessionState) => {
+    session = {
+      files: Array.isArray(next?.files) ? next.files : [],
+      active: typeof next?.active === 'string' ? next.active : null
+    }
+    persistSoon()
+  })
+
+  ipcMain.handle('shell:external', (_event, url: string) => {
+    openExternal(url)
+  })
+
+  ipcMain.handle('shell:reveal', (_event, path: string) => {
+    shell.showItemInFolder(normalize(path))
+  })
+}
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, argv) => {
+    const files = collectMarkdownArgs(argv)
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.focus()
+      if (files.length > 0) win.webContents.send('files:open', files)
+    }
+  })
+
+  app.whenReady().then(() => {
+    protocol.handle('mdasset', async (request) => {
+      try {
+        const url = new URL(request.url)
+        const local = decodeURIComponent(url.pathname).replace(/^\/+/, '')
+        return await net.fetch(pathToFileURL(local).toString())
+      } catch {
+        return new Response('Not found', { status: 404 })
+      }
+    })
+
+    watcher = new FileWatcher((event) => {
+      if (win && !win.isDestroyed()) win.webContents.send('file:event', event)
+    })
+
+    // No application menu: keeps the UI minimal and leaves Ctrl+O/W/Tab to the renderer.
+    Menu.setApplicationMenu(null)
+    applyTheme(state.theme)
+
+    registerIpc()
+    createWindow()
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  })
+
+  app.on('window-all-closed', () => {
+    app.quit()
+  })
+
+  app.on('before-quit', () => {
+    persistNow()
+    void watcher?.dispose()
+  })
+}
