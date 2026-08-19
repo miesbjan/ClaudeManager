@@ -106,6 +106,15 @@ export function renderTabBar(
     close.type = 'button'
     close.textContent = '×'
     close.title = 'Close tab (Ctrl+W)'
+    /*
+     * The tab selects itself on mousedown, which happens before the button's click.
+     * Without stopping it there, closing a tab you are not looking at would switch
+     * to it first and only then close it.
+     */
+    close.addEventListener('mousedown', (event) => {
+      event.stopPropagation()
+      event.preventDefault()
+    })
     close.addEventListener('click', (event) => {
       event.stopPropagation()
       handlers.onClose(index)
