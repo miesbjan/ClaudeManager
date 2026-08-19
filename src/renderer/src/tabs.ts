@@ -33,6 +33,10 @@ export type Tab = {
   project: ProjectInfo | null
   /** Which of the project's run commands was chosen here. */
   runCommand: string | null
+  /** Address of the dev server belonging to this document, once one is known. */
+  webUrl: string | null
+  /** Whether the right pane currently shows that server instead of the document. */
+  showWeb: boolean
 }
 
 export type TabHandlers = {

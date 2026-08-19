@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: mdasset:; font-src 'self' data:; connect-src 'self' ws:; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: mdasset:; frame-src http://localhost:* http://127.0.0.1:*; font-src 'self' data:; connect-src 'self' ws:; base-uri 'none'; form-action 'none'; object-src 'none'"
     />
     <title>Markdown Viewer</title>
   </head>
@@ -13,6 +13,9 @@
       <button id="open-btn" class="toolbar-btn" type="button">+ Open Markdown</button>
       <button id="shell-btn" class="toolbar-btn" type="button" title="Toggle shell pane (Ctrl+`)">
         Shell
+      </button>
+      <button id="web-btn" class="toolbar-btn" type="button" title="Show the dev server (Alt+W)" hidden>
+        Web
       </button>
       <button id="theme-btn" class="toolbar-btn" type="button" title="Switch theme (Ctrl+D)">
         Theme: Auto
@@ -34,6 +37,18 @@
         <div id="term-hosts"></div>
       </section>
       <div id="splitter" hidden></div>
+      <section id="web-pane" hidden>
+        <div id="web-bar">
+          <input id="web-url" type="text" spellcheck="false" placeholder="localhost:3000" />
+          <button id="web-reload" class="find-btn" type="button" title="Reload">↻</button>
+        </div>
+        <iframe
+          id="web-frame"
+          title="Local preview"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        ></iframe>
+      </section>
+
       <section id="viewer" tabindex="-1">
         <article id="content" class="markdown-body" hidden></article>
         <div id="empty">

@@ -26,7 +26,8 @@ export const SHORTCUTS: HelpSection[] = [
       { keys: 'Alt+← / Alt+→', action: 'focus the pane in that direction' },
       { keys: 'Alt+1 / Alt+2', action: 'focus the shell / the document' },
       { keys: 'Alt+Shift+← / →', action: 'move the divider' },
-      { keys: 'Alt+Z', action: 'zoom the focused pane, and back' }
+      { keys: 'Alt+Z', action: 'zoom the focused pane, and back' },
+      { keys: 'Alt+W', action: 'show the dev server instead of the document' }
     ]
   },
   {

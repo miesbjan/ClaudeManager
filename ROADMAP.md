@@ -95,6 +95,16 @@ seznam appek a volbu si u toho dokumentu zapamatuje.
 Původní návrh (vlastní panel, exit kód, doba běhu, správa procesu) se nekonal — viz
 decision log z 19. 8. 2026.
 
+### L3b — Webový panel (hotovo)
+
+Pravý panel umí místo dokumentu ukázat běžící dev server. Adresu si vezme z výpisu
+shellu, když ji server vypíše, takže není co nastavovat; jde ji i napsat ručně.
+Povolený je jen tenhle stroj, iframe je v sandboxu a CSP pouští do rámu pouze
+localhost. `Alt+W` přepíná.
+
+Tím vznikla ta smyčka, o kterou šlo: vlevo běží aplikace, vpravo se na ni koukáš,
+dokument je na jedno kliknutí zpátky.
+
 ### L4 — Šuplík
 
 Jeden sbalitelný panel per tab, defaultně zavřený, uvnitř přepínač obsahu — takže
@@ -155,6 +165,7 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Základ  | živý panel s Markdownem (jen ke čtení, sanitizovaný)                 |
 | Základ  | terminálový panel                                                    |
 | Základ  | tlačítko na spuštění projektu                                        |
+| Základ  | webový panel na localhost místo dokumentu                            |
 | Šuplík  | feed změn, prompt buffer, tail logu                                  |
 | Extra   | zvýraznění změn, tečka aktivity, prompt buffer, `Ctrl+F`, paleta     |
 
@@ -225,6 +236,14 @@ chce vyhnout:
 - **19. 8. 2026** — Shell se odvozuje z dokumentu (`cwd` = jeho adresář), model
   „tab = adresář“ zůstává nedodělaný. Je to menší krok se stejným užitkem; plný model
   přijde, až bude potřeba tab bez dokumentu.
+- **19. 8. 2026** — Přibyl webový panel, tedy třetí typ obsahu vedle shellu
+   a dokumentu. Je to rozšíření uzavřeného seznamu, ale dokončuje původní záměr:
+   spustit rozdělanou aplikaci a rovnou ji proklikat, aniž bys šel do prohlížeče.
+   Omezení na localhost není dočasné — panel, který by uměl načíst cokoli, je jiná
+   aplikace a bezpečnostní model by tím padl.
+- **19. 8. 2026** — Adresa se čte z výpisu dev serveru, nekonfiguruje se. Stejný
+   princip jako u tečky aktivity: co program sám řekne, je přesnější než co bychom
+   hádali nebo nutili uživatele opisovat.
 - **19. 8. 2026** — L3 se scvrkla z „tasků“ na **jedno tlačítko Run**. Zadání znělo:
    v 99 % nejde o build a test zvlášť, ale o proklikat aktuální stav aplikace. Task je
    navíc jen pojmenovaný příkaz — a shell v tabu už je, takže se pošle do něj a výstup,

@@ -26,6 +26,10 @@ export type PaneState = {
   ratio: number
   /** The run command chosen for this document, when the project offers several. */
   run?: string | null
+  /** Address of the dev server seen for this document. */
+  web?: string | null
+  /** Whether the right pane was showing that server. */
+  showWeb?: boolean
 }
 
 /** The project a document belongs to, and the single command that runs it. */

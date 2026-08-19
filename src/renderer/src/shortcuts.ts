@@ -11,6 +11,7 @@ export type PaneCommand =
   | { type: 'focusIndex'; index: 1 | 2 }
   | { type: 'zoom' }
   | { type: 'resize'; delta: number }
+  | { type: 'web' }
 
 /** One keyboard step of the divider. */
 export const RESIZE_STEP = 0.05
@@ -42,7 +43,10 @@ export function paneCommand(event: KeyLike): PaneCommand | null {
   if (event.code === 'Digit2') return { type: 'focusIndex', index: 2 }
 
   // Letters come from the label instead, so Alt+Z is the key marked Z on a QWERTZ.
-  if (event.key.toLowerCase() === 'z') return { type: 'zoom' }
+  const letter = event.key.toLowerCase()
+  if (letter === 'z') return { type: 'zoom' }
+  // Alt, not Ctrl+Shift+W: that already means "close the tab" from inside the shell.
+  if (letter === 'w') return { type: 'web' }
 
   return null
 }

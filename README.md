@@ -103,6 +103,7 @@ panes**, with tmux's arrows and `z`:
 | `Alt+1` / `Alt+2`         | focus the shell / the document            |
 | `Alt+Shift+←` / `Alt+Shift+→` | move the divider by 5 %               |
 | `Alt+Z`                   | zoom the focused pane to the whole tab, and back |
+| `Alt+W`                   | show the dev server instead of the document |
 
 These are the only keys taken from the shell, the way tmux takes a prefix; Alt with
 arrows, digits or `z` is unused by PowerShell and the TUIs that run in it.
@@ -137,6 +138,13 @@ Files passed on the command line are opened too, so the app works as a handler f
   button offers the list and remembers the choice for that document. There is
   deliberately no build or test button: running builds first anyway, and everything
   else is a command you type into the shell that is already there.
+- **Web pane.** When a dev server prints its address, the app picks it up from the
+  shell output - Vite's `Local: http://localhost:5173/` and the rest - and `Alt+W`
+  puts that page in the right pane in place of the document. Nothing to configure;
+  an address can also be typed into the pane's bar for a server started elsewhere.
+  Only addresses on this machine are accepted: a pane that could load any URL would
+  be a different application. The frame is sandboxed and the CSP allows framing
+  `localhost` alone.
 - **Shell pane.** ``Ctrl+` `` splits the tab: a shell on the left, the document on
   the right, with a divider that moves by mouse or by keyboard. Either pane can be
   zoomed to the whole tab and back. The shell starts in the document's own

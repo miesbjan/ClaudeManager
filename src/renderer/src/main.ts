@@ -17,6 +17,7 @@ import {
   stepIndex
 } from './find'
 import { renderShortcuts } from './help'
+import { normalizeUrl, sniffLocalUrl } from './web'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { paneCommand, type PaneCommand } from './shortcuts'
 import { TerminalPane } from './terminal'
@@ -39,6 +40,10 @@ const terminalPane = document.getElementById('terminal-pane') as HTMLElement
 const termHosts = document.getElementById('term-hosts') as HTMLElement
 const runButton = document.getElementById('run-btn') as HTMLButtonElement
 const shellProject = document.getElementById('shell-project') as HTMLElement
+const webButton = document.getElementById('web-btn') as HTMLButtonElement
+const webPane = document.getElementById('web-pane') as HTMLElement
+const webFrame = document.getElementById('web-frame') as HTMLIFrameElement
+const webUrlInput = document.getElementById('web-url') as HTMLInputElement
 const splitter = document.getElementById('splitter') as HTMLElement
 const tabbar = document.getElementById('tabbar') as HTMLElement
 const viewer = document.getElementById('viewer') as HTMLElement
@@ -95,7 +100,9 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       zoom: null,
       activity: 'idle',
       project: null,
-      runCommand: null
+      runCommand: null,
+      webUrl: null,
+      showWeb: false
     }
     tabs.push(tab)
     target = tabs.length - 1
@@ -241,7 +248,9 @@ function persistSession(): void {
     panesState[tab.path] = {
       terminal: tab.terminalOpen,
       ratio: tab.ratio,
-      run: tab.runCommand
+      run: tab.runCommand,
+      web: tab.webUrl,
+      showWeb: tab.showWeb
     }
   }
   window.api.saveSession({
@@ -474,6 +483,7 @@ window.api.terminal.onData(({ id, data }) => {
   }
   // Always read, even for a tab in view: the reader carries split sequences.
   const signals = read(data)
+  setWebUrl(tabs[index], sniffLocalUrl(data))
   applyActivity(tabs[index], { type: 'output', signals })
   scheduleSilence(tabs[index])
 })
@@ -533,7 +543,69 @@ function applyLayout(): void {
   }
 
   renderShellBar()
+  renderWebPane()
 }
+
+/**
+ * The right slot holds one of two things. The address is sniffed from what the dev
+ * server printed when it started, so there is nothing to configure - and it can be
+ * typed by hand for a server that was started elsewhere.
+ */
+function renderWebPane(): void {
+  const tab = tabs[activeIndex]
+  const showWeb = tab?.showWeb === true && tab.webUrl !== null && tab.zoom !== 'terminal'
+
+  webButton.hidden = !tab || tab.webUrl === null
+  webButton.classList.toggle('active', showWeb)
+  webPane.hidden = !showWeb
+  viewer.hidden = tab?.zoom === 'terminal' || showWeb
+
+  if (!tab) return
+  if (document.activeElement !== webUrlInput) webUrlInput.value = tab.webUrl ?? ''
+  // Only assign src when it really changes; otherwise every render reloads the page.
+  if (showWeb && tab.webUrl && webFrame.getAttribute('src') !== tab.webUrl) {
+    webFrame.setAttribute('src', tab.webUrl)
+  }
+}
+
+function setWebUrl(tab: Tab, url: string | null): void {
+  if (url === null || tab.webUrl === url) return
+  tab.webUrl = url
+  persistSession()
+  if (tab === tabs[activeIndex]) renderWebPane()
+}
+
+function toggleWeb(): void {
+  const tab = tabs[activeIndex]
+  if (!tab?.webUrl) return
+  tab.showWeb = !tab.showWeb
+  if (tab.showWeb && tab.zoom === 'terminal') tab.zoom = null
+  applyLayout()
+  persistSession()
+}
+
+webButton.addEventListener('click', toggleWeb)
+
+document.getElementById('web-reload')?.addEventListener('click', () => {
+  const url = tabs[activeIndex]?.webUrl
+  if (url) webFrame.setAttribute('src', url + (url.includes('?') ? '&' : '?') + 'reload=' + Date.now())
+})
+
+webUrlInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return
+  const tab = tabs[activeIndex]
+  if (!tab) return
+  const url = normalizeUrl(webUrlInput.value)
+  if (!url) {
+    webUrlInput.value = tab.webUrl ?? ''
+    status.textContent = 'Only addresses on this machine can be shown here.'
+    return
+  }
+  setWebUrl(tab, url)
+  tab.showWeb = true
+  applyLayout()
+  persistSession()
+})
 
 /** Start the shell of the active tab if it is meant to be open but has none yet. */
 function ensureShell(): void {
@@ -590,6 +662,10 @@ function runPaneCommand(command: PaneCommand): void {
   }
   if (command.type === 'focusIndex') {
     focusPane(command.index === 1 ? 'terminal' : 'document')
+    return
+  }
+  if (command.type === 'web') {
+    toggleWeb()
     return
   }
   if (command.type === 'zoom') {
@@ -840,6 +916,8 @@ async function start(): Promise<void> {
     tab.terminalOpen = pane.terminal
     tab.ratio = clampRatio(pane.ratio)
     tab.runCommand = pane.run ?? null
+    tab.webUrl = pane.web ?? null
+    tab.showWeb = pane.showWeb === true && tab.webUrl !== null
   }
   const wanted = startup.active ? indexOfPath(startup.active) : -1
   activeIndex = wanted >= 0 ? wanted : 0
