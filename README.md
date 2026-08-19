@@ -53,6 +53,10 @@ harness would be the first real test dependency.
 Test files import with an explicit `.ts` extension because Node resolves modules that
 way; the app's own imports stay extensionless, since a bundler resolves those.
 
+Close the app before rebuilding: it runs straight out of `release/win-unpacked`, and
+Windows holds those files while it is open, which fails the packaging step with
+"Access is denied".
+
 ### If packaging fails with "Cannot create symbolic link"
 
 electron-builder unpacks its `winCodeSign` helper archive, which contains macOS
