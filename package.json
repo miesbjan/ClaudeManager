@@ -11,8 +11,9 @@
     "test": "node --test \"test/**/*.test.ts\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "compile": "electron-vite build",
-    "build": "electron-vite build && electron-builder --win",
-    "build:dir": "electron-vite build && electron-builder --win --dir"
+    "build": "electron-vite build && electron-builder --win && node scripts/deploy-desktop.mjs",
+    "build:dir": "electron-vite build && electron-builder --win --dir && node scripts/deploy-desktop.mjs",
+    "desktop": "node scripts/deploy-desktop.mjs"
   },
   "dependencies": {
     "chokidar": "^4.0.3",

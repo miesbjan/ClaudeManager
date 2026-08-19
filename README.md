@@ -23,8 +23,15 @@ npm run build        # NSIS installer + portable exe in ./release
 npm run build:dir    # unpacked app only (faster, for smoke tests)
 ```
 
+Every build also hands the result to the desktop: `npm run build` finishes by placing
+a shortcut there, pointing at the freshly built app in `release/win-unpacked`. It
+starts instantly and always refers to the newest build. For a binary to carry
+elsewhere, `npm run desktop -- --exe` copies the portable executable instead - a
+shortcut is the default because a desktop redirected into OneDrive would otherwise
+upload 80 MB after every build.
+
 Other scripts: `npm run compile` (bundle without packaging), `npm start`
-(run the bundled app), `npm run typecheck`, `npm test`.
+(run the bundled app), `npm run typecheck`, `npm test`, `npm run desktop`.
 
 `node-pty` is the only native dependency. It ships N-API prebuilt binaries, so there
 is no compiler, no `node-gyp` and no rebuild after an Electron upgrade — but its
