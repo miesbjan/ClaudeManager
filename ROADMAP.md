@@ -87,6 +87,15 @@ tabu ano. Zkratky aplikace se při fokusu v terminálu stahují na `Ctrl+Shift+�
 Zbývá k modelu „tab = adresář“: tab je pořád dokument a adresář se z něj odvozuje.
 Otevřít tab nad adresářem samotným, bez dokumentu, zatím nejde.
 
+**Vyměnit dokument v tabu** (čeká na poptávku). Dnes každé otevřené `.md` zakládá nový
+tab, takže když sleduješ konkrétní session Claudea a chceš si na chvíli vpravo otevřít
+jiný dokument, shell ti zmizí z očí — přepnul ses jinam. Chtělo by to „otevři sem“:
+dokument se vymění a shell běží dál na očích.
+
+Uvnitř to blokuje jedna věc: shelly jsou klíčované cestou k dokumentu, takže výměnou
+by se klíč rozpadl. Napřed musí mít tab **stabilní identitu** nezávislou na dokumentu —
+mechanická změna, a zároveň první krok k celému „tab = adresář“.
+
 ### L3 — Spuštění projektu (hotovo)
 
 Jedno tlačítko: spusť to. Projekt se hledá odspoda nahoru od dokumentu, shell startuje
@@ -247,6 +256,11 @@ chce vyhnout:
    spustit rozdělanou aplikaci a rovnou ji proklikat, aniž bys šel do prohlížeče.
    Omezení na localhost není dočasné — panel, který by uměl načíst cokoli, je jiná
    aplikace a bezpečnostní model by tím padl.
+- **19. 8. 2026** — Otevírání dokumentu do stávajícího tabu odloženo, ne zamítnuto.
+   Scénář je konkrétní: sleduješ session Claudea a chceš si na chvíli přečíst jiný
+   dokument, aniž bys přišel o výhled na shell. Dnes vznikne nový tab a shell zmizí
+   z očí; session sice běží dál a tečka hlásí, co dělá, takže se nic neztratí. Nejdřív
+   to chce používat a zjistit, jestli tečka stačí — teprve pak stavět.
 - **19. 8. 2026** — Projekt přejmenován z „Markdown Viewer“ na **Project Console**.
    Původní jméno popisovalo techniku jednoho ze tří panelů, ne k čemu je to celé;
    „konzole projektu“ je pojem, kterým se to tady popisuje od začátku. Session se
