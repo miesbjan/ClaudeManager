@@ -142,6 +142,9 @@ function selectTab(index: number): void {
   activeIndex = index
   render()
   persistSession()
+  // Opening a tab marked unavailable is as good a moment as any to look again.
+  const tab = tabs[index]
+  if (tab.error) void reloadPath(tab.path)
 }
 
 function cycleTab(step: number): void {

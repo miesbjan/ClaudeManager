@@ -140,14 +140,24 @@ function registerIpc(): void {
   ipcMain.handle('file:read', async (_event, path: string): Promise<FileReadResult> => {
     const full = normalize(path)
     const dir = dirname(full)
-    try {
-      const info = await stat(full)
-      if (!info.isFile()) return { ok: false, path: full, dir, error: 'Not a file' }
-      const content = await readFile(full, 'utf8')
-      return { ok: true, path: full, dir, content, mtimeMs: info.mtimeMs }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      return { ok: false, path: full, dir, error: message }
+
+    // A file being rewritten can be briefly locked. One retry turns that from a tab
+    // marked unavailable into a delay nobody notices; a file that is really gone
+    // fails with ENOENT twice and is reported straight away.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const info = await stat(full)
+        if (!info.isFile()) return { ok: false, path: full, dir, error: 'Not a file' }
+        const content = await readFile(full, 'utf8')
+        return { ok: true, path: full, dir, content, mtimeMs: info.mtimeMs }
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code
+        if (attempt > 0 || code === 'ENOENT') {
+          const message = error instanceof Error ? error.message : String(error)
+          return { ok: false, path: full, dir, error: message }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 120))
+      }
     }
   })
 

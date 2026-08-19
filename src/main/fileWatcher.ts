@@ -67,12 +67,18 @@ export class FileWatcher {
     this.onEvent({ path, type: 'change' })
   }
 
+  /**
+   * Only ENOENT means the file is gone. A stat can also fail because something else
+   * holds the file for a moment - a scanner, a sync client, an editor mid-save - and
+   * reporting that as a deletion would strike the tab through over nothing.
+   */
   private stamp(path: string): string {
     try {
       const s = statSync(path)
       return `${s.mtimeMs}:${s.size}`
-    } catch {
-      return 'missing'
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      return code === 'ENOENT' ? 'missing' : 'unreadable'
     }
   }
 
@@ -91,6 +97,8 @@ export class FileWatcher {
   private poll(): void {
     for (const path of this.watchers.keys()) {
       const current = this.stamp(path)
+      // A file we could not stat tells us nothing; leave the last known state alone.
+      if (current === 'unreadable') continue
       const previous = this.stamps.get(path)
       if (current === previous) continue
       this.stamps.set(path, current)
