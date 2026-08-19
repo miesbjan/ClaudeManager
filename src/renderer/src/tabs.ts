@@ -1,3 +1,14 @@
+import type { ActivityState } from './activity'
+
+/** What the dot on a tab says, and what it means when you hover it. */
+const ACTIVITY_TITLE: Record<Exclude<ActivityState, 'idle'>, string> = {
+  working: 'Output is flowing',
+  busy: 'Working - the program said so',
+  done: 'Finished - the program said so',
+  waiting: 'Quiet for a while - probably finished',
+  alert: 'Wants attention'
+}
+
 export type Tab = {
   path: string
   dir: string
@@ -15,6 +26,8 @@ export type Tab = {
   ratio: number
   /** A pane blown up to the whole tab, as tmux does with `prefix + z`. */
   zoom: 'terminal' | 'document' | null
+  /** What happened here while you were looking elsewhere. */
+  activity: ActivityState
 }
 
 export type TabHandlers = {
@@ -62,6 +75,13 @@ export function renderTabBar(
     if (index === activeIndex) el.classList.add('active')
     if (tab.error) el.classList.add('unavailable')
     el.title = tab.error ? `${tab.path}\n${tab.error}` : tab.path
+
+    if (tab.activity !== 'idle') {
+      const dot = document.createElement('span')
+      dot.className = 'tab-dot tab-dot--' + tab.activity
+      dot.title = ACTIVITY_TITLE[tab.activity]
+      el.append(dot)
+    }
 
     const label = document.createElement('span')
     label.className = 'tab-label'

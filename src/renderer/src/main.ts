@@ -2,6 +2,13 @@ import 'highlight.js/styles/github.css'
 import './styles.css'
 import { changedLines } from './diff'
 import { renderMarkdown } from './markdownRenderer'
+import {
+  createSignalReader,
+  nextActivity,
+  SILENCE_MS,
+  type ActivityEvent,
+  type OutputSignals
+} from './activity'
 import { renderShortcuts } from './help'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { paneCommand, type PaneCommand } from './shortcuts'
@@ -38,6 +45,9 @@ let theme: Theme = 'system'
 const reloadTimers = new Map<string, number>()
 /** One shell per tab, kept alive while the tab exists - keyed by document path. */
 const shells = new Map<string, TerminalPane>()
+/** Per tab: the escape-sequence reader and the timer that notices silence. */
+const signalReaders = new Map<string, (chunk: string) => OutputSignals>()
+const silenceTimers = new Map<string, number>()
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
 const samePath = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase()
@@ -69,7 +79,8 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       pendingFlash: false,
       terminalOpen: false,
       ratio: DEFAULT_RATIO,
-      zoom: null
+      zoom: null,
+      activity: 'idle'
     }
     tabs.push(tab)
     target = tabs.length - 1
@@ -114,6 +125,10 @@ function closeTab(index: number): void {
   void window.api.unwatch(tab.path)
   shells.get(tab.path)?.dispose()
   shells.delete(tab.path)
+  signalReaders.delete(tab.path)
+  const silence = silenceTimers.get(tab.path)
+  if (silence) window.clearTimeout(silence)
+  silenceTimers.delete(tab.path)
   tabs.splice(index, 1)
   if (tabs.length === 0) activeIndex = -1
   else if (index < activeIndex) activeIndex--
@@ -135,6 +150,9 @@ function cycleTab(step: number): void {
 }
 
 function render(): void {
+  const current = tabs[activeIndex]
+  if (current && isSeen(current)) current.activity = 'idle'
+
   renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
 
   const tab = tabs[activeIndex]
@@ -225,6 +243,8 @@ async function reloadPath(path: string): Promise<void> {
   const index = indexOfPath(path)
   if (index < 0) return
   await loadTab(tabs[index], true)
+  // A rewrite you cannot see is the same news as output in a hidden shell.
+  if (tabs[index].pendingFlash) applyActivity(tabs[index], { type: 'document' })
   // Only the visible document needs repainting; the rest refresh on switch.
   if (index === activeIndex) render()
   else renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
@@ -326,6 +346,58 @@ content.addEventListener('click', (event) => {
 viewer.addEventListener('scroll', () => {
   const tab = tabs[activeIndex]
   if (tab) tab.scrollTop = viewer.scrollTop
+})
+
+/* ---------- tab activity ---------- */
+
+/**
+ * A tab counts as seen only when its output is actually on screen: the active tab
+ * with a hidden - but still running - shell keeps collecting, because nothing that
+ * happened in it was visible.
+ */
+function isSeen(tab: Tab): boolean {
+  if (tab !== tabs[activeIndex]) return false
+  if (!tab.terminalOpen) return !shells.has(tab.path)
+  return tab.zoom !== 'document'
+}
+
+function applyActivity(tab: Tab, event: ActivityEvent): void {
+  if (event.type !== 'seen' && isSeen(tab)) return
+  const next = nextActivity(tab.activity, event)
+  if (next === tab.activity) return
+  tab.activity = next
+  renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
+}
+
+function scheduleSilence(tab: Tab): void {
+  const pending = silenceTimers.get(tab.path)
+  if (pending) window.clearTimeout(pending)
+  silenceTimers.set(
+    tab.path,
+    window.setTimeout(() => {
+      silenceTimers.delete(tab.path)
+      applyActivity(tab, { type: 'silence' })
+    }, SILENCE_MS)
+  )
+}
+
+window.api.terminal.onData(({ id, data }) => {
+  const index = indexOfPath(id)
+  if (index < 0) return
+  let read = signalReaders.get(id)
+  if (!read) {
+    read = createSignalReader()
+    signalReaders.set(id, read)
+  }
+  // Always read, even for a tab in view: the reader carries split sequences.
+  const signals = read(data)
+  applyActivity(tabs[index], { type: 'output', signals })
+  scheduleSilence(tabs[index])
+})
+
+window.api.terminal.onExit(({ id }) => {
+  const index = indexOfPath(id)
+  if (index >= 0) applyActivity(tabs[index], { type: 'exit' })
 })
 
 /* ---------- shortcut help ---------- */

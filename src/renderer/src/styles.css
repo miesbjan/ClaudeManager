@@ -11,6 +11,7 @@
   --quote-border: #d0d7de;
   --danger: #b42318;
   --change: #b45309;
+  --activity-done: #15803d;
   --font-ui: "Segoe UI", system-ui, sans-serif;
   --font-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
 }
@@ -29,6 +30,7 @@
     --quote-border: #3a414c;
     --danger: #ff9a92;
     --change: #fbbf24;
+    --activity-done: #4ade80;
   }
 }
 
@@ -149,9 +151,85 @@ body.dragging::after {
   box-shadow: inset 0 2px 0 var(--accent);
 }
 
-.tab.unavailable .tab-label {
+.tab.unavailable /*
+ * The dot answers one question - which tab to look at next - so it has three
+ * readings and no more: muted means it is working, green means it has gone quiet
+ * and has something for you, red means it asked for attention or died.
+ */
+.tab-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.tab-dot--working,
+.tab-dot--busy {
+  background: transparent;
+  border: 1.5px solid var(--text-muted);
+  animation: activity-pulse 1.6s ease-in-out infinite;
+}
+
+.tab-dot--waiting,
+.tab-dot--done {
+  background: var(--activity-done);
+}
+
+.tab-dot--alert {
+  background: var(--danger);
+}
+
+@keyframes activity-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.tab-label {
   color: var(--danger);
   text-decoration: line-through;
+}
+
+/*
+ * The dot answers one question - which tab to look at next - so it has three
+ * readings and no more: muted means it is working, green means it has gone quiet
+ * and has something for you, red means it asked for attention or died.
+ */
+.tab-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.tab-dot--working,
+.tab-dot--busy {
+  background: transparent;
+  border: 1.5px solid var(--text-muted);
+  animation: activity-pulse 1.6s ease-in-out infinite;
+}
+
+.tab-dot--waiting,
+.tab-dot--done {
+  background: var(--activity-done);
+}
+
+.tab-dot--alert {
+  background: var(--danger);
+}
+
+@keyframes activity-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .tab-label {

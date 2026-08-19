@@ -134,8 +134,10 @@ Všechno ostatní na seznamu je reimplementace editoru. Tyhle ne:
    změnily, ať je vidět, co agent právě přepsal, bez čtení celého dokumentu znovu.
    Granularita je blok, ne slovo, a změna mimo viditelnou část dokumentu se neohlásí.
    Na to druhé je odpověď tečka aktivity, ne autoscroll.
-2. **Tečka aktivity na tabu** — označit tab, kam přiteklo něco nového nebo kde proces
-   čeká na vstup. Zásadní ve chvíli, kdy běží několik sessions naráz.
+2. **Tečka aktivity na tabu** (hotovo) — tlumená, dokud teče výstup, zelená po
+   dokončení, červená při zvonku, chybě nebo spadlém shellu. Kde program hlásí svůj
+   stav sám (`OSC 9;4`), je tečka přesná; jinde platí odhad z ticha. Zdroje jsou dva:
+   shell i dokument přepsaný na pozadí.
 3. **Prompt buffer** — pole pro složení delšího zadání, odeslané do terminálu jednou
    klávesou. Psát víceřádkové prompty přímo do TUI je otrava.
 
@@ -223,6 +225,16 @@ chce vyhnout:
 - **19. 8. 2026** — Shell se odvozuje z dokumentu (`cwd` = jeho adresář), model
   „tab = adresář“ zůstává nedodělaný. Je to menší krok se stejným užitkem; plný model
   přijde, až bude potřeba tab bez dokumentu.
+- **19. 8. 2026** — Stav tabu se čte primárně z toho, co program sám hlásí — sekvence
+   `OSC 9;4`, tedy totéž, co rozsvěcí kroužek v tabu Windows Terminalu — a teprve
+   když program nehlásí nic, nastoupí odhad z dvouvteřinového ticha. Původní návrh
+   počítal jen s tím odhadem; screenshot z Windows Terminalu ukázal, že „přemýšlí vs.
+   čeká na mě“ jde znát přesně, ne hádat.
+- **19. 8. 2026** — Uvnitř se drží dvojice stavů: `busy`/`done` je tvrzení programu,
+   `working`/`waiting` je náš odhad. Na obrazovce vypadají stejně, ale odhad nesmí
+   přebít tvrzení v žádném směru — agent, který tři vteřiny mlčky přemýšlí, nesmí
+   zezelenat, a program, který dohlásil konec a pak tiskne výsledek, se nesmí vrátit
+   na „pracuje“. Obojí odhalil až test na živé aplikaci.
 - **19. 8. 2026** — Do lišty přibylo tlačítko `?` s přehledem zkratek. Je to
   rozšíření uzavřeného seznamu funkcí, ale vědomé: zkratky pro panely se nedají
   uhodnout a jediné místo, kde se o nich šlo dozvědět, bylo README. Panel nestojí
