@@ -12,6 +12,7 @@
   --danger: #b42318;
   --change: #b45309;
   --activity-done: #15803d;
+  --activity-ask: #c2410c;
   --font-ui: "Segoe UI", system-ui, sans-serif;
   --font-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
 }
@@ -31,6 +32,7 @@
     --danger: #ff9a92;
     --change: #fbbf24;
     --activity-done: #4ade80;
+    --activity-ask: #fb923c;
   }
 }
 
@@ -182,6 +184,12 @@ body.dragging::after {
 
 .tab-dot--alert {
   background: var(--danger);
+}
+
+/* Being asked is its own thing: not finished, not broken, but going nowhere. */
+.tab-dot--permission {
+  background: var(--activity-ask);
+  animation: activity-pulse 1.6s ease-in-out infinite;
 }
 
 @keyframes activity-pulse {

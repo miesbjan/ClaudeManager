@@ -12,14 +12,36 @@ const progress = (state: string, value = '0') => `${ESC}]9;4;${state};${value}${
 const title = (text: string) => `${ESC}]0;${text}${BEL}`
 
 describe('reading signals from terminal output', () => {
+  it('sees the dialog Claude opens to ask for permission', () => {
+    const read = createSignalReader()
+    const dialog = [
+      ESC + '[1mDo you want to run this command?' + ESC + '[0m',
+      ESC + '[32m 1. Yes' + ESC + '[0m',
+      ' 2. Yes, allow all',
+      ' 3. No, and tell Claude what to do differently'
+    ].join(String.fromCharCode(13, 10))
+    assert.equal(read(dialog).permission, true)
+  })
+
+  it('is not fooled by the agent writing about permissions', () => {
+    const read = createSignalReader()
+    assert.equal(read('Do you want to keep the old behaviour? I would suggest not.').permission, false)
+  })
+
+  it('sees a marker split across two chunks', () => {
+    const read = createSignalReader()
+    assert.equal(read(' 2. Yes, allo').permission, false)
+    assert.equal(read('w all').permission, true)
+  })
+
   it('sees the spinner a program reports while it works', () => {
     const read = createSignalReader()
-    assert.deepEqual(read(progress('3')), { bell: false, progress: 'busy' })
+    assert.deepEqual(read(progress('3')), { bell: false, progress: 'busy', permission: false })
   })
 
   it('sees progress being cleared as finished', () => {
     const read = createSignalReader()
-    assert.deepEqual(read(progress('0')), { bell: false, progress: 'done' })
+    assert.deepEqual(read(progress('0')), { bell: false, progress: 'done', permission: false })
   })
 
   it('treats failure and warning as something to look at', () => {
@@ -67,14 +89,14 @@ describe('deciding what a tab shows', () => {
     events.reduce(nextActivity, state)
 
   it('marks plain output as working and silence as settled', () => {
-    const working = step('idle', { type: 'output', signals: { bell: false, progress: null } })
+    const working = step('idle', { type: 'output', signals: { bell: false, progress: null, permission: false } })
     assert.equal(working, 'working')
     assert.equal(step(working, { type: 'silence' }), 'waiting')
   })
 
   it('believes a program that says it has finished, without waiting for silence', () => {
     assert.equal(
-      step('working', { type: 'output', signals: { bell: false, progress: 'done' } }),
+      step('working', { type: 'output', signals: { bell: false, progress: 'done', permission: false } }),
       'done'
     )
   })
@@ -84,14 +106,14 @@ describe('deciding what a tab shows', () => {
    * tail as fresh work would flip the tab back to busy the moment it went green.
    */
   it('keeps a reported finish while the result is still being printed', () => {
-    const done = step('working', { type: 'output', signals: { bell: false, progress: 'done' } })
-    assert.equal(step(done, { type: 'output', signals: { bell: false, progress: null } }), 'done')
+    const done = step('working', { type: 'output', signals: { bell: false, progress: 'done', permission: false } })
+    assert.equal(step(done, { type: 'output', signals: { bell: false, progress: null, permission: false } }), 'done')
     assert.equal(step(done, { type: 'silence' }), 'done')
   })
 
   it('goes back to busy when the program says it is working again', () => {
-    const done = step('working', { type: 'output', signals: { bell: false, progress: 'done' } })
-    assert.equal(step(done, { type: 'output', signals: { bell: false, progress: 'busy' } }), 'busy')
+    const done = step('working', { type: 'output', signals: { bell: false, progress: 'done', permission: false } })
+    assert.equal(step(done, { type: 'output', signals: { bell: false, progress: 'busy', permission: false } }), 'busy')
   })
 
   /*
@@ -99,12 +121,12 @@ describe('deciding what a tab shows', () => {
    * silence rule settle it would turn the dot green while the work is still running.
    */
   it('does not settle a program that reported it is busy', () => {
-    const busy = step('idle', { type: 'output', signals: { bell: false, progress: 'busy' } })
+    const busy = step('idle', { type: 'output', signals: { bell: false, progress: 'busy', permission: false } })
     assert.equal(busy, 'busy')
     assert.equal(step(busy, { type: 'silence' }), 'busy')
-    assert.equal(step(busy, { type: 'output', signals: { bell: false, progress: null } }), 'busy')
+    assert.equal(step(busy, { type: 'output', signals: { bell: false, progress: null, permission: false } }), 'busy')
     assert.equal(
-      step(busy, { type: 'output', signals: { bell: false, progress: 'done' } }),
+      step(busy, { type: 'output', signals: { bell: false, progress: 'done', permission: false } }),
       'done'
     )
   })
@@ -114,9 +136,9 @@ describe('deciding what a tab shows', () => {
   })
 
   it('keeps an alert until the tab is actually looked at', () => {
-    const alert = step('working', { type: 'output', signals: { bell: true, progress: null } })
+    const alert = step('working', { type: 'output', signals: { bell: true, progress: null, permission: false } })
     assert.equal(alert, 'alert')
-    assert.equal(step(alert, { type: 'output', signals: { bell: false, progress: 'busy' } }), 'alert')
+    assert.equal(step(alert, { type: 'output', signals: { bell: false, progress: 'busy', permission: false } }), 'alert')
     assert.equal(step(alert, { type: 'silence' }), 'alert')
     assert.equal(step(alert, { type: 'seen' }), 'idle')
   })
@@ -125,13 +147,51 @@ describe('deciding what a tab shows', () => {
     assert.equal(step('idle', { type: 'exit' }), 'alert')
   })
 
+  /*
+   * Claude asking for permission is the one state where nothing moves and nothing
+   * will until you answer, so it outranks working and finishing and stays put.
+   */
+  it('holds the state while the agent is asking for permission', () => {
+    const asking = step('working', {
+      type: 'output',
+      signals: { bell: false, progress: null, permission: true }
+    })
+    assert.equal(asking, 'permission')
+    assert.equal(
+      step(asking, { type: 'output', signals: { bell: false, progress: null, permission: false } }),
+      'permission'
+    )
+    assert.equal(step(asking, { type: 'silence' }), 'permission')
+    assert.equal(step(asking, { type: 'document' }), 'permission')
+    assert.equal(step(asking, { type: 'seen' }), 'idle')
+  })
+
+  it('lets the agent carry on once it reports it is working again', () => {
+    const asking = step('idle', {
+      type: 'output',
+      signals: { bell: false, progress: null, permission: true }
+    })
+    assert.equal(
+      step(asking, { type: 'output', signals: { bell: false, progress: 'busy', permission: false } }),
+      'busy'
+    )
+  })
+
+  it('keeps a dead shell above a question', () => {
+    const asking = step('idle', {
+      type: 'output',
+      signals: { bell: false, progress: null, permission: true }
+    })
+    assert.equal(step(asking, { type: 'exit' }), 'alert')
+  })
+
   it('reports a document rewritten in the background', () => {
     assert.equal(step('idle', { type: 'document' }), 'waiting')
   })
 
   it('lets the shell keep the tab busy after a document change', () => {
     assert.equal(
-      step('idle', { type: 'document' }, { type: 'output', signals: { bell: false, progress: null } }),
+      step('idle', { type: 'document' }, { type: 'output', signals: { bell: false, progress: null, permission: false } }),
       'working'
     )
   })

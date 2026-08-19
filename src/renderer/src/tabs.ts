@@ -8,6 +8,7 @@ const ACTIVITY_TITLE: Record<Exclude<ActivityState, 'idle'>, string> = {
   busy: 'Working - the program said so',
   done: 'Finished - the program said so',
   waiting: 'Quiet for a while - probably finished',
+  permission: 'Asking for permission',
   alert: 'Wants attention'
 }
 

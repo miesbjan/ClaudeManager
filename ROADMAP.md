@@ -150,7 +150,8 @@ Všechno ostatní na seznamu je reimplementace editoru. Tyhle ne:
    Granularita je blok, ne slovo, a změna mimo viditelnou část dokumentu se neohlásí.
    Na to druhé je odpověď tečka aktivity, ne autoscroll.
 2. **Tečka aktivity na tabu** (hotovo) — tlumená, dokud teče výstup, zelená po
-   dokončení, červená při zvonku, chybě nebo spadlém shellu. Kde program hlásí svůj
+   dokončení, oranžová když se agent ptá na povolení a dál se nehne, červená při
+   zvonku, chybě nebo spadlém shellu. Kde program hlásí svůj
    stav sám (`OSC 9;4`), je tečka přesná; jinde platí odhad z ticha. Zdroje jsou dva:
    shell i dokument přepsaný na pozadí.
 3. **Prompt buffer** — pole pro složení delšího zadání, odeslané do terminálu jednou
@@ -245,6 +246,12 @@ chce vyhnout:
    spustit rozdělanou aplikaci a rovnou ji proklikat, aniž bys šel do prohlížeče.
    Omezení na localhost není dočasné — panel, který by uměl načíst cokoli, je jiná
    aplikace a bezpečnostní model by tím padl.
+- **19. 8. 2026** — Přibyl stav „čeká na povolení“. Nápad i konkrétní řetězce pochází
+   z projektu claude-manager, který tentýž problém řeší vzorkováním tmux panelů; my
+   stream čteme rovnou, takže to vyšlo na pár řádků. Rozlišení má smysl: dotaz na
+   schválení je naléhavější než „doběhlo“, protože se bez tebe nehne z místa.
+   Poznává se podle popisků tlačítek dialogu, ne podle otázky — ta se v běžném textu
+   vyskytne taky.
 - **19. 8. 2026** — Pravá strana umí ukázat dokument a web zároveň, takže v tabu můžou
    být tři sloupce. `Alt+W` z přepínače udělal cyklus dokument → web → obojí; jedna
    klávesa místo dalšího tlačítka. Poměry obou rozdělovačů se pamatují u dokumentu.

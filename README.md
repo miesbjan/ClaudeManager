@@ -174,8 +174,8 @@ Files passed on the command line are opened too, so the app works as a handler f
   matches, wrapping around; `Esc` closes and returns focus to the document. A live
   reload keeps the search: the matches are recomputed and the position is kept.
 - **Activity dot.** A tab you are not looking at shows a dot: muted while output is
-  flowing, green once it has finished, red when it rang the bell, failed or its shell
-  died. Where a program reports its own state - Claude Code and anything else that
+  flowing, green once it has finished, amber while the agent is asking for permission
+  and can go no further, red when it rang the bell, failed or its shell died. Where a program reports its own state - Claude Code and anything else that
   emits the `OSC 9;4` progress sequence, the one that drives the spinner in a Windows
   Terminal tab - the dot follows that report and is exact. Everything else falls back
   to a guess: quiet for two seconds counts as finished. The two are kept apart
@@ -183,6 +183,11 @@ Files passed on the command line are opened too, so the app works as a handler f
   you are looking at. A document rewritten in the background lights the same dot.
   It clears when the tab is on screen - a tab whose shell pane is hidden keeps
   collecting, because nothing that happened in it was visible.
+
+  The permission state is matched on the labels of Claude Code's approval dialog
+  ("Yes, allow all" and the like) rather than on its question, which is a phrase that
+  turns up in ordinary prose. It is a fragile signal by nature - a change of wording
+  breaks it silently - so it only ever adds to the states read from the stream itself.
 - **Deleted files** stay open and marked *unavailable*; they reload by themselves
   if the file reappears.
 - **Duplicate names.** Tabs show the file name, extended with as many parent
