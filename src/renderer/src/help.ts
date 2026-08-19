@@ -14,6 +14,7 @@ export const SHORTCUTS: HelpSection[] = [
       { keys: 'Ctrl+W', action: 'close current tab' },
       { keys: 'Ctrl+Tab / Ctrl+Shift+Tab', action: 'next / previous tab' },
       { keys: 'Ctrl+1 … Ctrl+9', action: 'jump to tab by position' },
+      { keys: 'Ctrl+F', action: 'find in the document' },
       { keys: 'Ctrl+R', action: 'reload the document' },
       { keys: 'Ctrl+D', action: 'theme: Auto / Light / Dark' },
       { keys: 'Ctrl+`', action: 'show or hide the shell' }

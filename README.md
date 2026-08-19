@@ -84,6 +84,7 @@ anywhere else closes it.
 | `Ctrl+W`                  | close the current tab                     |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | next / previous tab                   |
 | `Ctrl+1` … `Ctrl+9`       | jump to tab by position                   |
+| `Ctrl+F`                  | find in the document                      |
 | `Ctrl+R`                  | force reload of the current file          |
 | `Ctrl+D`                  | switch theme: Auto → Light → Dark         |
 | ``Ctrl+` ``               | show or hide the shell pane               |
@@ -133,6 +134,12 @@ Files passed on the command line are opened too, so the app works as a handler f
   alive while the tab is open — hiding the pane or switching tabs does not disturb a
   process running inside it; closing the tab kills it. Whether the pane is open and
   how wide it is are remembered per document.
+- **Find.** `Ctrl+F` searches the rendered document - only the document, never the
+  shell next to it. Matches are painted with the CSS custom highlight API rather than
+  by wrapping text in elements, so the markup markdown-it produced stays untouched and
+  clearing the search leaves nothing behind. `Enter` and `Shift+Enter` step through the
+  matches, wrapping around; `Esc` closes and returns focus to the document. A live
+  reload keeps the search: the matches are recomputed and the position is kept.
 - **Activity dot.** A tab you are not looking at shows a dot: muted while output is
   flowing, green once it has finished, red when it rang the bell, failed or its shell
   died. Where a program reports its own state - Claude Code and anything else that

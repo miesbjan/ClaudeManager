@@ -141,7 +141,7 @@ Všechno ostatní na seznamu je reimplementace editoru. Tyhle ne:
    klávesou. Psát víceřádkové prompty přímo do TUI je otrava.
 
 Levné drobnosti ve stejném duchu, žádná nestojí trvalý pixel: `Ctrl+F` uvnitř
-dokumentu (další na řadě) a název větve s počtem změněných souborů v titulku tabu.
+dokumentu (hotovo) a název větve s počtem změněných souborů v titulku tabu.
 
 ## Uzavřený seznam funkcí
 

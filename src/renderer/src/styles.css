@@ -293,10 +293,76 @@ body.dragging::after {
 /* ---------- panes ---------- */
 
 #panes {
+  position: relative;
   flex: 1 1 auto;
   display: flex;
   align-items: stretch;
   min-height: 0;
+}
+
+/* ---------- find in document ---------- */
+
+/* Out of flow, so opening the bar never moves the text being read. */
+#find {
+  position: absolute;
+  top: 8px;
+  right: 18px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 10px;
+  background: var(--bg-tab-active);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 22%);
+}
+
+#find[hidden] {
+  display: none;
+}
+
+#find-input {
+  font: inherit;
+  width: 200px;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+}
+
+#find-count {
+  min-width: 46px;
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.find-btn {
+  font: inherit;
+  line-height: 1;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.find-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+::highlight(find-match) {
+  background: color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+::highlight(find-current) {
+  background: var(--accent);
+  color: #fff;
 }
 
 #terminal-pane {

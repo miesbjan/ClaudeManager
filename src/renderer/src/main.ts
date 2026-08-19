@@ -9,6 +9,13 @@ import {
   type ActivityEvent,
   type OutputSignals
 } from './activity'
+import {
+  clearMatches,
+  findInElement,
+  paintMatches,
+  scrollToMatch,
+  stepIndex
+} from './find'
 import { renderShortcuts } from './help'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { paneCommand, type PaneCommand } from './shortcuts'
@@ -36,6 +43,9 @@ const content = document.getElementById('content') as HTMLElement
 const empty = document.getElementById('empty') as HTMLElement
 const status = document.getElementById('statusbar') as HTMLElement
 const ctxmenu = document.getElementById('ctxmenu') as HTMLElement
+const findBar = document.getElementById('find') as HTMLElement
+const findInput = document.getElementById('find-input') as HTMLInputElement
+const findCount = document.getElementById('find-count') as HTMLElement
 const helpButton = document.getElementById('help-btn') as HTMLButtonElement
 const help = document.getElementById('help') as HTMLElement
 
@@ -184,6 +194,7 @@ function render(): void {
   }
 
   viewer.scrollTop = tab.scrollTop
+  if (!findBar.hidden) refreshFind(false)
   document.title = baseName(tab.path) + ' - Markdown Viewer'
   renderStatus(tab)
   applyLayout()
@@ -350,6 +361,63 @@ viewer.addEventListener('scroll', () => {
   const tab = tabs[activeIndex]
   if (tab) tab.scrollTop = viewer.scrollTop
 })
+
+/* ---------- find in document ---------- */
+
+let matches: Range[] = []
+let matchIndex = -1
+
+function showMatch(): void {
+  paintMatches(matches, matchIndex)
+  findCount.textContent = matches.length === 0 ? '0/0' : matchIndex + 1 + '/' + matches.length
+  const current = matches[matchIndex]
+  if (current) scrollToMatch(viewer, current)
+}
+
+/**
+ * Recomputes the matches. Ranges point into the rendered document, so a live
+ * reload invalidates them - hence this also runs after every render while the bar
+ * is open, keeping the position rather than jumping back to the first hit.
+ */
+function refreshFind(fromStart: boolean): void {
+  const query = findInput.value
+  matches = query ? findInElement(content, query) : []
+  if (matches.length === 0) matchIndex = -1
+  else if (fromStart || matchIndex < 0) matchIndex = 0
+  else matchIndex = Math.min(matchIndex, matches.length - 1)
+  showMatch()
+}
+
+function stepFind(delta: number): void {
+  if (matches.length === 0) return
+  matchIndex = stepIndex(matchIndex, matches.length, delta)
+  showMatch()
+}
+
+function openFind(): void {
+  findBar.hidden = false
+  findInput.focus()
+  findInput.select()
+  refreshFind(true)
+}
+
+function closeFind(): void {
+  findBar.hidden = true
+  clearMatches()
+  matches = []
+  matchIndex = -1
+  viewer.focus()
+}
+
+findInput.addEventListener('input', () => refreshFind(true))
+findInput.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return
+  event.preventDefault()
+  stepFind(event.shiftKey ? -1 : 1)
+})
+document.getElementById('find-next')?.addEventListener('click', () => stepFind(1))
+document.getElementById('find-prev')?.addEventListener('click', () => stepFind(-1))
+document.getElementById('find-close')?.addEventListener('click', closeFind)
 
 /* ---------- tab activity ---------- */
 
@@ -590,6 +658,12 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
+  if (event.key === 'Escape' && !findBar.hidden && findBar.contains(document.activeElement)) {
+    event.preventDefault()
+    closeFind()
+    return
+  }
+
   const pane = paneCommand(event)
   if (pane) {
     event.preventDefault()
@@ -629,6 +703,9 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault()
     const tab = tabs[activeIndex]
     if (tab) void reloadPath(tab.path)
+  } else if (key === 'f') {
+    event.preventDefault()
+    openFind()
   } else if (key === 'd') {
     event.preventDefault()
     cycleTheme()
