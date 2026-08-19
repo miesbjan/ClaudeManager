@@ -102,6 +102,9 @@ shellu, když ji server vypíše, takže není co nastavovat; jde ji i napsat ru
 Povolený je jen tenhle stroj, iframe je v sandboxu a CSP pouští do rámu pouze
 localhost. `Alt+W` přepíná.
 
+Spuštění přes tlačítko panel otevře samo — kdo něco spustí, chce se na to podívat.
+Shell navíc dostává `BROWSER=none`, aby si projekt neotevřel systémový prohlížeč.
+
 Tím vznikla ta smyčka, o kterou šlo: vlevo běží aplikace, vpravo se na ni koukáš,
 dokument je na jedno kliknutí zpátky.
 
@@ -241,6 +244,11 @@ chce vyhnout:
    spustit rozdělanou aplikaci a rovnou ji proklikat, aniž bys šel do prohlížeče.
    Omezení na localhost není dočasné — panel, který by uměl načíst cokoli, je jiná
    aplikace a bezpečnostní model by tím padl.
+- **19. 8. 2026** — Shell startuje s `BROWSER=none` a panel se po spuštění otevře sám.
+   Obojí vyplynulo z prvního reálného použití: projekt měl ve `vite.config.ts`
+   `server.open: true`, takže si otevřel systémový prohlížeč — přesně to jediné místo,
+   kam ten panel nechce obsah posílat. `BROWSER=none` je konvence, kterou Vite i CRA
+   respektují; vrátit se dá `$env:BROWSER = ''`.
 - **19. 8. 2026** — Adresa se čte z výpisu dev serveru, nekonfiguruje se. Stejný
    princip jako u tečky aktivity: co program sám řekne, je přesnější než co bychom
    hádali nebo nutili uživatele opisovat.

@@ -139,9 +139,17 @@ Files passed on the command line are opened too, so the app works as a handler f
   deliberately no build or test button: running builds first anyway, and everything
   else is a command you type into the shell that is already there.
 - **Web pane.** When a dev server prints its address, the app picks it up from the
-  shell output - Vite's `Local: http://localhost:5173/` and the rest - and `Alt+W`
-  puts that page in the right pane in place of the document. Nothing to configure;
-  an address can also be typed into the pane's bar for a server started elsewhere.
+  shell output - Vite's `Local: http://localhost:5173/` and the rest - and shows that
+  page in the right pane in place of the document. A run started from the Run button
+  opens the pane by itself, since starting something means wanting to look at it;
+  `Alt+W` switches back and forth afterwards. Nothing to configure; an address can
+  also be typed into the pane's bar for a server started elsewhere.
+
+  Shells are started with `BROWSER=none`, the convention Vite and Create React App
+  follow to mean "do not launch a browser": a project configured with
+  `server.open: true` would otherwise throw its page into the system browser, which
+  is the one place this pane exists to avoid. Run `$env:BROWSER = ''` in the shell to
+  get that behaviour back.
   Only addresses on this machine are accepted: a pane that could load any URL would
   be a different application. The frame is sandboxed and the CSP allows framing
   `localhost` alone.

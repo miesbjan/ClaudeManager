@@ -102,7 +102,8 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       project: null,
       runCommand: null,
       webUrl: null,
-      showWeb: false
+      showWeb: false,
+      awaitingServer: false
     }
     tabs.push(tab)
     target = tabs.length - 1
@@ -569,10 +570,29 @@ function renderWebPane(): void {
 }
 
 function setWebUrl(tab: Tab, url: string | null): void {
-  if (url === null || tab.webUrl === url) return
+  if (url === null) return
+  const isNew = tab.webUrl !== url
   tab.webUrl = url
+
+  /*
+   * Clicking Run means "start it and let me look at it", so the address a deliberate
+   * run announces opens the pane by itself. This has to happen even when the address
+   * is the one from last time - which is the usual case - so the check cannot sit
+   * behind "did the address change". An address printed by anything else only lights
+   * the button.
+   */
+  if (tab.awaitingServer) {
+    tab.awaitingServer = false
+    tab.showWeb = true
+    if (tab.zoom === 'terminal') tab.zoom = null
+    // A fresh run means a fresh server; do not leave the previous page in the frame.
+    webFrame.removeAttribute('src')
+  } else if (!isNew) {
+    return
+  }
+
   persistSession()
-  if (tab === tabs[activeIndex]) renderWebPane()
+  if (tab === tabs[activeIndex]) applyLayout()
 }
 
 function toggleWeb(): void {
@@ -747,6 +767,7 @@ async function sendRun(tab: Tab, command: string): Promise<void> {
     applyLayout()
     persistSession()
   }
+  tab.awaitingServer = true
   await openShell(tab)
   window.api.terminal.write(tab.path, command + String.fromCharCode(13))
 }

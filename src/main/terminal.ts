@@ -37,6 +37,16 @@ function resolveShell(): { file: string; args: string[] } {
   return { file: process.env.COMSPEC || 'cmd.exe', args: [] }
 }
 
+/**
+ * `BROWSER=none` is the convention Vite, Create React App and others follow to mean
+ * "do not launch a browser". A project with `server.open: true` would otherwise
+ * throw the page into the system browser, which is the one place this app exists to
+ * avoid sending it. Unset it in the shell (`$env:BROWSER = ''`) to get that back.
+ */
+function shellEnv(): Record<string, string> {
+  return { ...(process.env as Record<string, string>), BROWSER: 'none' }
+}
+
 export class TerminalManager {
   private terminals = new Map<string, IPty>()
 
@@ -62,7 +72,7 @@ export class TerminalManager {
         cols: DEFAULT_COLS,
         rows: DEFAULT_ROWS,
         cwd: workingDir,
-        env: process.env as Record<string, string>
+        env: shellEnv()
       })
       term.onData((data) => this.onData({ id, data }))
       term.onExit(({ exitCode }) => {

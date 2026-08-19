@@ -37,6 +37,8 @@ export type Tab = {
   webUrl: string | null
   /** Whether the right pane currently shows that server instead of the document. */
   showWeb: boolean
+  /** A run was just started here, so the address it prints should open the pane. */
+  awaitingServer: boolean
 }
 
 export type TabHandlers = {
