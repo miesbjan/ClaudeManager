@@ -37,6 +37,8 @@ export type Tab = {
   webUrl: string | null
   /** Whether the right pane currently shows that server instead of the document. */
   showWeb: boolean
+  /** The address was typed by hand, so output must not overwrite it. */
+  webManual: boolean
   /** A run was just started here, so the address it prints should open the pane. */
   awaitingServer: boolean
 }

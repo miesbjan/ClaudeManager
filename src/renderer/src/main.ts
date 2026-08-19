@@ -17,7 +17,7 @@ import {
   stepIndex
 } from './find'
 import { renderShortcuts } from './help'
-import { normalizeUrl, sniffLocalUrl } from './web'
+import { createUrlReader, normalizeUrl } from './web'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { paneCommand, type PaneCommand } from './shortcuts'
 import { TerminalPane } from './terminal'
@@ -65,6 +65,7 @@ const reloadTimers = new Map<string, number>()
 const shells = new Map<string, TerminalPane>()
 /** Per tab: the escape-sequence reader and the timer that notices silence. */
 const signalReaders = new Map<string, (chunk: string) => OutputSignals>()
+const urlReaders = new Map<string, (chunk: string) => string | null>()
 const silenceTimers = new Map<string, number>()
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
@@ -103,6 +104,7 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       runCommand: null,
       webUrl: null,
       showWeb: false,
+      webManual: false,
       awaitingServer: false
     }
     tabs.push(tab)
@@ -150,6 +152,7 @@ function closeTab(index: number): void {
   shells.get(tab.path)?.dispose()
   shells.delete(tab.path)
   signalReaders.delete(tab.path)
+  urlReaders.delete(tab.path)
   const silence = silenceTimers.get(tab.path)
   if (silence) window.clearTimeout(silence)
   silenceTimers.delete(tab.path)
@@ -251,7 +254,8 @@ function persistSession(): void {
       ratio: tab.ratio,
       run: tab.runCommand,
       web: tab.webUrl,
-      showWeb: tab.showWeb
+      showWeb: tab.showWeb,
+      webManual: tab.webManual
     }
   }
   window.api.saveSession({
@@ -484,7 +488,13 @@ window.api.terminal.onData(({ id, data }) => {
   }
   // Always read, even for a tab in view: the reader carries split sequences.
   const signals = read(data)
-  setWebUrl(tabs[index], sniffLocalUrl(data))
+
+  let readUrl = urlReaders.get(id)
+  if (!readUrl) {
+    readUrl = createUrlReader()
+    urlReaders.set(id, readUrl)
+  }
+  setWebUrl(tabs[index], readUrl(data))
   applyActivity(tabs[index], { type: 'output', signals })
   scheduleSilence(tabs[index])
 })
@@ -569,8 +579,15 @@ function renderWebPane(): void {
   }
 }
 
-function setWebUrl(tab: Tab, url: string | null): void {
+function setWebUrl(tab: Tab, url: string | null, manual = false): void {
   if (url === null) return
+  /*
+   * An address typed by hand is a correction, so later output must not undo it -
+   * a dev server keeps printing, and one stray address would take the pane away
+   * again. Pressing Run hands control back, since a new run announces itself.
+   */
+  if (!manual && tab.webManual) return
+  if (manual) tab.webManual = true
   const isNew = tab.webUrl !== url
   tab.webUrl = url
 
@@ -621,7 +638,7 @@ webUrlInput.addEventListener('keydown', (event) => {
     status.textContent = 'Only addresses on this machine can be shown here.'
     return
   }
-  setWebUrl(tab, url)
+  setWebUrl(tab, url, true)
   tab.showWeb = true
   applyLayout()
   persistSession()
@@ -768,6 +785,7 @@ async function sendRun(tab: Tab, command: string): Promise<void> {
     persistSession()
   }
   tab.awaitingServer = true
+  tab.webManual = false
   await openShell(tab)
   window.api.terminal.write(tab.path, command + String.fromCharCode(13))
 }
@@ -939,6 +957,7 @@ async function start(): Promise<void> {
     tab.runCommand = pane.run ?? null
     tab.webUrl = pane.web ?? null
     tab.showWeb = pane.showWeb === true && tab.webUrl !== null
+    tab.webManual = pane.webManual === true
   }
   const wanted = startup.active ? indexOfPath(startup.active) : -1
   activeIndex = wanted >= 0 ? wanted : 0

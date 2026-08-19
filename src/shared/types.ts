@@ -30,6 +30,8 @@ export type PaneState = {
   web?: string | null
   /** Whether the right pane was showing that server. */
   showWeb?: boolean
+  /** The address was typed by hand rather than read from the output. */
+  webManual?: boolean
 }
 
 /** The project a document belongs to, and the single command that runs it. */

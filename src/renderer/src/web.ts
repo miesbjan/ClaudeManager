@@ -36,18 +36,51 @@ export function normalizeUrl(input: string): string | null {
  * Dev servers announce themselves, so there is nothing to configure: Vite prints
  * "Local: http://localhost:5173/", Next prints "- Local: http://localhost:3000".
  * The escape sequences around them are excluded from the match rather than stripped.
+ *
+ * A port is required. Not because nothing can listen on 80, but because output
+ * arrives in chunks that split anywhere: without a port, the half of an address that
+ * made it into one chunk would be taken for the whole of it, and a bare
+ * "http://localhost" would replace the address that actually works.
  */
-const URL_IN_OUTPUT = /https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/[^\s\x1b"'`<>]*)?/gi
+const URL_IN_OUTPUT = /https?:\/\/(?:localhost|127\.0\.0\.1):\d+(?:\/[^\s\x1b"'`<>]*)?/gi
+
+type Found = { url: string; end: number }
+
+function findAddresses(text: string): Found[] {
+  const found: Found[] = []
+  for (const match of text.matchAll(URL_IN_OUTPUT)) {
+    // Trailing punctuation belongs to the sentence, not to the address.
+    const cleaned = match[0].replace(/[.,;:)\]}]+$/, '')
+    if (isLocalUrl(cleaned)) found.push({ url: cleaned, end: (match.index ?? 0) + match[0].length })
+  }
+  return found
+}
 
 /** The last local address printed in a chunk of terminal output. */
 export function sniffLocalUrl(chunk: string): string | null {
-  const matches = chunk.match(URL_IN_OUTPUT)
-  if (!matches) return null
+  const found = findAddresses(chunk)
+  return found.length > 0 ? found[found.length - 1].url : null
+}
 
-  for (let i = matches.length - 1; i >= 0; i--) {
-    // Trailing punctuation belongs to the sentence, not to the address.
-    const cleaned = matches[i].replace(/[.,;:)\]}]+$/, '')
-    if (isLocalUrl(cleaned)) return cleaned
+/** Enough of the previous chunk to rejoin an address that was cut in half. */
+const MAX_TAIL = 200
+
+/**
+ * Reads addresses out of a stream rather than a single chunk. A PTY splits its
+ * output wherever it likes - including in the middle of a port number - so every
+ * chunk is searched together with the tail of the one before it.
+ */
+export function createUrlReader(): (chunk: string) => string | null {
+  let tail = ''
+
+  return (chunk: string): string | null => {
+    const text = tail + chunk
+    tail = text.slice(-MAX_TAIL)
+
+    // An address running to the very end of the buffer may still be growing - the
+    // port could continue in the next chunk - so it waits there until something
+    // follows it. The tail keeps it, and the next output releases it.
+    const complete = findAddresses(text).filter((found) => found.end < text.length)
+    return complete.length > 0 ? complete[complete.length - 1].url : null
   }
-  return null
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { isLocalUrl, normalizeUrl, sniffLocalUrl } from '../src/renderer/src/web.ts'
+import { createUrlReader, isLocalUrl, normalizeUrl, sniffLocalUrl } from '../src/renderer/src/web.ts'
 
 describe('isLocalUrl', () => {
   it('accepts the local machine', () => {
@@ -58,5 +58,47 @@ describe('sniffLocalUrl', () => {
   it('ignores output with no address in it', () => {
     assert.equal(sniffLocalUrl('PS C:\\project> npm run dev'), null)
     assert.equal(sniffLocalUrl('see https://example.com/docs'), null)
+  })
+
+  /*
+   * A chunk can end in the middle of an address. Accepting a port-less localhost
+   * would take that half for the whole and replace a working address with one that
+   * shows nothing.
+   */
+  it('does not take half an address for the whole of it', () => {
+    assert.equal(sniffLocalUrl('  Local:   http://localhost'), null)
+    assert.equal(sniffLocalUrl('http://localhost:'), null)
+  })
+})
+
+describe('createUrlReader', () => {
+  it('joins an address split across two chunks', () => {
+    const read = createUrlReader()
+    assert.equal(read('  Local:   http://localhost'), null)
+    assert.equal(read(':5180/\r\n'), 'http://localhost:5180/')
+  })
+
+  /*
+   * The dangerous split is inside the port: ":51" on its own is a valid address, and
+   * believing it would point the pane at a port nothing listens on. An address that
+   * runs to the end of the buffer therefore waits for whatever comes after it.
+   */
+  it('waits rather than believe half a port number', () => {
+    const read = createUrlReader()
+    assert.equal(read('Local: http://localhost:51'), null)
+    assert.equal(read('80/'), null)
+    assert.equal(read('\r\n'), 'http://localhost:5180/')
+  })
+
+  it('follows the server to another port', () => {
+    const read = createUrlReader()
+    assert.equal(read('Local: http://localhost:5180/\n'), 'http://localhost:5180/')
+    assert.equal(read('in use, using http://localhost:5181/\n'), 'http://localhost:5181/')
+  })
+
+  it('reports nothing for output without an address', () => {
+    const read = createUrlReader()
+    assert.equal(read('building...\n'), null)
+    assert.equal(read('done\n'), null)
   })
 })
