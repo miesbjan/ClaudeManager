@@ -100,10 +100,10 @@ panes**, with tmux's arrows and `z`:
 | Input                     | Action                                    |
 | ------------------------- | ----------------------------------------- |
 | `Alt+←` / `Alt+→`         | move focus to the pane in that direction  |
-| `Alt+1` / `Alt+2`         | focus the shell / the document            |
+| `Alt+1` / `Alt+2` / `Alt+3` | focus the shell / document / dev server |
 | `Alt+Shift+←` / `Alt+Shift+→` | move the divider by 5 %               |
 | `Alt+Z`                   | zoom the focused pane to the whole tab, and back |
-| `Alt+W`                   | show the dev server instead of the document |
+| `Alt+W`                   | right side: document, dev server, both     |
 
 These are the only keys taken from the shell, the way tmux takes a prefix; Alt with
 arrows, digits or `z` is unused by PowerShell and the TUIs that run in it.
@@ -140,9 +140,16 @@ Files passed on the command line are opened too, so the app works as a handler f
   else is a command you type into the shell that is already there.
 - **Web pane.** When a dev server prints its address, the app picks it up from the
   shell output - Vite's `Local: http://localhost:5173/` and the rest - and shows that
-  page in the right pane in place of the document. A run started from the Run button
-  opens the pane by itself, since starting something means wanting to look at it;
-  `Alt+W` switches back and forth afterwards. Nothing to configure; an address can
+  page beside the document. A run started from the Run button opens it by itself,
+  since starting something means wanting to look at it; `Alt+W` then cycles the right
+  side through document, dev server, and both at once - three columns with a divider
+  between each pair, each remembered per document.
+
+  A page shown here is a frame of its own, handled by its own process: once you click
+  inside it, it keeps every key you press, and no shortcut of this app reaches it.
+  Keyboard navigation therefore stops at the edge of the frame - `Alt+3` focuses the
+  pane, not the page - and `Alt+W` is additionally held as a system accelerator while
+  the window has focus, so there is always one key back out. Nothing to configure; an address can
   also be typed into the pane's bar for a server started elsewhere.
 
   Shells are started with `BROWSER=none`, the convention Vite and Create React App

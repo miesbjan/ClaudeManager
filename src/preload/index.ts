@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
+import type { PaneCommand } from '../shared/shortcuts'
 import type {
   FileEvent,
   FileReadResult,
@@ -45,6 +46,11 @@ const api: ViewerApi = {
       ipcRenderer.on('terminal:exit', handler)
       return () => ipcRenderer.off('terminal:exit', handler)
     }
+  },
+  onPaneCommand: (cb) => {
+    const handler = (_event: unknown, command: PaneCommand): void => cb(command)
+    ipcRenderer.on('pane:command', handler)
+    return () => ipcRenderer.off('pane:command', handler)
   },
   onFileEvent: (cb) => {
     const handler = (_event: unknown, data: FileEvent): void => cb(data)

@@ -1,5 +1,6 @@
 import type { ActivityState } from './activity'
 import type { ProjectInfo } from '../../shared/types'
+import type { RightMode } from './web'
 
 /** What the dot on a tab says, and what it means when you hover it. */
 const ACTIVITY_TITLE: Record<Exclude<ActivityState, 'idle'>, string> = {
@@ -26,7 +27,9 @@ export type Tab = {
   /** Width of the shell pane as a fraction of the tab. */
   ratio: number
   /** A pane blown up to the whole tab, as tmux does with `prefix + z`. */
-  zoom: 'terminal' | 'document' | null
+  zoom: 'terminal' | 'document' | 'web' | null
+  /** Width of the document as a fraction of the right side, when both are shown. */
+  rightRatio: number
   /** What happened here while you were looking elsewhere. */
   activity: ActivityState
   /** The project this document belongs to, if one was recognised. */
@@ -35,8 +38,8 @@ export type Tab = {
   runCommand: string | null
   /** Address of the dev server belonging to this document, once one is known. */
   webUrl: string | null
-  /** Whether the right pane currently shows that server instead of the document. */
-  showWeb: boolean
+  /** Whether the right side shows the document, the dev server, or both. */
+  rightMode: RightMode
   /** The address was typed by hand, so output must not overwrite it. */
   webManual: boolean
   /** A run was just started here, so the address it prints should open the pane. */

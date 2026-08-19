@@ -14,7 +14,7 @@
       <button id="shell-btn" class="toolbar-btn" type="button" title="Toggle shell pane (Ctrl+`)">
         Shell
       </button>
-      <button id="web-btn" class="toolbar-btn" type="button" title="Show the dev server (Alt+W)" hidden>
+      <button id="web-btn" class="toolbar-btn" type="button" title="Document, dev server, or both (Alt+W)" hidden>
         Web
       </button>
       <button id="theme-btn" class="toolbar-btn" type="button" title="Switch theme (Ctrl+D)">
@@ -37,25 +37,28 @@
         <div id="term-hosts"></div>
       </section>
       <div id="splitter" hidden></div>
-      <section id="web-pane" hidden>
-        <div id="web-bar">
-          <input id="web-url" type="text" spellcheck="false" placeholder="localhost:3000" />
-          <button id="web-reload" class="find-btn" type="button" title="Reload">↻</button>
-        </div>
-        <iframe
-          id="web-frame"
-          title="Local preview"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-        ></iframe>
-      </section>
+      <div id="right-area">
+        <section id="viewer" tabindex="-1">
+          <article id="content" class="markdown-body" hidden></article>
+          <div id="empty">
+            <p><strong>No document open.</strong></p>
+            <p>Press <kbd>Ctrl</kbd>+<kbd>O</kbd>, use <em>+ Open Markdown</em>, or drop a <code>.md</code> file into this window.</p>
+          </div>
+        </section>
+        <div id="right-splitter" hidden></div>
+        <section id="web-pane" hidden tabindex="-1">
+          <div id="web-bar">
+            <input id="web-url" type="text" spellcheck="false" placeholder="localhost:3000" />
+            <button id="web-reload" class="find-btn" type="button" title="Reload">↻</button>
+          </div>
+          <iframe
+            id="web-frame"
+            title="Local preview"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          ></iframe>
+        </section>
+      </div>
 
-      <section id="viewer" tabindex="-1">
-        <article id="content" class="markdown-body" hidden></article>
-        <div id="empty">
-          <p><strong>No document open.</strong></p>
-          <p>Press <kbd>Ctrl</kbd>+<kbd>O</kbd>, use <em>+ Open Markdown</em>, or drop a <code>.md</code> file into this window.</p>
-        </div>
-      </section>
       <div id="find" hidden>
         <input id="find-input" type="text" placeholder="Find in document" spellcheck="false" />
         <span id="find-count">0/0</span>

@@ -84,3 +84,17 @@ export function createUrlReader(): (chunk: string) => string | null {
     return complete.length > 0 ? complete[complete.length - 1].url : null
   }
 }
+
+/** What the right side of a tab shows. */
+export type RightMode = 'doc' | 'web' | 'both'
+
+/**
+ * One key cycles the three arrangements. Without an address there is nothing to
+ * cycle to, so the document simply stays.
+ */
+export function nextRightMode(mode: RightMode, hasUrl: boolean): RightMode {
+  if (!hasUrl) return 'doc'
+  if (mode === 'doc') return 'web'
+  if (mode === 'web') return 'both'
+  return 'doc'
+}

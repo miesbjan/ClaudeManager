@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { createUrlReader, isLocalUrl, normalizeUrl, sniffLocalUrl } from '../src/renderer/src/web.ts'
+import {
+  createUrlReader,
+  isLocalUrl,
+  nextRightMode,
+  normalizeUrl,
+  sniffLocalUrl
+} from '../src/renderer/src/web.ts'
 
 describe('isLocalUrl', () => {
   it('accepts the local machine', () => {
@@ -100,5 +106,18 @@ describe('createUrlReader', () => {
     const read = createUrlReader()
     assert.equal(read('building...\n'), null)
     assert.equal(read('done\n'), null)
+  })
+})
+
+describe('nextRightMode', () => {
+  it('cycles document, server, both', () => {
+    assert.equal(nextRightMode('doc', true), 'web')
+    assert.equal(nextRightMode('web', true), 'both')
+    assert.equal(nextRightMode('both', true), 'doc')
+  })
+
+  it('has nowhere to go without an address', () => {
+    assert.equal(nextRightMode('doc', false), 'doc')
+    assert.equal(nextRightMode('both', false), 'doc')
   })
 })

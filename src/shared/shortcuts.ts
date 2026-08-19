@@ -8,7 +8,7 @@
  */
 export type PaneCommand =
   | { type: 'focus'; direction: 'left' | 'right' }
-  | { type: 'focusIndex'; index: 1 | 2 }
+  | { type: 'focusIndex'; index: 1 | 2 | 3 }
   | { type: 'zoom' }
   | { type: 'resize'; delta: number }
   | { type: 'web' }
@@ -41,6 +41,7 @@ export function paneCommand(event: KeyLike): PaneCommand | null {
   // Digits come from the physical key: on a Czech layout the top row types 'ěščř'.
   if (event.code === 'Digit1') return { type: 'focusIndex', index: 1 }
   if (event.code === 'Digit2') return { type: 'focusIndex', index: 2 }
+  if (event.code === 'Digit3') return { type: 'focusIndex', index: 3 }
 
   // Letters come from the label instead, so Alt+Z is the key marked Z on a QWERTZ.
   const letter = event.key.toLowerCase()

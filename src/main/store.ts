@@ -24,13 +24,22 @@ function sanitisePanes(raw: unknown): Record<string, PaneState> {
   if (!raw || typeof raw !== 'object') return out
   for (const [path, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!value || typeof value !== 'object') continue
-    const { terminal, ratio, run, web, showWeb, webManual } = value as Partial<PaneState>
+    const { terminal, ratio, run, web, rightMode, rightRatio, showWeb, webManual } =
+      value as Partial<PaneState>
     out[path] = {
       terminal: terminal === true,
       ratio: typeof ratio === 'number' && ratio > 0 && ratio < 1 ? ratio : 0.5,
       run: typeof run === 'string' ? run : null,
       web: typeof web === 'string' ? web : null,
-      showWeb: showWeb === true,
+      // State from before the split right side knew only "the server is showing".
+      rightMode:
+        rightMode === 'web' || rightMode === 'both' || rightMode === 'doc'
+          ? rightMode
+          : showWeb === true
+            ? 'web'
+            : 'doc',
+      rightRatio:
+        typeof rightRatio === 'number' && rightRatio > 0 && rightRatio < 1 ? rightRatio : 0.5,
       webManual: webManual === true
     }
   }

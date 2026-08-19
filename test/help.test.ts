@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { SHORTCUTS } from '../src/renderer/src/help.ts'
-import { paneCommand, type KeyLike } from '../src/renderer/src/shortcuts.ts'
+import { paneCommand, type KeyLike } from '../src/shared/shortcuts.ts'
 
 const rows = SHORTCUTS.flatMap((section) => section.rows)
 const listed = rows.map((row) => row.keys).join(' | ')

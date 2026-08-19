@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { paneCommand, RESIZE_STEP, type KeyLike } from '../src/renderer/src/shortcuts.ts'
+import { paneCommand, RESIZE_STEP, type KeyLike } from '../src/shared/shortcuts.ts'
 
 function press(overrides: Partial<KeyLike>): KeyLike {
   return { key: '', code: '', altKey: true, ctrlKey: false, shiftKey: false, ...overrides }

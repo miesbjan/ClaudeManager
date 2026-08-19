@@ -1,4 +1,5 @@
 /** Types shared between main, preload and renderer. Type-only, no runtime code. */
+import type { PaneCommand } from './shortcuts'
 
 export type FileReadResult =
   | { ok: true; path: string; dir: string; content: string; mtimeMs: number }
@@ -28,7 +29,11 @@ export type PaneState = {
   run?: string | null
   /** Address of the dev server seen for this document. */
   web?: string | null
-  /** Whether the right pane was showing that server. */
+  /** Whether the right side showed the document, the dev server, or both. */
+  rightMode?: 'doc' | 'web' | 'both'
+  /** Width of the document as a fraction of the right side. */
+  rightRatio?: number
+  /** Older state knew only "the server is showing"; kept so it still restores. */
   showWeb?: boolean
   /** The address was typed by hand rather than read from the output. */
   webManual?: boolean
@@ -102,6 +107,11 @@ export interface ViewerApi {
     onData(cb: (event: TerminalData) => void): () => void
     onExit(cb: (event: TerminalExit) => void): () => void
   }
+  /**
+   * Pane keys, claimed by the main process so they work even while a page in the
+   * web pane has focus and would otherwise swallow them.
+   */
+  onPaneCommand(cb: (command: PaneCommand) => void): () => void
   /** Watcher notifications for files opened in tabs. */
   onFileEvent(cb: (event: FileEvent) => void): () => void
   /** Files pushed by the main process (second instance / file association). */

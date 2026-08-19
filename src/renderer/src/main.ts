@@ -17,9 +17,9 @@ import {
   stepIndex
 } from './find'
 import { renderShortcuts } from './help'
-import { createUrlReader, normalizeUrl } from './web'
+import { createUrlReader, nextRightMode, normalizeUrl } from './web'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
-import { paneCommand, type PaneCommand } from './shortcuts'
+import { paneCommand, type PaneCommand } from '../../shared/shortcuts'
 import { TerminalPane } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
 import type { PaneState, Theme } from '../../shared/types'
@@ -42,6 +42,8 @@ const runButton = document.getElementById('run-btn') as HTMLButtonElement
 const shellProject = document.getElementById('shell-project') as HTMLElement
 const webButton = document.getElementById('web-btn') as HTMLButtonElement
 const webPane = document.getElementById('web-pane') as HTMLElement
+const rightArea = document.getElementById('right-area') as HTMLElement
+const rightSplitter = document.getElementById('right-splitter') as HTMLElement
 const webFrame = document.getElementById('web-frame') as HTMLIFrameElement
 const webUrlInput = document.getElementById('web-url') as HTMLInputElement
 const splitter = document.getElementById('splitter') as HTMLElement
@@ -103,7 +105,8 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       project: null,
       runCommand: null,
       webUrl: null,
-      showWeb: false,
+      rightMode: 'doc',
+      rightRatio: DEFAULT_RATIO,
       webManual: false,
       awaitingServer: false
     }
@@ -254,7 +257,8 @@ function persistSession(): void {
       ratio: tab.ratio,
       run: tab.runCommand,
       web: tab.webUrl,
-      showWeb: tab.showWeb,
+      rightMode: tab.rightMode,
+      rightRatio: tab.rightRatio,
       webManual: tab.webManual
     }
   }
@@ -305,6 +309,9 @@ window.api.onFileEvent(({ path, type }) => {
 })
 
 window.api.onOpenFiles((paths) => void openFiles(paths.filter((p) => MD_PATTERN.test(p))))
+
+// Claimed in the main process, so they arrive even from inside the web pane.
+window.api.onPaneCommand((command) => runPaneCommand(command))
 
 /* ---------- tab context menu ---------- */
 
@@ -537,24 +544,41 @@ window.addEventListener('mousedown', (event) => {
  */
 function applyLayout(): void {
   const tab = tabs[activeIndex]
-  const open = tab?.terminalOpen === true
-  const zoom = open ? (tab?.zoom ?? null) : null
+  const shellOpen = tab?.terminalOpen === true
+  const zoom = tab?.zoom ?? null
+  const mode = tab?.webUrl ? tab.rightMode : 'doc'
 
-  terminalPane.hidden = !open || zoom === 'document'
-  splitter.hidden = !open || zoom !== null
-  viewer.hidden = zoom === 'terminal'
-  shellButton.classList.toggle('active', open)
+  const showShell = shellOpen && (zoom === null || zoom === 'terminal')
+  const showDoc = zoom === null ? mode !== 'web' : zoom === 'document'
+  const showWeb = zoom === null ? mode !== 'doc' : zoom === 'web'
 
-  if (tab && !terminalPane.hidden) {
-    terminalPane.style.flexBasis = zoom === 'terminal' ? '100%' : String(clampRatio(tab.ratio) * 100) + '%'
+  terminalPane.hidden = !showShell
+  viewer.hidden = !showDoc
+  webPane.hidden = !showWeb
+  rightArea.hidden = !showDoc && !showWeb
+  // A divider only earns its place between two panes that are both on screen.
+  splitter.hidden = !showShell || rightArea.hidden
+  rightSplitter.hidden = !showDoc || !showWeb
+
+  shellButton.classList.toggle('active', shellOpen)
+  webButton.hidden = !tab || tab.webUrl === null
+  webButton.classList.toggle('active', showWeb)
+
+  if (tab && showShell) {
+    terminalPane.style.flexBasis = rightArea.hidden
+      ? '100%'
+      : String(clampRatio(tab.ratio) * 100) + '%'
+  }
+  if (tab && showDoc) {
+    viewer.style.flexBasis = showWeb ? String(clampRatio(tab.rightRatio) * 100) + '%' : '100%'
   }
 
   for (const [path, pane] of shells) {
-    pane.setVisible(!terminalPane.hidden && tab !== undefined && samePath(path, tab.path))
+    pane.setVisible(showShell && tab !== undefined && samePath(path, tab.path))
   }
 
   renderShellBar()
-  renderWebPane()
+  renderWebFrame()
 }
 
 /**
@@ -562,19 +586,12 @@ function applyLayout(): void {
  * server printed when it started, so there is nothing to configure - and it can be
  * typed by hand for a server that was started elsewhere.
  */
-function renderWebPane(): void {
+function renderWebFrame(): void {
   const tab = tabs[activeIndex]
-  const showWeb = tab?.showWeb === true && tab.webUrl !== null && tab.zoom !== 'terminal'
-
-  webButton.hidden = !tab || tab.webUrl === null
-  webButton.classList.toggle('active', showWeb)
-  webPane.hidden = !showWeb
-  viewer.hidden = tab?.zoom === 'terminal' || showWeb
-
   if (!tab) return
   if (document.activeElement !== webUrlInput) webUrlInput.value = tab.webUrl ?? ''
   // Only assign src when it really changes; otherwise every render reloads the page.
-  if (showWeb && tab.webUrl && webFrame.getAttribute('src') !== tab.webUrl) {
+  if (!webPane.hidden && tab.webUrl && webFrame.getAttribute('src') !== tab.webUrl) {
     webFrame.setAttribute('src', tab.webUrl)
   }
 }
@@ -600,8 +617,8 @@ function setWebUrl(tab: Tab, url: string | null, manual = false): void {
    */
   if (tab.awaitingServer) {
     tab.awaitingServer = false
-    tab.showWeb = true
-    if (tab.zoom === 'terminal') tab.zoom = null
+    if (tab.rightMode === 'doc') tab.rightMode = 'web'
+    tab.zoom = null
     // A fresh run means a fresh server; do not leave the previous page in the frame.
     webFrame.removeAttribute('src')
   } else if (!isNew) {
@@ -612,16 +629,17 @@ function setWebUrl(tab: Tab, url: string | null, manual = false): void {
   if (tab === tabs[activeIndex]) applyLayout()
 }
 
-function toggleWeb(): void {
+/** Document, dev server, both - one key, in that order. */
+function cycleRight(): void {
   const tab = tabs[activeIndex]
   if (!tab?.webUrl) return
-  tab.showWeb = !tab.showWeb
-  if (tab.showWeb && tab.zoom === 'terminal') tab.zoom = null
+  tab.rightMode = nextRightMode(tab.rightMode, true)
+  tab.zoom = null
   applyLayout()
   persistSession()
 }
 
-webButton.addEventListener('click', toggleWeb)
+webButton.addEventListener('click', cycleRight)
 
 document.getElementById('web-reload')?.addEventListener('click', () => {
   const url = tabs[activeIndex]?.webUrl
@@ -639,7 +657,7 @@ webUrlInput.addEventListener('keydown', (event) => {
     return
   }
   setWebUrl(tab, url, true)
-  tab.showWeb = true
+  if (tab.rightMode === 'doc') tab.rightMode = 'web'
   applyLayout()
   persistSession()
 })
@@ -676,17 +694,53 @@ function toggleShell(): void {
   persistSession()
 }
 
+type PaneName = 'terminal' | 'document' | 'web'
+
+/** The panes on screen, left to right - the order Alt and the arrows walk. */
+function visiblePanes(): PaneName[] {
+  const panes: PaneName[] = []
+  if (!terminalPane.hidden) panes.push('terminal')
+  if (!viewer.hidden) panes.push('document')
+  if (!webPane.hidden) panes.push('web')
+  return panes
+}
+
+function focusedPane(): PaneName {
+  if (terminalHasFocus()) return 'terminal'
+  const active = document.activeElement
+  if (active === webFrame || active === webPane || webPane.contains(active)) return 'web'
+  return 'document'
+}
+
 /** The document pane is focusable so it can be reached by keyboard and scrolled. */
-function focusPane(which: 'terminal' | 'document'): void {
-  const tab = tabs[activeIndex]
-  if (!tab) return
+function focusPane(which: PaneName): void {
+  if (!visiblePanes().includes(which)) return
   if (which === 'terminal') {
-    if (!tab.terminalOpen || tab.zoom === 'document') return
-    shells.get(tab.path)?.focus()
+    const tab = tabs[activeIndex]
+    if (tab) shells.get(tab.path)?.focus()
     return
   }
-  if (tab.zoom === 'terminal') return
+  if (which === 'web') {
+    /*
+     * The pane, not the page inside it. A cross-origin frame is handled by its own
+     * process and swallows every key it gets, so keyboard navigation deliberately
+     * stops at the edge of it; only a click puts the cursor into the page itself.
+     */
+    webPane.focus()
+    return
+  }
   viewer.focus()
+}
+
+/** Moves along the visible panes rather than wrapping: the ends are the ends. */
+function stepPane(delta: number): void {
+  const panes = visiblePanes()
+  if (panes.length < 2) return
+  const at = panes.indexOf(focusedPane())
+  const from = at < 0 ? (delta > 0 ? -1 : panes.length) : at
+  const next = from + delta
+  if (next < 0 || next >= panes.length) return
+  focusPane(panes[next])
 }
 
 function runPaneCommand(command: PaneCommand): void {
@@ -694,29 +748,38 @@ function runPaneCommand(command: PaneCommand): void {
   if (!tab) return
 
   if (command.type === 'focus') {
-    focusPane(command.direction === 'left' ? 'terminal' : 'document')
+    stepPane(command.direction === 'left' ? -1 : 1)
     return
   }
   if (command.type === 'focusIndex') {
-    focusPane(command.index === 1 ? 'terminal' : 'document')
+    focusPane(command.index === 1 ? 'terminal' : command.index === 2 ? 'document' : 'web')
     return
   }
   if (command.type === 'web') {
-    toggleWeb()
+    cycleRight()
     return
   }
   if (command.type === 'zoom') {
-    if (!tab.terminalOpen) return
+    if (tab.zoom === null && visiblePanes().length < 2) return
     // Zoom applies to whichever pane the user is looking at, as `prefix + z` does.
-    const focused = terminalHasFocus() ? 'terminal' : 'document'
+    const focused = focusedPane()
     tab.zoom = tab.zoom ? null : focused
     applyLayout()
     focusPane(tab.zoom ?? focused)
     return
   }
   if (command.type === 'resize') {
-    if (!tab.terminalOpen || tab.zoom) return
-    tab.ratio = clampRatio(tab.ratio + command.delta)
+    if (tab.zoom) return
+    // The divider that moves is the one beside the pane being worked in.
+    if (focusedPane() === 'terminal' && !splitter.hidden) {
+      tab.ratio = clampRatio(tab.ratio + command.delta)
+    } else if (!rightSplitter.hidden) {
+      tab.rightRatio = clampRatio(tab.rightRatio + command.delta)
+    } else if (!splitter.hidden) {
+      tab.ratio = clampRatio(tab.ratio + command.delta)
+    } else {
+      return
+    }
     applyLayout()
     shells.get(tab.path)?.resize()
     persistSession()
@@ -822,6 +885,21 @@ makeSplitter(splitter, panes, {
     const tab = tabs[activeIndex]
     if (!tab) return
     tab.ratio = ratio
+    persistSession()
+  }
+})
+
+makeSplitter(rightSplitter, rightArea, {
+  onChange: (ratio) => {
+    const tab = tabs[activeIndex]
+    if (!tab) return
+    tab.rightRatio = ratio
+    viewer.style.flexBasis = String(ratio * 100) + '%'
+  },
+  onCommit: (ratio) => {
+    const tab = tabs[activeIndex]
+    if (!tab) return
+    tab.rightRatio = ratio
     persistSession()
   }
 })
@@ -956,7 +1034,8 @@ async function start(): Promise<void> {
     tab.ratio = clampRatio(pane.ratio)
     tab.runCommand = pane.run ?? null
     tab.webUrl = pane.web ?? null
-    tab.showWeb = pane.showWeb === true && tab.webUrl !== null
+    tab.rightMode = tab.webUrl === null ? 'doc' : (pane.rightMode ?? 'doc')
+    tab.rightRatio = clampRatio(pane.rightRatio ?? DEFAULT_RATIO)
     tab.webManual = pane.webManual === true
   }
   const wanted = startup.active ? indexOfPath(startup.active) : -1

@@ -24,10 +24,10 @@ export const SHORTCUTS: HelpSection[] = [
     title: 'Panes (Alt, as in tmux)',
     rows: [
       { keys: 'Alt+← / Alt+→', action: 'focus the pane in that direction' },
-      { keys: 'Alt+1 / Alt+2', action: 'focus the shell / the document' },
+      { keys: 'Alt+1 / Alt+2 / Alt+3', action: 'focus the shell / document / dev server' },
       { keys: 'Alt+Shift+← / →', action: 'move the divider' },
       { keys: 'Alt+Z', action: 'zoom the focused pane, and back' },
-      { keys: 'Alt+W', action: 'show the dev server instead of the document' }
+      { keys: 'Alt+W', action: 'right side: document, dev server, both' }
     ]
   },
   {

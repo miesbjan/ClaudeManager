@@ -104,6 +104,7 @@ localhost. `Alt+W` přepíná.
 
 Spuštění přes tlačítko panel otevře samo — kdo něco spustí, chce se na to podívat.
 Shell navíc dostává `BROWSER=none`, aby si projekt neotevřel systémový prohlížeč.
+`Alt+W` cykluje pravou stranu: dokument → web → obojí, tedy až tři sloupce vedle sebe.
 
 Tím vznikla ta smyčka, o kterou šlo: vlevo běží aplikace, vpravo se na ni koukáš,
 dokument je na jedno kliknutí zpátky.
@@ -244,6 +245,14 @@ chce vyhnout:
    spustit rozdělanou aplikaci a rovnou ji proklikat, aniž bys šel do prohlížeče.
    Omezení na localhost není dočasné — panel, který by uměl načíst cokoli, je jiná
    aplikace a bezpečnostní model by tím padl.
+- **19. 8. 2026** — Pravá strana umí ukázat dokument a web zároveň, takže v tabu můžou
+   být tři sloupce. `Alt+W` z přepínače udělal cyklus dokument → web → obojí; jedna
+   klávesa místo dalšího tlačítka. Poměry obou rozdělovačů se pamatují u dokumentu.
+- **19. 8. 2026** — Vložená stránka je vlastní proces a po kliknutí do ní si nechává
+   všechny klávesy; `before-input-event` v main procesu se pro ni nespustí, což se
+   ukázalo až testem. Proto klávesová navigace končí na hranici rámu (`Alt+3` zaostří
+   panel, ne stránku) a `Alt+W` navíc drží systémový akcelerátor, dokud má okno fokus —
+   jedna klávesa, kterou je vždycky cesta ven.
 - **19. 8. 2026** — Shell startuje s `BROWSER=none` a panel se po spuštění otevře sám.
    Obojí vyplynulo z prvního reálného použití: projekt měl ve `vite.config.ts`
    `server.open: true`, takže si otevřel systémový prohlížeč — přesně to jediné místo,

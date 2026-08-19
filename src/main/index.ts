@@ -3,6 +3,7 @@ import {
   BrowserWindow,
   clipboard,
   dialog,
+  globalShortcut,
   ipcMain,
   Menu,
   nativeTheme,
@@ -17,6 +18,7 @@ import { FileWatcher } from './fileWatcher'
 import { detectProject } from './project'
 import { TerminalManager } from './terminal'
 import { loadState, saveState, type AppState } from './store'
+import { paneCommand } from '../shared/shortcuts'
 import type { FileReadResult, SessionState, StartupPayload, Theme } from '../shared/types'
 
 const MD_PATTERN = /\.(md|markdown|mdown|mkd|mdx)$/i
@@ -111,9 +113,46 @@ function createWindow(): void {
     event.preventDefault()
     openExternal(url)
   })
-  win.webContents.on('before-input-event', (_event, input) => {
-    if (input.type === 'keyDown' && input.key === 'F12') win?.webContents.toggleDevTools()
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return
+    if (input.key === 'F12') {
+      win?.webContents.toggleDevTools()
+      return
+    }
+
+    /*
+     * Pane keys are claimed here rather than in the renderer alone. A page shown in
+     * the web pane is a frame of its own: once it has focus it swallows every key,
+     * and Alt+W - the way back out - would never arrive. Taking them before the page
+     * sees them keeps the panes reachable from wherever the cursor happens to be.
+     */
+    const command = paneCommand({
+      key: input.key,
+      code: input.code,
+      altKey: input.alt,
+      ctrlKey: input.control,
+      shiftKey: input.shift,
+      metaKey: input.meta
+    })
+    if (!command) return
+    event.preventDefault()
+    win?.webContents.send('pane:command', command)
   })
+
+  /*
+   * One key has to work even from inside the embedded page: the way back out of it.
+   * A cross-origin frame runs in its own process, so neither the renderer nor
+   * before-input-event ever sees its keys. An accelerator held only while this
+   * window has focus is the one mechanism that reaches over that boundary.
+   */
+  win.on('focus', () => {
+    try {
+      globalShortcut.register('Alt+W', () => win?.webContents.send('pane:command', { type: 'web' }))
+    } catch {
+      // Another application holds it; the button and a click still work.
+    }
+  })
+  win.on('blur', () => globalShortcut.unregister('Alt+W'))
 
   win.on('close', persistNow)
   win.on('closed', () => {
@@ -262,6 +301,8 @@ if (!app.requestSingleInstanceLock()) {
   app.on('window-all-closed', () => {
     app.quit()
   })
+
+  app.on('will-quit', () => globalShortcut.unregisterAll())
 
   app.on('before-quit', () => {
     persistNow()

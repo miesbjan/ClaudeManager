@@ -1,6 +1,6 @@
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
-import { paneCommand } from './shortcuts'
+import { paneCommand } from '../../shared/shortcuts'
 import '@xterm/xterm/css/xterm.css'
 
 /** Kept in step with the palette in styles.css. */
