@@ -50,9 +50,27 @@ function stateFile(): string {
   return join(app.getPath('userData'), 'state.json')
 }
 
+/**
+ * The application changed its name, and with it the folder Electron hands out. This
+ * reads the old one once, so a rename does not cost you the tabs you had open; the
+ * next save writes to the new place and the old file is never looked at again.
+ */
+function legacyStateFile(): string {
+  return join(app.getPath('appData'), 'md-viewer', 'state.json')
+}
+
+function readState(path: string): Partial<AppState> {
+  return JSON.parse(readFileSync(path, 'utf8')) as Partial<AppState>
+}
+
 export function loadState(): AppState {
   try {
-    const raw = JSON.parse(readFileSync(stateFile(), 'utf8')) as Partial<AppState>
+    let raw: Partial<AppState>
+    try {
+      raw = readState(stateFile())
+    } catch {
+      raw = readState(legacyStateFile())
+    }
     return {
       files: Array.isArray(raw.files) ? raw.files.filter((f) => typeof f === 'string') : [],
       active: typeof raw.active === 'string' ? raw.active : null,

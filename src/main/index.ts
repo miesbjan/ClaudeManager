@@ -33,8 +33,8 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'mdasset', privileges: { standard: true, secure: true, supportFetchAPI: true } }
 ])
 
-// Keeps the session file at %APPDATA%/md-viewer/state.json in dev and packaged runs.
-app.setName('md-viewer')
+// Keeps the session file at %APPDATA%/project-console/state.json in dev and packaged runs.
+app.setName('project-console')
 
 let win: BrowserWindow | null = null
 let watcher: FileWatcher | null = null
@@ -89,7 +89,7 @@ function createWindow(): void {
     show: false,
     // Matches the renderer's prefers-color-scheme palette, so there is no flash.
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#16181d' : '#ffffff',
-    title: 'Markdown Viewer',
+    title: 'Project Console',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

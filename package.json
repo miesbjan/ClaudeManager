@@ -1,7 +1,7 @@
 {
-  "name": "md-viewer",
+  "name": "project-console",
   "version": "1.0.0",
-  "description": "Minimal live Markdown viewer with tabs and external-change auto reload",
+  "description": "A small per-project console for Windows: a shell, the live document you steer by, and the app you are building, side by side",
   "main": "./out/main/index.js",
   "private": true,
   "author": "you@example.com",

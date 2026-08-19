@@ -1,5 +1,5 @@
-appId: cz.projectconsole.mdviewer
-productName: Markdown Viewer
+appId: cz.projectconsole.app
+productName: Project Console
 directories:
   output: release
   buildResources: build
@@ -30,6 +30,6 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  shortcutName: Markdown Viewer
+  shortcutName: Project Console
 portable:
-  artifactName: MarkdownViewer-portable-${version}.exe
+  artifactName: ProjectConsole-portable-${version}.exe

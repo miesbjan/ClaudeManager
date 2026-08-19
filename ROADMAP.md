@@ -4,9 +4,10 @@ Kam projekt směřuje — a stejně důležité, kam ne.
 
 ## Co to je
 
-Dnes je to živý prohlížeč Markdownu. Záměrem je vyrůst v **konzoli projektu**: jeden
-tab na jeden pracovní adresář, v něm shell s běžícím agentem, dokument, podle kterého
-se řídíš, a pár tlačítek pro příkazy, které stejně pořád píšeš.
+**Konzole projektu**: jeden tab na jeden projekt, v něm shell s běžícím agentem,
+dokument, podle kterého se řídíš, běžící aplikace vedle a tlačítko, které ji spustí.
+Začínalo to jako prohlížeč Markdownu — odtud i původní jméno, které projekt nesl do
+19. 8. 2026.
 
 Nosná myšlenka: **inteligence je externí proces.** Claude Code běží jako CLI
 v terminálovém panelu. Tahle aplikace nikdy nemusí být chytrá — je to okno kolem
@@ -246,6 +247,10 @@ chce vyhnout:
    spustit rozdělanou aplikaci a rovnou ji proklikat, aniž bys šel do prohlížeče.
    Omezení na localhost není dočasné — panel, který by uměl načíst cokoli, je jiná
    aplikace a bezpečnostní model by tím padl.
+- **19. 8. 2026** — Projekt přejmenován z „Markdown Viewer“ na **Project Console**.
+   Původní jméno popisovalo techniku jednoho ze tří panelů, ne k čemu je to celé;
+   „konzole projektu“ je pojem, kterým se to tady popisuje od začátku. Session se
+   z původní složky jednorázově přečte, aby přejmenování nestálo otevřené taby.
 - **19. 8. 2026** — Přibyl stav „čeká na povolení“. Nápad i konkrétní řetězce pochází
    z projektu claude-manager, který tentýž problém řeší vzorkováním tmux panelů; my
    stream čteme rovnou, takže to vyšlo na pár řádků. Rozlišení má smysl: dotaz na

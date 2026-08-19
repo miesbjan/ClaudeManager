@@ -14,9 +14,9 @@ import { basename, join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..')
 const RELEASE = join(ROOT, 'release')
-const UNPACKED = join(RELEASE, 'win-unpacked', 'Markdown Viewer.exe')
-const SHORTCUT_NAME = 'Markdown Viewer.lnk'
-const EXE_NAME = 'Markdown Viewer.exe'
+const UNPACKED = join(RELEASE, 'win-unpacked', 'Project Console.exe')
+const SHORTCUT_NAME = 'Project Console.lnk'
+const EXE_NAME = 'Project Console.exe'
 
 const wantExe = process.argv.includes('--exe')
 
@@ -55,7 +55,7 @@ function makeShortcut(desktop) {
       '$s = (New-Object -ComObject WScript.Shell).CreateShortcut(' + quote(link) + ')',
       '$s.TargetPath = ' + quote(UNPACKED),
       '$s.WorkingDirectory = ' + quote(join(RELEASE, 'win-unpacked')),
-      "$s.Description = 'Markdown Viewer (latest local build)'",
+      "$s.Description = 'Project Console (latest local build)'",
       '$s.Save()'
     ].join('; ')
   )

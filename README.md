@@ -1,13 +1,17 @@
-# Markdown Viewer
+# Project Console
 
-A small live Markdown viewer for Windows. Open several `.md` files from anywhere on
-disk, each in its own tab, and see them re-render automatically whenever another
-program (an editor, a generator, an AI agent) rewrites the file. Each tab can put a
-shell next to the document, so the agent doing the rewriting runs in the same window.
+A small console for one project at a time, on Windows. A tab holds a shell, the live
+document you are steering by, and the app you are building - side by side in one
+window.
 
-It is a viewer, not an editor — no editing, no file tree, no workspace management.
+The document re-renders itself whenever anything on disk rewrites it, and highlights
+what changed, so an agent working in the shell beside it can be followed without
+rereading the file. One button starts the project; when its dev server announces an
+address, the page appears in the pane next to the document.
 
-Where this is heading is written down in [ROADMAP.md](ROADMAP.md).
+It is not an editor: no editing, no file tree, no workspace management. Where this is
+heading, and what it will deliberately never do, is written down in
+[ROADMAP.md](ROADMAP.md).
 
 ## Run
 
@@ -197,7 +201,7 @@ Files passed on the command line are opened too, so the app works as a handler f
   applied through `nativeTheme.themeSource`, so it also covers native chrome such
   as scrollbars and dialogs, and it is remembered between launches.
 - **Session.** The list of open files and the active tab are stored in
-  `%APPDATA%/md-viewer/state.json`, together with the window geometry, and restored
+  `%APPDATA%/project-console/state.json`, together with the window geometry, and restored
   on the next launch. Files that no longer exist are shown as unavailable.
 - **Relative links.** Clicking a relative link to another `.md` file opens it in a
   new tab; `http(s)` links open in the default browser.

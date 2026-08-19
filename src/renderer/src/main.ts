@@ -194,7 +194,7 @@ function render(): void {
     content.textContent = ''
     empty.hidden = false
     status.textContent = 'No file open'
-    document.title = 'Markdown Viewer'
+    document.title = 'Project Console'
     applyLayout()
     return
   }
@@ -215,7 +215,7 @@ function render(): void {
 
   viewer.scrollTop = tab.scrollTop
   if (!findBar.hidden) refreshFind(false)
-  document.title = baseName(tab.path) + ' - Markdown Viewer'
+  document.title = baseName(tab.path) + ' - Project Console'
   renderStatus(tab)
   applyLayout()
   ensureShell()
