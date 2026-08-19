@@ -26,7 +26,13 @@
     <nav id="tabbar"></nav>
 
     <main id="panes">
-      <section id="terminal-pane" hidden></section>
+      <section id="terminal-pane" hidden>
+        <div id="shell-bar">
+          <button id="run-btn" class="run-btn" type="button" hidden>▶ Run</button>
+          <span id="shell-project"></span>
+        </div>
+        <div id="term-hosts"></div>
+      </section>
       <div id="splitter" hidden></div>
       <section id="viewer" tabindex="-1">
         <article id="content" class="markdown-body" hidden></article>

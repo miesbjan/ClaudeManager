@@ -24,10 +24,11 @@ function sanitisePanes(raw: unknown): Record<string, PaneState> {
   if (!raw || typeof raw !== 'object') return out
   for (const [path, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!value || typeof value !== 'object') continue
-    const { terminal, ratio } = value as Partial<PaneState>
+    const { terminal, ratio, run } = value as Partial<PaneState>
     out[path] = {
       terminal: terminal === true,
-      ratio: typeof ratio === 'number' && ratio > 0 && ratio < 1 ? ratio : 0.5
+      ratio: typeof ratio === 'number' && ratio > 0 && ratio < 1 ? ratio : 0.5,
+      run: typeof run === 'string' ? run : null
     }
   }
   return out

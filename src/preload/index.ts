@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type {
   FileEvent,
   FileReadResult,
+  ProjectInfo,
   SessionState,
   StartupPayload,
   TerminalData,
@@ -27,6 +28,7 @@ const api: ViewerApi = {
   openExternal: (url) => ipcRenderer.invoke('shell:external', url) as Promise<void>,
   reveal: (path) => ipcRenderer.invoke('shell:reveal', path) as Promise<void>,
   getPathForFile: (file) => webUtils.getPathForFile(file),
+  detectProject: (dir) => ipcRenderer.invoke('project:detect', dir) as Promise<ProjectInfo | null>,
   readClipboard: () => ipcRenderer.invoke('clipboard:read') as Promise<string>,
   terminal: {
     create: (id, cwd) => ipcRenderer.invoke('terminal:create', id, cwd) as Promise<TerminalStart>,

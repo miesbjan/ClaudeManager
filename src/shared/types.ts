@@ -24,6 +24,18 @@ export type PaneState = {
   terminal: boolean
   /** Width of the terminal pane as a fraction of the tab, 0.15-0.85. */
   ratio: number
+  /** The run command chosen for this document, when the project offers several. */
+  run?: string | null
+}
+
+/** The project a document belongs to, and the single command that runs it. */
+export type ProjectInfo = {
+  kind: 'node' | 'dotnet'
+  /** Directory the command must run in. */
+  root: string
+  name: string | null
+  /** Usually one; a monorepo offers one per app and the user picks. */
+  commands: string[]
 }
 
 export type SessionState = {
@@ -68,6 +80,8 @@ export interface ViewerApi {
   reveal(path: string): Promise<void>
   /** Resolve a dropped File to its absolute path (needs Electron webUtils). */
   getPathForFile(file: File): string
+  /** Find the project a document belongs to; null when nothing is recognised. */
+  detectProject(dir: string): Promise<ProjectInfo | null>
   /** Read the system clipboard, for pasting into a shell. */
   readClipboard(): Promise<string>
   /**

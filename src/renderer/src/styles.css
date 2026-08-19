@@ -368,9 +368,58 @@ body.dragging::after {
 #terminal-pane {
   flex: 0 0 50%;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   background: var(--bg);
   padding: 6px 0 6px 8px;
+}
+
+/* One action, and only when there is a project to run. */
+#shell-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 5px 2px;
+  min-height: 0;
+}
+
+#shell-bar:empty {
+  display: none;
+}
+
+.run-btn {
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 9px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-tab-active);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.run-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.run-btn[hidden] {
+  display: none;
+}
+
+#shell-project {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#term-hosts {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 #terminal-pane[hidden],

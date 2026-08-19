@@ -1,4 +1,5 @@
 import type { ActivityState } from './activity'
+import type { ProjectInfo } from '../../shared/types'
 
 /** What the dot on a tab says, and what it means when you hover it. */
 const ACTIVITY_TITLE: Record<Exclude<ActivityState, 'idle'>, string> = {
@@ -28,6 +29,10 @@ export type Tab = {
   zoom: 'terminal' | 'document' | null
   /** What happened here while you were looking elsewhere. */
   activity: ActivityState
+  /** The project this document belongs to, if one was recognised. */
+  project: ProjectInfo | null
+  /** Which of the project's run commands was chosen here. */
+  runCommand: string | null
 }
 
 export type TabHandlers = {

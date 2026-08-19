@@ -86,12 +86,14 @@ tabu ano. Zkratky aplikace se při fokusu v terminálu stahují na `Ctrl+Shift+�
 Zbývá k modelu „tab = adresář“: tab je pořád dokument a adresář se z něj odvozuje.
 Otevřít tab nad adresářem samotným, bez dokumentu, zatím nejde.
 
-### L3 — Tasky
+### L3 — Spuštění projektu (hotovo)
 
-Tlačítka, která spustí pevně daný příkaz v adresáři tabu, výstup teče do panelu.
-Exit kód, doba běhu, spuštění znovu. Nic dalšího.
+Jedno tlačítko: spusť to. Projekt se hledá odspoda nahoru od dokumentu, shell startuje
+v jeho kořeni. `package.json` dá svůj `dev`, `.csproj` dá `dotnet run`. Monorepo nabídne
+seznam appek a volbu si u toho dokumentu zapamatuje.
 
-*Hotovo, když:* build a testy jdou spustit bez přepínání oken.
+Původní návrh (vlastní panel, exit kód, doba běhu, správa procesu) se nekonal — viz
+decision log z 19. 8. 2026.
 
 ### L4 — Šuplík
 
@@ -152,7 +154,7 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Základ  | taby vázané na adresář, rozdělené panely, ukládání rozložení         |
 | Základ  | živý panel s Markdownem (jen ke čtení, sanitizovaný)                 |
 | Základ  | terminálový panel                                                    |
-| Základ  | tlačítka pro tasky                                                   |
+| Základ  | tlačítko na spuštění projektu                                        |
 | Šuplík  | feed změn, prompt buffer, tail logu                                  |
 | Extra   | zvýraznění změn, tečka aktivity, prompt buffer, `Ctrl+F`, paleta     |
 
@@ -223,6 +225,16 @@ chce vyhnout:
 - **19. 8. 2026** — Shell se odvozuje z dokumentu (`cwd` = jeho adresář), model
   „tab = adresář“ zůstává nedodělaný. Je to menší krok se stejným užitkem; plný model
   přijde, až bude potřeba tab bez dokumentu.
+- **19. 8. 2026** — L3 se scvrkla z „tasků“ na **jedno tlačítko Run**. Zadání znělo:
+   v 99 % nejde o build a test zvlášť, ale o proklikat aktuální stav aplikace. Task je
+   navíc jen pojmenovaný příkaz — a shell v tabu už je, takže se pošle do něj a výstup,
+   barvy, scrollback i `Ctrl+C` jsou zadarmo. Odpadl vlastní panel i správa procesů.
+- **19. 8. 2026** — WPF a jiné desktopové aplikace poběží vždy jako samostatné okno.
+   Vložit cizí HWND do rendereru přes `SetParent` jde, ale rozbíjí se na DPI, fokusu
+   a z-orderu; hodnota u .NET je stejně v buildu a jeho výstupu, ne ve vykreslení okna.
+- **19. 8. 2026** — Shell startuje v kořeni projektu, ne v adresáři dokumentu. Vyplynulo
+   z reálného rozložení: dokumentace bydlí v `.claude/docs/` nebo `plans/`, takže by
+   `npm run dev` spadl. Je to zároveň kus modelu „tab = adresář“ bez refaktoru.
 - **19. 8. 2026** — Git diff v šuplíku vyškrtnut a přesunut mezi non-goals. Původně
    byl označený za druhou nejužitečnější věc po terminálu, ale to byl můj odhad, ne
    jeho potřeba: při skutečném používání se ukázalo, že diff čte jinde. Zůstává tedy

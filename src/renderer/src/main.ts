@@ -36,6 +36,9 @@ const shellButton = document.getElementById('shell-btn') as HTMLButtonElement
 const themeButton = document.getElementById('theme-btn') as HTMLButtonElement
 const panes = document.getElementById('panes') as HTMLElement
 const terminalPane = document.getElementById('terminal-pane') as HTMLElement
+const termHosts = document.getElementById('term-hosts') as HTMLElement
+const runButton = document.getElementById('run-btn') as HTMLButtonElement
+const shellProject = document.getElementById('shell-project') as HTMLElement
 const splitter = document.getElementById('splitter') as HTMLElement
 const tabbar = document.getElementById('tabbar') as HTMLElement
 const viewer = document.getElementById('viewer') as HTMLElement
@@ -90,7 +93,9 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       terminalOpen: false,
       ratio: DEFAULT_RATIO,
       zoom: null,
-      activity: 'idle'
+      activity: 'idle',
+      project: null,
+      runCommand: null
     }
     tabs.push(tab)
     target = tabs.length - 1
@@ -122,6 +127,7 @@ async function loadTab(tab: Tab, diff = false): Promise<void> {
     tab.html = renderMarkdown(result.content, result.dir, changed)
     tab.error = null
     tab.updatedAt = Date.now()
+    if (!tab.project) tab.project = await window.api.detectProject(result.dir)
     if (changed && changed.size > 0) tab.pendingFlash = true
   } else {
     tab.html = ''
@@ -231,7 +237,13 @@ function renderStatus(tab: Tab): void {
 
 function persistSession(): void {
   const panesState: Record<string, PaneState> = {}
-  for (const tab of tabs) panesState[tab.path] = { terminal: tab.terminalOpen, ratio: tab.ratio }
+  for (const tab of tabs) {
+    panesState[tab.path] = {
+      terminal: tab.terminalOpen,
+      ratio: tab.ratio,
+      run: tab.runCommand
+    }
+  }
   window.api.saveSession({
     files: tabs.map((t) => t.path),
     active: tabs[activeIndex]?.path ?? null,
@@ -519,6 +531,8 @@ function applyLayout(): void {
   for (const [path, pane] of shells) {
     pane.setVisible(!terminalPane.hidden && tab !== undefined && samePath(path, tab.path))
   }
+
+  renderShellBar()
 }
 
 /** Start the shell of the active tab if it is meant to be open but has none yet. */
@@ -530,11 +544,11 @@ function ensureShell(): void {
 async function openShell(tab: Tab): Promise<void> {
   let pane = shells.get(tab.path)
   if (!pane) {
-    pane = new TerminalPane(tab.path, tab.dir, darkQuery.matches)
+    pane = new TerminalPane(tab.path, tab.project?.root ?? tab.dir, darkQuery.matches)
     // Registered before the await so a second call cannot spawn a second shell.
     shells.set(tab.path, pane)
     applyLayout()
-    const error = await pane.start(terminalPane)
+    const error = await pane.start(termHosts)
     if (error) status.textContent = 'Shell: ' + error
   }
   pane.setVisible(true)
@@ -595,6 +609,84 @@ function runPaneCommand(command: PaneCommand): void {
     persistSession()
   }
 }
+
+/**
+ * One action per project: start it. Building is what running does first, and
+ * anything else is a command you type into the shell that is already there.
+ */
+function chosenCommand(tab: Tab): string | null {
+  const project = tab.project
+  if (!project) return null
+  if (tab.runCommand && project.commands.includes(tab.runCommand)) return tab.runCommand
+  return project.commands.length === 1 ? project.commands[0] : null
+}
+
+function renderShellBar(): void {
+  const tab = tabs[activeIndex]
+  const project = tab?.project ?? null
+  runButton.hidden = project === null
+  if (!tab || !project) {
+    shellProject.textContent = ''
+    return
+  }
+  const command = chosenCommand(tab)
+  runButton.title = (command ?? 'choose what to run') + String.fromCharCode(10) + 'in ' + project.root
+  shellProject.textContent =
+    (project.name ?? project.kind) +
+    '  ·  ' +
+    (command ?? project.commands.length + ' ways to run')
+}
+
+/** A monorepo offers one command per app; the choice is remembered per document. */
+function showRunMenu(tab: Tab): void {
+  const project = tab.project
+  if (!project) return
+  ctxmenu.textContent = ''
+
+  for (const command of project.commands) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.textContent = command
+    button.addEventListener('click', () => {
+      hideContextMenu()
+      tab.runCommand = command
+      persistSession()
+      renderShellBar()
+      void sendRun(tab, command)
+    })
+    ctxmenu.append(button)
+  }
+
+  ctxmenu.hidden = false
+  const box = runButton.getBoundingClientRect()
+  const menu = ctxmenu.getBoundingClientRect()
+  ctxmenu.style.left = Math.min(box.left, window.innerWidth - menu.width - 4) + 'px'
+  ctxmenu.style.top = Math.min(box.bottom + 4, window.innerHeight - menu.height - 4) + 'px'
+}
+
+async function sendRun(tab: Tab, command: string): Promise<void> {
+  if (!tab.terminalOpen) {
+    tab.terminalOpen = true
+    tab.zoom = null
+    applyLayout()
+    persistSession()
+  }
+  await openShell(tab)
+  window.api.terminal.write(tab.path, command + String.fromCharCode(13))
+}
+
+async function runProject(): Promise<void> {
+  const tab = tabs[activeIndex]
+  if (!tab?.project) return
+  const command = chosenCommand(tab)
+  if (!command) {
+    showRunMenu(tab)
+    return
+  }
+  await sendRun(tab, command)
+}
+
+runButton.addEventListener('click', () => void runProject())
 
 function terminalHasFocus(): boolean {
   const tab = tabs[activeIndex]
@@ -747,6 +839,7 @@ async function start(): Promise<void> {
     if (!pane) continue
     tab.terminalOpen = pane.terminal
     tab.ratio = clampRatio(pane.ratio)
+    tab.runCommand = pane.run ?? null
   }
   const wanted = startup.active ? indexOfPath(startup.active) : -1
   activeIndex = wanted >= 0 ? wanted : 0

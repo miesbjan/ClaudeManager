@@ -14,6 +14,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { dirname, join, normalize } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { FileWatcher } from './fileWatcher'
+import { detectProject } from './project'
 import { TerminalManager } from './terminal'
 import { loadState, saveState, type AppState } from './store'
 import type { FileReadResult, SessionState, StartupPayload, Theme } from '../shared/types'
@@ -189,6 +190,8 @@ function registerIpc(): void {
     }
     persistSoon()
   })
+
+  ipcMain.handle('project:detect', (_event, dir: string) => detectProject(normalize(dir)))
 
   ipcMain.handle('clipboard:read', () => clipboard.readText())
 

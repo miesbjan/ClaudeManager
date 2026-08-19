@@ -127,6 +127,16 @@ Files passed on the command line are opened too, so the app works as a handler f
   whole. A deletion marks the block that closed over the gap. The flash is shown
   once: a tab that changed in the background flashes when it is next opened, and
   switching away and back does not replay it.
+- **Run.** When a document belongs to a project, the shell pane offers one button:
+  start it. The project is found by walking up from the document, the way npm and git
+  do, since a roadmap under `Project/.claude/docs/` belongs to `Project` - and the
+  shell then starts in the project root rather than the folder the document sits in.
+  A `package.json` contributes its `dev`, `start`, `serve` or `preview` script; a
+  solution or `.csproj` contributes `dotnet run` on whichever project is the
+  executable. A monorepo has one `dev:app` per app instead of a plain `dev`, so the
+  button offers the list and remembers the choice for that document. There is
+  deliberately no build or test button: running builds first anyway, and everything
+  else is a command you type into the shell that is already there.
 - **Shell pane.** ``Ctrl+` `` splits the tab: a shell on the left, the document on
   the right, with a divider that moves by mouse or by keyboard. Either pane can be
   zoomed to the whole tab and back. The shell starts in the document's own
