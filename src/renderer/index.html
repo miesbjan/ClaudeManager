@@ -17,6 +17,9 @@
       <button id="theme-btn" class="toolbar-btn" type="button" title="Switch theme (Ctrl+D)">
         Theme: Auto
       </button>
+      <button id="help-btn" class="toolbar-btn" type="button" title="Keyboard shortcuts">
+        ?
+      </button>
       <span id="hint">Ctrl+O open · Ctrl+Tab next tab · Ctrl+` shell · Alt+←→ panes · Alt+Z zoom</span>
     </header>
 
@@ -37,6 +40,8 @@
     <footer id="statusbar">No file open</footer>
 
     <div id="ctxmenu" hidden></div>
+
+    <aside id="help" hidden tabindex="-1"></aside>
 
     <script type="module" src="./src/main.ts"></script>
   </body>

@@ -2,6 +2,7 @@ import 'highlight.js/styles/github.css'
 import './styles.css'
 import { changedLines } from './diff'
 import { renderMarkdown } from './markdownRenderer'
+import { renderShortcuts } from './help'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { paneCommand, type PaneCommand } from './shortcuts'
 import { TerminalPane } from './terminal'
@@ -28,6 +29,8 @@ const content = document.getElementById('content') as HTMLElement
 const empty = document.getElementById('empty') as HTMLElement
 const status = document.getElementById('statusbar') as HTMLElement
 const ctxmenu = document.getElementById('ctxmenu') as HTMLElement
+const helpButton = document.getElementById('help-btn') as HTMLButtonElement
+const help = document.getElementById('help') as HTMLElement
 
 const tabs: Tab[] = []
 let activeIndex = -1
@@ -325,6 +328,30 @@ viewer.addEventListener('scroll', () => {
   if (tab) tab.scrollTop = viewer.scrollTop
 })
 
+/* ---------- shortcut help ---------- */
+
+/**
+ * Focus moves into the panel while it is open, so Esc closes it instead of being
+ * swallowed by whatever runs in the shell.
+ */
+function toggleHelp(): void {
+  if (help.hidden) {
+    if (!help.firstChild) renderShortcuts(help)
+    help.hidden = false
+    help.focus()
+  } else {
+    help.hidden = true
+  }
+  helpButton.classList.toggle('active', !help.hidden)
+}
+
+helpButton.addEventListener('click', toggleHelp)
+
+window.addEventListener('mousedown', (event) => {
+  const target = event.target as Node
+  if (!help.hidden && !help.contains(target) && target !== helpButton) toggleHelp()
+})
+
 /* ---------- shell pane ---------- */
 
 /**
@@ -482,6 +509,12 @@ async function pickFiles(): Promise<void> {
 openButton.addEventListener('click', () => void pickFiles())
 
 window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !help.hidden) {
+    event.preventDefault()
+    toggleHelp()
+    return
+  }
+
   const pane = paneCommand(event)
   if (pane) {
     event.preventDefault()

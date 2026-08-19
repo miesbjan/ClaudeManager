@@ -223,6 +223,11 @@ chce vyhnout:
 - **19. 8. 2026** — Shell se odvozuje z dokumentu (`cwd` = jeho adresář), model
   „tab = adresář“ zůstává nedodělaný. Je to menší krok se stejným užitkem; plný model
   přijde, až bude potřeba tab bez dokumentu.
+- **19. 8. 2026** — Do lišty přibylo tlačítko `?` s přehledem zkratek. Je to
+  rozšíření uzavřeného seznamu funkcí, ale vědomé: zkratky pro panely se nedají
+  uhodnout a jediné místo, kde se o nich šlo dozvědět, bylo README. Panel nestojí
+  žádný pixel, dokud se nevyvolá, a jeho obsah je datová struktura, kterou hlídá test
+  — binding, který funguje, ale není v seznamu, je chyba.
 - **19. 8. 2026** — Klávesy pro panely převzaty z multiplexerů: **Ctrl ovládá taby,
   Alt ovládá panely**, s tmuxími šipkami a `z` pro zoom. Důvod: stavíme v jednom tabu
   víc panelů, takže má smysl sáhnout po konvenci, kterou člověk zná z tmuxu i Windows

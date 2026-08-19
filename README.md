@@ -71,6 +71,9 @@ This is a machine-wide electron-builder issue, not specific to this project.
 
 ## Controls
 
+The `?` button in the toolbar shows the same list inside the app; `Esc` or a click
+anywhere else closes it.
+
 | Input                     | Action                                    |
 | ------------------------- | ----------------------------------------- |
 | `Ctrl+O`                  | open Markdown file(s)                     |
