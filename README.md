@@ -2,9 +2,10 @@
 
 A small live Markdown viewer for Windows. Open several `.md` files from anywhere on
 disk, each in its own tab, and see them re-render automatically whenever another
-program (an editor, a generator, an AI agent) rewrites the file.
+program (an editor, a generator, an AI agent) rewrites the file. Each tab can put a
+shell next to the document, so the agent doing the rewriting runs in the same window.
 
-It is a viewer only — no editing, no sidebar, no workspace management.
+It is a viewer, not an editor — no editing, no file tree, no workspace management.
 
 Where this is heading is written down in [ROADMAP.md](ROADMAP.md).
 
@@ -24,6 +25,11 @@ npm run build:dir    # unpacked app only (faster, for smoke tests)
 
 Other scripts: `npm run compile` (bundle without packaging), `npm start`
 (run the bundled app), `npm run typecheck`, `npm test`.
+
+`node-pty` is the only native dependency. It ships N-API prebuilt binaries, so there
+is no compiler, no `node-gyp` and no rebuild after an Electron upgrade — but its
+`.node` files must stay outside the asar archive, which `electron-builder.yml`
+handles.
 
 ## Tests
 
@@ -66,10 +72,16 @@ This is a machine-wide electron-builder issue, not specific to this project.
 | `Ctrl+1` … `Ctrl+9`       | jump to tab by position                   |
 | `Ctrl+R`                  | force reload of the current file          |
 | `Ctrl+D`                  | switch theme: Auto → Light → Dark         |
+| ``Ctrl+` ``               | show or hide the shell pane               |
+| `Ctrl+Shift+C` / `Ctrl+Shift+V` | copy / paste inside the shell       |
 | `F12`                     | toggle DevTools                           |
 | middle-click a tab        | close it                                  |
 | right-click a tab         | reload, close, close others, copy path, reveal in Explorer |
 | drag & drop               | drop `.md` files into the window to open them |
+
+While the shell has focus its keys belong to it — `Ctrl+W` deletes a word, `Ctrl+D`
+means end of input. The app shortcuts above then answer only to their `Ctrl+Shift`
+variants; ``Ctrl+` `` and `Ctrl+Tab` keep working from either side.
 
 Files passed on the command line are opened too, so the app works as a handler for
 `.md` files (the installer registers the association).
@@ -87,6 +99,12 @@ Files passed on the command line are opened too, so the app works as a handler f
   whole. A deletion marks the block that closed over the gap. The flash is shown
   once: a tab that changed in the background flashes when it is next opened, and
   switching away and back does not replay it.
+- **Shell pane.** ``Ctrl+` `` splits the tab: a shell on the left, the document on
+  the right, with a draggable divider. The shell starts in the document's own
+  directory, so builds and agents run where the file lives. One shell per tab, kept
+  alive while the tab is open — hiding the pane or switching tabs does not disturb a
+  process running inside it; closing the tab kills it. Whether the pane is open and
+  how wide it is are remembered per document.
 - **Deleted files** stay open and marked *unavailable*; they reload by themselves
   if the file reappears.
 - **Duplicate names.** Tabs show the file name, extended with as many parent
@@ -117,6 +135,10 @@ Markdown is untrusted display content, so:
   (`src/preload/index.ts`); there is no generic "run this in main" channel
 - navigation and `window.open` from document content are denied; external URLs are
   handed to the system browser
+- the shell pane does not widen that surface by much on purpose: the renderer cannot
+  name an executable, it can only ask for *a shell in a directory* and the main
+  process decides what to run. Nothing in the rendered Markdown — a link, an image,
+  a click — has a path to that channel.
 
 ## Layout
 
@@ -125,6 +147,7 @@ src/
   main/
     index.ts         Electron main: window, IPC, protocol, security policy
     fileWatcher.ts   chokidar watchers + poll fallback for arbitrary file paths
+    terminal.ts      PTY processes behind the shell panes
     store.ts         session/window state in userData/state.json
   preload/
     index.ts         the whole renderer-to-main API surface
@@ -133,6 +156,8 @@ src/
     src/main.ts      UI wiring: tabs, live reload, shortcuts, drag & drop
     src/tabs.ts      tab bar rendering + duplicate-name labelling
     src/diff.ts      line diff behind the change highlight
+    src/terminal.ts  xterm pane wired to a PTY in the main process
+    src/split.ts     the divider between the two panes
     src/markdownRenderer.ts  markdown-it setup, highlighting, task lists, assets
     src/styles.css   document + chrome styling, light and dark
   shared/

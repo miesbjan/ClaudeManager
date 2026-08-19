@@ -2,8 +2,10 @@ import 'highlight.js/styles/github.css'
 import './styles.css'
 import { changedLines } from './diff'
 import { renderMarkdown } from './markdownRenderer'
+import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
+import { TerminalPane } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
-import type { Theme } from '../../shared/types'
+import type { PaneState, Theme } from '../../shared/types'
 
 const MD_PATTERN = /\.(md|markdown|mdown|mkd|mdx)$/i
 const THEMES: Theme[] = ['system', 'light', 'dark']
@@ -14,7 +16,11 @@ const THEME_LABELS: Record<Theme, string> = {
 }
 
 const openButton = document.getElementById('open-btn') as HTMLButtonElement
+const shellButton = document.getElementById('shell-btn') as HTMLButtonElement
 const themeButton = document.getElementById('theme-btn') as HTMLButtonElement
+const panes = document.getElementById('panes') as HTMLElement
+const terminalPane = document.getElementById('terminal-pane') as HTMLElement
+const splitter = document.getElementById('splitter') as HTMLElement
 const tabbar = document.getElementById('tabbar') as HTMLElement
 const viewer = document.getElementById('viewer') as HTMLElement
 const content = document.getElementById('content') as HTMLElement
@@ -26,6 +32,9 @@ const tabs: Tab[] = []
 let activeIndex = -1
 let theme: Theme = 'system'
 const reloadTimers = new Map<string, number>()
+/** One shell per tab, kept alive while the tab exists - keyed by document path. */
+const shells = new Map<string, TerminalPane>()
+const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
 const samePath = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase()
 const indexOfPath = (path: string): number => tabs.findIndex((t) => samePath(t.path, path))
@@ -53,7 +62,9 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       scrollTop: 0,
       updatedAt: null,
       source: null,
-      pendingFlash: false
+      pendingFlash: false,
+      terminalOpen: false,
+      ratio: DEFAULT_RATIO
     }
     tabs.push(tab)
     target = tabs.length - 1
@@ -96,6 +107,8 @@ function closeTab(index: number): void {
   const tab = tabs[index]
   if (!tab) return
   void window.api.unwatch(tab.path)
+  shells.get(tab.path)?.dispose()
+  shells.delete(tab.path)
   tabs.splice(index, 1)
   if (tabs.length === 0) activeIndex = -1
   else if (index < activeIndex) activeIndex--
@@ -126,6 +139,7 @@ function render(): void {
     empty.hidden = false
     status.textContent = 'No file open'
     document.title = 'Markdown Viewer'
+    applyLayout()
     return
   }
 
@@ -146,6 +160,8 @@ function render(): void {
   viewer.scrollTop = tab.scrollTop
   document.title = baseName(tab.path) + ' - Markdown Viewer'
   renderStatus(tab)
+  applyLayout()
+  ensureShell()
 }
 
 function renderError(tab: Tab): void {
@@ -177,9 +193,12 @@ function renderStatus(tab: Tab): void {
 }
 
 function persistSession(): void {
+  const panesState: Record<string, PaneState> = {}
+  for (const tab of tabs) panesState[tab.path] = { terminal: tab.terminalOpen, ratio: tab.ratio }
   window.api.saveSession({
     files: tabs.map((t) => t.path),
-    active: tabs[activeIndex]?.path ?? null
+    active: tabs[activeIndex]?.path ?? null,
+    panes: panesState
   })
 }
 
@@ -304,6 +323,85 @@ viewer.addEventListener('scroll', () => {
   if (tab) tab.scrollTop = viewer.scrollTop
 })
 
+/* ---------- shell pane ---------- */
+
+/**
+ * The shell pane belongs to the active tab. Every terminal keeps its own host
+ * element alive and merely hidden, so switching tabs - or closing the pane - never
+ * disturbs a process running inside it. Only closing the tab kills the shell.
+ */
+function applyLayout(): void {
+  const tab = tabs[activeIndex]
+  const open = tab?.terminalOpen === true
+
+  terminalPane.hidden = !open
+  splitter.hidden = !open
+  shellButton.classList.toggle('active', open)
+  if (open && tab) terminalPane.style.flexBasis = String(clampRatio(tab.ratio) * 100) + '%'
+
+  for (const [path, pane] of shells) {
+    pane.setVisible(open && tab !== undefined && samePath(path, tab.path))
+  }
+}
+
+/** Start the shell of the active tab if it is meant to be open but has none yet. */
+function ensureShell(): void {
+  const tab = tabs[activeIndex]
+  if (tab && tab.terminalOpen && !shells.has(tab.path)) void openShell(tab)
+}
+
+async function openShell(tab: Tab): Promise<void> {
+  let pane = shells.get(tab.path)
+  if (!pane) {
+    pane = new TerminalPane(tab.path, tab.dir, darkQuery.matches)
+    // Registered before the await so a second call cannot spawn a second shell.
+    shells.set(tab.path, pane)
+    applyLayout()
+    const error = await pane.start(terminalPane)
+    if (error) status.textContent = 'Shell: ' + error
+  }
+  pane.setVisible(true)
+  pane.focus()
+}
+
+function toggleShell(): void {
+  const tab = tabs[activeIndex]
+  if (!tab) return
+  tab.terminalOpen = !tab.terminalOpen
+  applyLayout()
+  if (tab.terminalOpen) void openShell(tab)
+  else (document.activeElement as HTMLElement | null)?.blur()
+  persistSession()
+}
+
+function terminalHasFocus(): boolean {
+  const tab = tabs[activeIndex]
+  return tab ? shells.get(tab.path)?.hasFocus() === true : false
+}
+
+shellButton.addEventListener('click', toggleShell)
+
+makeSplitter(splitter, panes, {
+  onChange: (ratio) => {
+    const tab = tabs[activeIndex]
+    if (!tab) return
+    tab.ratio = ratio
+    terminalPane.style.flexBasis = String(ratio * 100) + '%'
+    shells.get(tab.path)?.resize()
+  },
+  onCommit: (ratio) => {
+    const tab = tabs[activeIndex]
+    if (!tab) return
+    tab.ratio = ratio
+    persistSession()
+  }
+})
+
+// The palette follows nativeTheme, so one media query covers all three modes.
+darkQuery.addEventListener('change', () => {
+  for (const pane of shells.values()) pane.setTheme(darkQuery.matches)
+})
+
 /* ---------- theme ---------- */
 
 /**
@@ -333,7 +431,23 @@ openButton.addEventListener('click', () => void pickFiles())
 
 window.addEventListener('keydown', (event) => {
   if (!(event.ctrlKey || event.metaKey)) return
+
+  if (event.code === 'Backquote') {
+    event.preventDefault()
+    toggleShell()
+    return
+  }
+
+  /*
+   * Keys typed into a shell belong to the shell - Ctrl+W deletes a word there and
+   * Ctrl+D means end of input. So while the terminal has focus the app answers only
+   * to the shifted variants, plus Ctrl+Tab, which no shell uses.
+   */
+  if (terminalHasFocus() && !event.shiftKey && event.key !== 'Tab') return
+
   const key = event.key.toLowerCase()
+  // Read digits from the physical key: Ctrl+Shift+1 arrives as '!' on many layouts.
+  const digit = event.code.startsWith('Digit') ? Number(event.code.slice(5)) : 0
 
   if (key === 'o') {
     event.preventDefault()
@@ -351,9 +465,9 @@ window.addEventListener('keydown', (event) => {
   } else if (key === 'd') {
     event.preventDefault()
     cycleTheme()
-  } else if (key >= '1' && key <= '9') {
+  } else if (digit >= 1 && digit <= 9) {
     event.preventDefault()
-    selectTab(Number(key) - 1)
+    selectTab(digit - 1)
   }
 })
 
@@ -384,6 +498,12 @@ async function start(): Promise<void> {
   setTheme(startup.theme, false)
   if (startup.files.length === 0) return
   await openFiles(startup.files, false)
+  for (const tab of tabs) {
+    const pane = startup.panes[tab.path]
+    if (!pane) continue
+    tab.terminalOpen = pane.terminal
+    tab.ratio = clampRatio(pane.ratio)
+  }
   const wanted = startup.active ? indexOfPath(startup.active) : -1
   activeIndex = wanted >= 0 ? wanted : 0
   render()

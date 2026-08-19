@@ -1,8 +1,20 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  clipboard,
+  dialog,
+  ipcMain,
+  Menu,
+  nativeTheme,
+  net,
+  protocol,
+  shell
+} from 'electron'
 import { readFile, stat } from 'node:fs/promises'
 import { dirname, join, normalize } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { FileWatcher } from './fileWatcher'
+import { TerminalManager } from './terminal'
 import { loadState, saveState, type AppState } from './store'
 import type { FileReadResult, SessionState, StartupPayload, Theme } from '../shared/types'
 
@@ -23,9 +35,10 @@ app.setName('md-viewer')
 
 let win: BrowserWindow | null = null
 let watcher: FileWatcher | null = null
+let terminals: TerminalManager | null = null
 
 const state: AppState = loadState()
-let session: SessionState = { files: state.files, active: state.active }
+let session: SessionState = { files: state.files, active: state.active, panes: state.panes }
 const cliFiles = collectMarkdownArgs(process.argv)
 let saveTimer: NodeJS.Timeout | null = null
 
@@ -50,6 +63,7 @@ function persistNow(): void {
   }
   state.files = session.files
   state.active = session.active
+  state.panes = session.panes
   saveState(state)
 }
 
@@ -149,7 +163,7 @@ function registerIpc(): void {
     const files = [...session.files]
     for (const file of cliFiles) if (!files.includes(file)) files.push(file)
     const active = cliFiles[cliFiles.length - 1] ?? session.active
-    return { files, active, theme: state.theme }
+    return { files, active, theme: state.theme, panes: state.panes }
   })
 
   ipcMain.handle('theme:set', (_event, theme: Theme) => {
@@ -160,10 +174,23 @@ function registerIpc(): void {
   ipcMain.on('session:save', (_event, next: SessionState) => {
     session = {
       files: Array.isArray(next?.files) ? next.files : [],
-      active: typeof next?.active === 'string' ? next.active : null
+      active: typeof next?.active === 'string' ? next.active : null,
+      panes: next?.panes && typeof next.panes === 'object' ? next.panes : {}
     }
     persistSoon()
   })
+
+  ipcMain.handle('clipboard:read', () => clipboard.readText())
+
+  ipcMain.handle('terminal:create', (_event, id: string, cwd: string) =>
+    terminals?.create(id, cwd) ?? { ok: false, error: 'Terminals are not ready' }
+  )
+  // Keystrokes and resizes are frequent and need no answer.
+  ipcMain.on('terminal:write', (_event, id: string, data: string) => terminals?.write(id, data))
+  ipcMain.on('terminal:resize', (_event, id: string, cols: number, rows: number) =>
+    terminals?.resize(id, cols, rows)
+  )
+  ipcMain.on('terminal:kill', (_event, id: string) => terminals?.kill(id))
 
   ipcMain.handle('shell:external', (_event, url: string) => {
     openExternal(url)
@@ -197,9 +224,15 @@ if (!app.requestSingleInstanceLock()) {
       }
     })
 
-    watcher = new FileWatcher((event) => {
-      if (win && !win.isDestroyed()) win.webContents.send('file:event', event)
-    })
+    const toRenderer = (channel: string, payload: unknown): void => {
+      if (win && !win.isDestroyed()) win.webContents.send(channel, payload)
+    }
+
+    watcher = new FileWatcher((event) => toRenderer('file:event', event))
+    terminals = new TerminalManager(
+      (event) => toRenderer('terminal:data', event),
+      (event) => toRenderer('terminal:exit', event)
+    )
 
     // No application menu: keeps the UI minimal and leaves Ctrl+O/W/Tab to the renderer.
     Menu.setApplicationMenu(null)
@@ -219,6 +252,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('before-quit', () => {
     persistNow()
+    terminals?.disposeAll()
     void watcher?.dispose()
   })
 }

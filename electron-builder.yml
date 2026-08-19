@@ -6,7 +6,16 @@ directories:
 files:
   - out/**
   - package.json
+  # Debug symbols shipped with node-pty are 11 MB of nothing useful here.
+  - "!**/*.pdb"
+  - "!**/node_modules/node-pty/prebuilds/{darwin,linux}-*/**"
 asar: true
+# node-pty ships N-API prebuilt binaries that already load in Electron, so the
+# automatic @electron/rebuild pass is pure cost - and it fails without a compiler.
+npmRebuild: false
+# The PTY binary has to be a real file on disk; it cannot be loaded from the archive.
+asarUnpack:
+  - "**/node_modules/node-pty/**"
 win:
   target:
     - target: nsis

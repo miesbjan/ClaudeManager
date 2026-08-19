@@ -65,20 +65,26 @@ vrstvy myšlenku ověří.
 Taby, live reload, bezpečné renderování, obnova session, Auto/Light/Dark.
 Plus zvýraznění změn, viz decision log ze 18. 8. 2026.
 
-### L1 — Split view
+### L1 — Split view (hotovo)
 
-Dva panely v tabu, tažitelný splitter, ukládání rozložení per tab. Zatím jen
-dokumenty, žádný shell. Bez nových závislostí.
+Dva panely v tabu, tažitelný splitter, ukládání rozložení per tab.
 
-*Hotovo, když:* tab umí zobrazit dva dokumenty vedle sebe a rozdělení přežije restart.
+Dodáno rovnou spolu s L2, protože samotné rozdělení bez shellu nemělo koho obsloužit:
+vpravo je dokument, vlevo shell. Dva dokumenty vedle sebe zatím nejdou — to je zbytek
+téhle vrstvy, který počká, až po něm bude poptávka.
 
-### L2 — Terminálový panel
+### L2 — Terminálový panel (hotovo)
 
 `node-pty` v main procesu, `@xterm/xterm` v rendereru, data přes stávající preload
-bridge. Velký krok: první nativní závislost, změny v packagingu, přepracování kláves.
+bridge. Shell startuje v adresáři otevřeného dokumentu, jeden na tab, ``Ctrl+` ``
+panel ukazuje a schovává.
 
-*Hotovo, když:* `claude` běží v levém panelu, přežije změnu velikosti a zavření tabu
-proces ukončí.
+Proces žije, dokud žije tab: schování panelu ani přepnutí tabu ho nezabije, zavření
+tabu ano. Zkratky aplikace se při fokusu v terminálu stahují na `Ctrl+Shift+…`, aby
+`Ctrl+W` a `Ctrl+D` patřily shellu.
+
+Zbývá k modelu „tab = adresář“: tab je pořád dokument a adresář se z něj odvozuje.
+Otevřít tab nad adresářem samotným, bez dokumentu, zatím nejde.
 
 ### L3 — Tasky
 
@@ -168,17 +174,20 @@ chce vyhnout:
 
 ## Rizika a přijaté náklady
 
-- **Nativní modul.** `node-pty` znamená `electron-rebuild`, `asarUnpack` pro binárku
-  a přestavění při každém povýšení Electronu. Je to největší jednorázový náklad
-  a přichází v L2.
+- **Nativní modul — vyšlo levněji, než se čekalo.** `node-pty` 1.1 je postavené na
+  N-API a veze si předkompilované binárky, takže není potřeba ani Visual Studio, ani
+  `electron-rebuild`, a povýšení Electronu nevyžaduje přestavění. Zůstal jen
+  `asarUnpack` pro `.node` soubory a vypnutý automatický rebuild v electron-builderu
+  (`npmRebuild: false`), který jinak volá node-gyp a bez kompilátoru spadne.
 - **Mění se bezpečnostní model.** Dnes renderer nedokáže spustit vůbec nic; celý
   návrh stojí na tom, že Markdown je jen zobrazovaný obsah. PTY je z definice kanál
   pro libovolné spuštění kódu. Hranici drží dvě pravidla: z vyrenderovaného Markdownu
   nesmí vést k PTY žádná cesta (kliknutí na odkaz, obrázky, nic), a tasky
   z projektové konfigurace se nikdy nespouští automaticky při otevření — jen na
   explicitní klik a s viditelným příkazem.
-- **Kolize kláves.** `Ctrl+O/W/D` patří shellu ve chvíli, kdy má terminál fokus.
-  Zkratky aplikace se přesunou na `Ctrl+Shift+…` a budou se směrovat podle fokusu.
+- **Kolize kláves — vyřešeno v L2.** `Ctrl+O/W/D` patří shellu ve chvíli, kdy má
+  terminál fokus; zkratky aplikace se tehdy stahují na `Ctrl+Shift+…`. Průchozí
+  zůstávají ``Ctrl+` `` a `Ctrl+Tab`, které žádný shell nepoužívá.
 - **Terminál bude slabé místo.** xterm.js dojde zhruba na 95 %; zbylých 5 % —
   chování schránky, scrollback, výběr myší, hraniční případy při změně velikosti,
   vykreslování fontu — je tam, kde zůstane dedikovaný terminál lepší. Přijato vědomě.
@@ -205,6 +214,17 @@ chce vyhnout:
   Přijatý náklad: ~3 dny teď, pár hodin údržby ročně, hrubší terminál.
 - **18. 8. 2026** — Pořadí vrstev pevně L1 → L2 → L3 → L4 → L5, mezi vrstvami zhruba
   týden reálného používání. Konfigurační soubor záměrně až nakonec.
+- **18. 8. 2026** — Zvýraznění změn dodáno mimo pořadí, před L1. Důvod: žádná ze tří
+  funkcí, které stavbu ospravedlňují, neměla vlastní vrstvu, a tahle nepotřebuje
+  závislost ani terminál.
+- **19. 8. 2026** — L1 a L2 dodány společně. Rozdělený tab bez shellu nemá koho
+  obsloužit, takže dělit dodávku na dvě by znamenalo vydat mezistav, který nikdo
+  nepoužije. Cena: v tabu jsou zatím jen dva typy panelu, shell a dokument.
+- **19. 8. 2026** — Shell se odvozuje z dokumentu (`cwd` = jeho adresář), model
+  „tab = adresář“ zůstává nedodělaný. Je to menší krok se stejným užitkem; plný model
+  přijde, až bude potřeba tab bez dokumentu.
+- **19. 8. 2026** — Shell vybírá main proces (pwsh, jinak Windows PowerShell), renderer
+  nikdy nepojmenuje spustitelný soubor. Drží to IPC hranici z bezpečnostní sekce.
 - **18. 8. 2026** - Testy dělané Node runnerem (`node:test`) nad `.ts` přímo.
   Důvod: nula nových závislostí, což drží pravidlo o závislostech na prstech jedné ruky.
   Pokrývají se jen čisté funkce; DOM se nechává na ruční průchod, protože DOM harness

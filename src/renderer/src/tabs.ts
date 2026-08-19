@@ -9,6 +9,10 @@ export type Tab = {
   source: string | null
   /** A reload produced changed blocks that have not been shown to the user yet. */
   pendingFlash: boolean
+  /** Whether this tab shows a shell next to the document. */
+  terminalOpen: boolean
+  /** Width of the shell pane as a fraction of the tab. */
+  ratio: number
 }
 
 export type TabHandlers = {
