@@ -98,9 +98,8 @@ Exit kód, doba běhu, spuštění znovu. Nic dalšího.
 Jeden sbalitelný panel per tab, defaultně zavřený, uvnitř přepínač obsahu — takže
 základní UI získá přesně jeden prvek, ne pět.
 
-- git diff, jen ke čtení — co agent reálně změnil
-- feed změn — kterých souborů se za poslední minuty dotkl
 - prompt buffer — složit delší zadání, jednou klávesou poslat do terminálu
+- feed změn — kterých souborů se za poslední minuty dotkl
 - tail logu
 
 ### L5 — Konfigurace workspace a paleta příkazů
@@ -141,8 +140,8 @@ Všechno ostatní na seznamu je reimplementace editoru. Tyhle ne:
 3. **Prompt buffer** — pole pro složení delšího zadání, odeslané do terminálu jednou
    klávesou. Psát víceřádkové prompty přímo do TUI je otrava.
 
-Levné drobnosti ve stejném duchu, žádná nestojí trvalý pixel: název větve a počet
-změněných souborů v titulku tabu a `Ctrl+F` uvnitř dokumentu.
+Levné drobnosti ve stejném duchu, žádná nestojí trvalý pixel: `Ctrl+F` uvnitř
+dokumentu (další na řadě) a název větve s počtem změněných souborů v titulku tabu.
 
 ## Uzavřený seznam funkcí
 
@@ -154,7 +153,7 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Základ  | živý panel s Markdownem (jen ke čtení, sanitizovaný)                 |
 | Základ  | terminálový panel                                                    |
 | Základ  | tlačítka pro tasky                                                   |
-| Šuplík  | git diff (jen ke čtení), feed změn, prompt buffer, tail logu         |
+| Šuplík  | feed změn, prompt buffer, tail logu                                  |
 | Extra   | zvýraznění změn, tečka aktivity, prompt buffer, `Ctrl+F`, paleta     |
 
 Přidání položky na tenhle seznam je rozhodnutí, ne detail — patří k němu řádek
@@ -168,8 +167,7 @@ chce vyhnout:
 - textový editor a k němu strom souborů
 - rozšíření nebo pluginy; konfigurace zůstane deklarativní
 - parsování chyb z výstupu buildu a proklik na řádek
-- git operace (commit, stage, push) — diff ke čtení ano, ovládání gitu ne; terminál
-  je hned vedle
+- git úplně, včetně diffu ke čtení — viz decision log z 19. 8. 2026
 - debugger, jazykové servery, hledání symbolů
 - AI uvnitř aplikace: agent zůstává externím procesem
 - UI pro nastavení; konfigurační soubor stačí
@@ -225,6 +223,10 @@ chce vyhnout:
 - **19. 8. 2026** — Shell se odvozuje z dokumentu (`cwd` = jeho adresář), model
   „tab = adresář“ zůstává nedodělaný. Je to menší krok se stejným užitkem; plný model
   přijde, až bude potřeba tab bez dokumentu.
+- **19. 8. 2026** — Git diff v šuplíku vyškrtnut a přesunut mezi non-goals. Původně
+   byl označený za druhou nejužitečnější věc po terminálu, ale to byl můj odhad, ne
+   jeho potřeba: při skutečném používání se ukázalo, že diff čte jinde. Zůstává tedy
+   pravidlo „git se ovládá v terminálu“, nově bez výjimky pro čtení.
 - **19. 8. 2026** — Stav tabu se čte primárně z toho, co program sám hlásí — sekvence
    `OSC 9;4`, tedy totéž, co rozsvěcí kroužek v tabu Windows Terminalu — a teprve
    když program nehlásí nic, nastoupí odhad z dvouvteřinového ticha. Původní návrh
