@@ -13,6 +13,8 @@ export type Tab = {
   terminalOpen: boolean
   /** Width of the shell pane as a fraction of the tab. */
   ratio: number
+  /** A pane blown up to the whole tab, as tmux does with `prefix + z`. */
+  zoom: 'terminal' | 'document' | null
 }
 
 export type TabHandlers = {

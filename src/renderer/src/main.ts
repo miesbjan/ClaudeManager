@@ -3,6 +3,7 @@ import './styles.css'
 import { changedLines } from './diff'
 import { renderMarkdown } from './markdownRenderer'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
+import { paneCommand, type PaneCommand } from './shortcuts'
 import { TerminalPane } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
 import type { PaneState, Theme } from '../../shared/types'
@@ -64,7 +65,8 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       source: null,
       pendingFlash: false,
       terminalOpen: false,
-      ratio: DEFAULT_RATIO
+      ratio: DEFAULT_RATIO,
+      zoom: null
     }
     tabs.push(tab)
     target = tabs.length - 1
@@ -333,14 +335,19 @@ viewer.addEventListener('scroll', () => {
 function applyLayout(): void {
   const tab = tabs[activeIndex]
   const open = tab?.terminalOpen === true
+  const zoom = open ? (tab?.zoom ?? null) : null
 
-  terminalPane.hidden = !open
-  splitter.hidden = !open
+  terminalPane.hidden = !open || zoom === 'document'
+  splitter.hidden = !open || zoom !== null
+  viewer.hidden = zoom === 'terminal'
   shellButton.classList.toggle('active', open)
-  if (open && tab) terminalPane.style.flexBasis = String(clampRatio(tab.ratio) * 100) + '%'
+
+  if (tab && !terminalPane.hidden) {
+    terminalPane.style.flexBasis = zoom === 'terminal' ? '100%' : String(clampRatio(tab.ratio) * 100) + '%'
+  }
 
   for (const [path, pane] of shells) {
-    pane.setVisible(open && tab !== undefined && samePath(path, tab.path))
+    pane.setVisible(!terminalPane.hidden && tab !== undefined && samePath(path, tab.path))
   }
 }
 
@@ -368,10 +375,55 @@ function toggleShell(): void {
   const tab = tabs[activeIndex]
   if (!tab) return
   tab.terminalOpen = !tab.terminalOpen
+  // A hidden pane cannot stay zoomed; the next opening starts from the split again.
+  tab.zoom = null
   applyLayout()
   if (tab.terminalOpen) void openShell(tab)
   else (document.activeElement as HTMLElement | null)?.blur()
   persistSession()
+}
+
+/** The document pane is focusable so it can be reached by keyboard and scrolled. */
+function focusPane(which: 'terminal' | 'document'): void {
+  const tab = tabs[activeIndex]
+  if (!tab) return
+  if (which === 'terminal') {
+    if (!tab.terminalOpen || tab.zoom === 'document') return
+    shells.get(tab.path)?.focus()
+    return
+  }
+  if (tab.zoom === 'terminal') return
+  viewer.focus()
+}
+
+function runPaneCommand(command: PaneCommand): void {
+  const tab = tabs[activeIndex]
+  if (!tab) return
+
+  if (command.type === 'focus') {
+    focusPane(command.direction === 'left' ? 'terminal' : 'document')
+    return
+  }
+  if (command.type === 'focusIndex') {
+    focusPane(command.index === 1 ? 'terminal' : 'document')
+    return
+  }
+  if (command.type === 'zoom') {
+    if (!tab.terminalOpen) return
+    // Zoom applies to whichever pane the user is looking at, as `prefix + z` does.
+    const focused = terminalHasFocus() ? 'terminal' : 'document'
+    tab.zoom = tab.zoom ? null : focused
+    applyLayout()
+    focusPane(tab.zoom ?? focused)
+    return
+  }
+  if (command.type === 'resize') {
+    if (!tab.terminalOpen || tab.zoom) return
+    tab.ratio = clampRatio(tab.ratio + command.delta)
+    applyLayout()
+    shells.get(tab.path)?.resize()
+    persistSession()
+  }
 }
 
 function terminalHasFocus(): boolean {
@@ -430,6 +482,13 @@ async function pickFiles(): Promise<void> {
 openButton.addEventListener('click', () => void pickFiles())
 
 window.addEventListener('keydown', (event) => {
+  const pane = paneCommand(event)
+  if (pane) {
+    event.preventDefault()
+    runPaneCommand(pane)
+    return
+  }
+
   if (!(event.ctrlKey || event.metaKey)) return
 
   if (event.code === 'Backquote') {

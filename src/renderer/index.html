@@ -17,7 +17,7 @@
       <button id="theme-btn" class="toolbar-btn" type="button" title="Switch theme (Ctrl+D)">
         Theme: Auto
       </button>
-      <span id="hint">Ctrl+O open · Ctrl+W close · Ctrl+Tab next · Ctrl+` shell</span>
+      <span id="hint">Ctrl+O open · Ctrl+Tab next tab · Ctrl+` shell · Alt+←→ panes · Alt+Z zoom</span>
     </header>
 
     <nav id="tabbar"></nav>
@@ -25,7 +25,7 @@
     <main id="panes">
       <section id="terminal-pane" hidden></section>
       <div id="splitter" hidden></div>
-      <section id="viewer">
+      <section id="viewer" tabindex="-1">
         <article id="content" class="markdown-body" hidden></article>
         <div id="empty">
           <p><strong>No document open.</strong></p>

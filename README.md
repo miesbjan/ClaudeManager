@@ -86,6 +86,19 @@ This is a machine-wide electron-builder issue, not specific to this project.
 | right-click a tab         | reload, close, close others, copy path, reveal in Explorer |
 | drag & drop               | drop `.md` files into the window to open them |
 
+Panes follow what a multiplexer user already knows — **Ctrl acts on tabs, Alt acts on
+panes**, with tmux's arrows and `z`:
+
+| Input                     | Action                                    |
+| ------------------------- | ----------------------------------------- |
+| `Alt+←` / `Alt+→`         | move focus to the pane in that direction  |
+| `Alt+1` / `Alt+2`         | focus the shell / the document            |
+| `Alt+Shift+←` / `Alt+Shift+→` | move the divider by 5 %               |
+| `Alt+Z`                   | zoom the focused pane to the whole tab, and back |
+
+These are the only keys taken from the shell, the way tmux takes a prefix; Alt with
+arrows, digits or `z` is unused by PowerShell and the TUIs that run in it.
+
 While the shell has focus its keys belong to it — `Ctrl+W` deletes a word, `Ctrl+D`
 means end of input. The app shortcuts above then answer only to their `Ctrl+Shift`
 variants; ``Ctrl+` `` and `Ctrl+Tab` keep working from either side.
@@ -107,7 +120,8 @@ Files passed on the command line are opened too, so the app works as a handler f
   once: a tab that changed in the background flashes when it is next opened, and
   switching away and back does not replay it.
 - **Shell pane.** ``Ctrl+` `` splits the tab: a shell on the left, the document on
-  the right, with a draggable divider. The shell starts in the document's own
+  the right, with a divider that moves by mouse or by keyboard. Either pane can be
+  zoomed to the whole tab and back. The shell starts in the document's own
   directory, so builds and agents run where the file lives. One shell per tab, kept
   alive while the tab is open — hiding the pane or switching tabs does not disturb a
   process running inside it; closing the tab kills it. Whether the pane is open and

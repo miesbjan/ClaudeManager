@@ -193,7 +193,8 @@ body.dragging::after {
 }
 
 #terminal-pane[hidden],
-#splitter[hidden] {
+#splitter[hidden],
+#viewer[hidden] {
   display: none;
 }
 
@@ -227,6 +228,9 @@ body.resizing {
 #viewer {
   flex: 1 1 auto;
   min-width: 0;
+  /* Focusable so it can be reached with Alt+arrows and scrolled from the keyboard,
+     but a focus ring around the whole document would be noise. */
+  outline: none;
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: auto;

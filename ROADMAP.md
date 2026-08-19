@@ -223,6 +223,12 @@ chce vyhnout:
 - **19. 8. 2026** — Shell se odvozuje z dokumentu (`cwd` = jeho adresář), model
   „tab = adresář“ zůstává nedodělaný. Je to menší krok se stejným užitkem; plný model
   přijde, až bude potřeba tab bez dokumentu.
+- **19. 8. 2026** — Klávesy pro panely převzaty z multiplexerů: **Ctrl ovládá taby,
+  Alt ovládá panely**, s tmuxími šipkami a `z` pro zoom. Důvod: stavíme v jednom tabu
+  víc panelů, takže má smysl sáhnout po konvenci, kterou člověk zná z tmuxu i Windows
+  Terminalu, místo vymýšlení vlastní. Alt se šipkami, číslicemi a `z` navíc nic
+  v PowerShellu ani v TUI nepoužívá, takže je to jediné, co se shellu bere — obdoba
+  tmuxího prefixu. Přibyl tím zoom panelu, což je rozšíření uzavřeného seznamu.
 - **19. 8. 2026** — Shell vybírá main proces (pwsh, jinak Windows PowerShell), renderer
   nikdy nepojmenuje spustitelný soubor. Drží to IPC hranici z bezpečnostní sekce.
 - **18. 8. 2026** - Testy dělané Node runnerem (`node:test`) nad `.ts` přímo.

@@ -1,5 +1,6 @@
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { paneCommand } from './shortcuts'
 import '@xterm/xterm/css/xterm.css'
 
 /** Kept in step with the palette in styles.css. */
@@ -131,7 +132,12 @@ export class TerminalPane {
    * belongs to the shell and is passed through untouched.
    */
   private handleKey(event: KeyboardEvent): boolean {
-    if (event.type !== 'keydown' || !event.ctrlKey || !event.shiftKey) return true
+    if (event.type !== 'keydown') return true
+
+    // Pane keys are the one thing taken from the shell, the way tmux takes a prefix.
+    if (paneCommand(event)) return false
+
+    if (!event.ctrlKey || !event.shiftKey) return true
     const key = event.key.toLowerCase()
 
     if (key === 'c' && this.term.hasSelection()) {
