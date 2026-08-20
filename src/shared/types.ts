@@ -1,4 +1,5 @@
 /** Types shared between main, preload and renderer. Type-only, no runtime code. */
+import type { TerminalFont } from './font'
 import type { PaneCommand } from './shortcuts'
 
 export type FileReadResult =
@@ -25,6 +26,7 @@ export type StartupPayload = {
   active: string | null
   theme: Theme
   panes: Record<string, PaneState>
+  font: TerminalFont
 }
 
 /** Layout of one tab: whether the shell pane is open and how wide it is. */
@@ -92,6 +94,8 @@ export interface ViewerApi {
   saveSession(state: SessionState): void
   /** Switch the palette; also persisted for the next launch. */
   setTheme(theme: Theme): Promise<void>
+  /** Remember the terminal font size, the way the theme is remembered. */
+  setTerminalFontSize(size: number): void
   /** Open http/https/mailto links in the default browser. */
   openExternal(url: string): Promise<void>
   /** Show the file in Windows Explorer. */

@@ -26,6 +26,7 @@ const api: ViewerApi = {
   getStartupFiles: () => ipcRenderer.invoke('startup:files') as Promise<StartupPayload>,
   saveSession: (state: SessionState) => ipcRenderer.send('session:save', state),
   setTheme: (theme: Theme) => ipcRenderer.invoke('theme:set', theme) as Promise<void>,
+  setTerminalFontSize: (size) => ipcRenderer.send('font:size', size),
   openExternal: (url) => ipcRenderer.invoke('shell:external', url) as Promise<void>,
   reveal: (path) => ipcRenderer.invoke('shell:reveal', path) as Promise<void>,
   getPathForFile: (file) => webUtils.getPathForFile(file),

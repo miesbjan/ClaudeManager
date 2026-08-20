@@ -193,7 +193,7 @@ stojící na promptu je trvale dokončený.
 *Hotovo, když:* pustíš agenta, přepneš se na jinou obrazovku a poznáš z hlavního
 panelu, že dobehl, aniž bys okno hledal.
 
-**Font terminálu.** Velikost a rodina, nic dalšího. V panelu, ve kterém se celý den
+**Font terminálu** (hotovo). Velikost a rodina, nic dalšího. V panelu, ve kterém se celý den
 čte výstup agenta, je čitelnost základ, a výchozí velikost xtermu sedí každému jinak.
 
 Velikost se mění zkratkou a pamatuje se mezi spuštěními, tedy stejným způsobem jako

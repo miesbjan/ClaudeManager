@@ -17,7 +17,8 @@ import { pathToFileURL } from 'node:url'
 import { FileWatcher } from './fileWatcher'
 import { detectProject } from './project'
 import { TerminalManager } from './terminal'
-import { loadState, saveState, type AppState } from './store'
+import { loadState, saveState, terminalFont, type AppState } from './store'
+import { clampSize } from '../shared/font'
 import { paneCommand } from '../shared/shortcuts'
 import type {
   FileReadResult,
@@ -244,7 +245,13 @@ function registerIpc(): void {
     const files = [...session.files]
     for (const file of cliFiles) if (!files.includes(file)) files.push(file)
     const active = cliFiles[cliFiles.length - 1] ?? session.active
-    return { files, active, theme: state.theme, panes: state.panes }
+    return { files, active, theme: state.theme, panes: state.panes, font: terminalFont(state) }
+  })
+
+  // Size is app state, like the theme. The family stays a hand-edited preference.
+  ipcMain.on('font:size', (_event, size: number) => {
+    state.fontSize = clampSize(size)
+    persistSoon()
   })
 
   ipcMain.handle('theme:set', (_event, theme: Theme) => {

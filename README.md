@@ -100,6 +100,7 @@ anywhere else closes it.
 | `Ctrl+R`                  | force reload of the current file          |
 | `Ctrl+D`                  | switch theme: Auto → Light → Dark         |
 | ``Ctrl+` ``               | show or hide the shell pane               |
+| `Ctrl+=` / `Ctrl+-`       | terminal font bigger / smaller            |
 | `Ctrl+Shift+C` / `Ctrl+Shift+V` | copy / paste inside the shell       |
 | `F12`                     | toggle DevTools                           |
 | middle-click a tab        | close it                                  |
@@ -204,6 +205,15 @@ Files passed on the command line are opened too, so the app works as a handler f
   if the file reappears.
 - **Duplicate names.** Tabs show the file name, extended with as many parent
   directories as needed to stay unambiguous.
+- **Terminal font.** `Ctrl+=` and `Ctrl+-` change the size, between 8 and 28, and
+  the choice is remembered the way the theme is. Those two keys are claimed even while
+  the shell has focus, because that is where you are when you want them. Changing the
+  size re-measures the pane and tells the shell its new width, so wrapping stays right.
+  The family is set once and then forgotten, so it comes from a file rather than a
+  dialog: put `{ "terminalFontFamily": "JetBrains Mono, monospace" }` in
+  `%APPDATA%/project-console/settings.json`. That file is only ever read, never
+  written - `state.json` beside it is the opposite, and the two are separate for that
+  reason.
 - **Theme.** The toolbar button (or `Ctrl+D`) cycles Auto → Light → Dark. *Auto*
   follows the Windows setting; the other two force the palette. The choice is
   applied through `nativeTheme.themeSource`, so it also covers native chrome such

@@ -10,6 +10,7 @@ import {
   type OutputSignals
 } from './activity'
 import { aggregateActivity, justFinished } from './taskbar'
+import { DEFAULT_FAMILY, DEFAULT_SIZE, stepSize, type TerminalFont } from '../../shared/font'
 import {
   clearMatches,
   findInElement,
@@ -65,6 +66,7 @@ let activeIndex = -1
 let theme: Theme = 'system'
 const reloadTimers = new Map<string, number>()
 let reportedTaskbar: TaskbarState = 'none'
+let terminalFont: TerminalFont = { family: DEFAULT_FAMILY, size: DEFAULT_SIZE }
 /** One shell per tab, kept alive while the tab exists - keyed by document path. */
 const shells = new Map<string, TerminalPane>()
 /** Per tab: the escape-sequence reader and the timer that notices silence. */
@@ -698,7 +700,7 @@ function ensureShell(): void {
 async function openShell(tab: Tab): Promise<void> {
   let pane = shells.get(tab.path)
   if (!pane) {
-    pane = new TerminalPane(tab.path, tab.project?.root ?? tab.dir, darkQuery.matches)
+    pane = new TerminalPane(tab.path, tab.project?.root ?? tab.dir, darkQuery.matches, terminalFont)
     // Registered before the await so a second call cannot spawn a second shell.
     shells.set(tab.path, pane)
     applyLayout()
@@ -952,6 +954,20 @@ function cycleTheme(): void {
   setTheme(THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length])
 }
 
+/**
+ * The size applies to every shell at once, open or hidden: one setting for the app,
+ * not one per pane. Only the size is remembered here - the family is a preference,
+ * read from a file at startup and never written back.
+ */
+function stepFontSize(by: number): void {
+  const size = stepSize(terminalFont.size, by)
+  if (size === terminalFont.size) return
+  terminalFont = { ...terminalFont, size }
+  for (const pane of shells.values()) pane.setFont(terminalFont)
+  window.api.setTerminalFontSize(size)
+  status.textContent = 'Terminal font size ' + size
+}
+
 themeButton.addEventListener('click', cycleTheme)
 
 /* ---------- input ---------- */
@@ -988,6 +1004,23 @@ window.addEventListener('keydown', (event) => {
   if (event.code === 'Backquote') {
     event.preventDefault()
     toggleShell()
+    return
+  }
+
+  /*
+   * Claimed even while the shell has focus, like Ctrl+` - the moment you want the
+   * terminal font changed is the moment you are typing in the terminal, and neither
+   * PowerShell nor the TUIs in it use these two. Read from the physical key, because
+   * on a Czech layout the characters printed on them are not the US ones.
+   */
+  if (event.code === 'Equal' || event.code === 'NumpadAdd') {
+    event.preventDefault()
+    stepFontSize(1)
+    return
+  }
+  if (event.code === 'Minus' || event.code === 'NumpadSubtract') {
+    event.preventDefault()
+    stepFontSize(-1)
     return
   }
 
@@ -1052,6 +1085,7 @@ async function start(): Promise<void> {
   render()
   const startup = await window.api.getStartupFiles()
   setTheme(startup.theme, false)
+  terminalFont = startup.font
   if (startup.files.length === 0) return
   await openFiles(startup.files, false)
   for (const tab of tabs) {

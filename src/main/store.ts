@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { clampSize, DEFAULT_SIZE, sanitiseFamily, type TerminalFont } from '../shared/font'
 import type { PaneState, Theme } from '../shared/types'
 
 export type WindowBounds = { x?: number; y?: number; width: number; height: number }
@@ -13,10 +14,18 @@ export type AppState = {
   theme: Theme
   /** Pane layout per document path; processes are never restored, only geometry. */
   panes: Record<string, PaneState>
+  /** Terminal font size. The family is a preference and lives in settings.json. */
+  fontSize: number
 }
 
 const THEMES: Theme[] = ['system', 'light', 'dark']
-const DEFAULT_STATE: AppState = { files: [], active: null, theme: 'system', panes: {} }
+const DEFAULT_STATE: AppState = {
+  files: [],
+  active: null,
+  theme: 'system',
+  panes: {},
+  fontSize: DEFAULT_SIZE
+}
 
 /** State written by an older build has no pane section; missing entries default. */
 function sanitisePanes(raw: unknown): Record<string, PaneState> {
@@ -77,7 +86,8 @@ export function loadState(): AppState {
       bounds: raw.bounds,
       maximized: raw.maximized === true,
       theme: THEMES.includes(raw.theme as Theme) ? (raw.theme as Theme) : 'system',
-      panes: sanitisePanes(raw.panes)
+      panes: sanitisePanes(raw.panes),
+      fontSize: clampSize(raw.fontSize)
     }
   } catch {
     return { ...DEFAULT_STATE }
@@ -89,5 +99,27 @@ export function saveState(state: AppState): void {
     writeFileSync(stateFile(), JSON.stringify(state, null, 2), 'utf8')
   } catch {
     // Persistence is a convenience; never break the app over it.
+  }
+}
+
+/**
+ * Preferences the app reads and never writes, so a hand-edited file keeps whatever
+ * shape its owner gave it. `state.json` next door is the opposite: written constantly
+ * and not meant to be edited. The two are separate for exactly that reason.
+ */
+export function loadSettings(): { terminalFontFamily?: unknown } {
+  try {
+    return JSON.parse(readFileSync(join(app.getPath('userData'), 'settings.json'), 'utf8'))
+  } catch {
+    // Absent or unreadable is the normal case; the defaults stand.
+    return {}
+  }
+}
+
+/** The font the terminal starts with: size from the state, family from the settings. */
+export function terminalFont(state: AppState): TerminalFont {
+  return {
+    family: sanitiseFamily(loadSettings().terminalFontFamily),
+    size: clampSize(state.fontSize)
   }
 }

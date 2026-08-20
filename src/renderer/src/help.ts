@@ -17,7 +17,8 @@ export const SHORTCUTS: HelpSection[] = [
       { keys: 'Ctrl+F', action: 'find in the document' },
       { keys: 'Ctrl+R', action: 'reload the document' },
       { keys: 'Ctrl+D', action: 'theme: Auto / Light / Dark' },
-      { keys: 'Ctrl+`', action: 'show or hide the shell' }
+      { keys: 'Ctrl+`', action: 'show or hide the shell' },
+      { keys: 'Ctrl+= / Ctrl+-', action: 'terminal font bigger / smaller' }
     ]
   },
   {
@@ -35,6 +36,7 @@ export const SHORTCUTS: HelpSection[] = [
     rows: [
       { keys: 'Ctrl+Shift+C / V', action: 'copy / paste' },
       { keys: 'Ctrl+Shift+O, W, R, D, 1…9', action: 'the app shortcuts above' },
+      { keys: 'Ctrl+= / Ctrl+-', action: 'font size, here too' },
       { keys: 'everything else', action: 'goes to the shell untouched' }
     ]
   },

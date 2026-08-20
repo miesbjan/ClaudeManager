@@ -1,5 +1,6 @@
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
+import { DEFAULT_FAMILY, DEFAULT_SIZE, type TerminalFont } from '../../shared/font'
 import { paneCommand } from '../../shared/shortcuts'
 import '@xterm/xterm/css/xterm.css'
 
@@ -38,14 +39,15 @@ export class TerminalPane {
   constructor(
     readonly id: string,
     private readonly cwd: string,
-    dark: boolean
+    dark: boolean,
+    font: TerminalFont = { family: DEFAULT_FAMILY, size: DEFAULT_SIZE }
   ) {
     this.host = document.createElement('div')
     this.host.className = 'term-host'
 
     this.term = new Terminal({
-      fontFamily: '"Cascadia Mono", "Consolas", ui-monospace, monospace',
-      fontSize: 13,
+      fontFamily: font.family,
+      fontSize: font.size,
       lineHeight: 1.2,
       cursorBlink: true,
       scrollback: 5000,
@@ -105,6 +107,20 @@ export class TerminalPane {
 
   setTheme(dark: boolean): void {
     this.term.options.theme = dark ? DARK : LIGHT
+  }
+
+  /**
+   * A different character size means a different number of rows and columns, and the
+   * shell has to be told - otherwise its idea of the window stays the old one and long
+   * lines wrap in the wrong place. The cached dimensions are dropped so the new ones
+   * are always sent, even when the fit happens to land on the same numbers.
+   */
+  setFont(font: TerminalFont): void {
+    this.term.options.fontFamily = font.family
+    this.term.options.fontSize = font.size
+    this.cols = 0
+    this.rows = 0
+    this.resize()
   }
 
   focus(): void {
