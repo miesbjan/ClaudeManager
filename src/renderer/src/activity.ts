@@ -44,7 +44,8 @@ export type ActivityState =
 export type ActivityEvent =
   | { type: 'output'; signals: OutputSignals }
   | { type: 'silence' }
-  | { type: 'exit' }
+  /** The shell is gone. Its exit code is what tells being closed from falling over. */
+  | { type: 'exit'; code: number }
   | { type: 'seen' }
 
 /** How long a quiet terminal counts as having settled. The one number to tune. */
@@ -127,15 +128,20 @@ export function createSignalReader(): (chunk: string) => OutputSignals {
  * looking at the tab does not change that. Only `alert` is an event rather than a
  * state, so only `alert` is cleared by being seen.
  *
- * `alert` also outranks everything while it lasts - a bell or a dead shell must not
- * be erased by the next line of output.
+ * `alert` also outranks everything while it lasts - a bell or a shell that fell over
+ * must not be erased by the next line of output.
  */
 export function nextActivity(state: ActivityState, event: ActivityEvent): ActivityState {
   switch (event.type) {
     case 'seen':
       return state === 'alert' ? 'idle' : state
+    /*
+     * Typing `exit` is how a shell is meant to end, so a clean one leaves nothing to
+     * report - a red light there would be crying wolf on the one tab in ten where the
+     * shell was closed on purpose. Any other code is a shell that fell over.
+     */
     case 'exit':
-      return 'alert'
+      return event.code === 0 ? 'idle' : 'alert'
 
     case 'silence':
       // Only the inferred state settles; a reported one waits for the program.

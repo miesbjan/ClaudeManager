@@ -164,8 +164,14 @@ describe('deciding what a tab shows', () => {
     assert.equal(step(alert, { type: 'seen' }), 'idle')
   })
 
-  it('treats a dead shell as an alert', () => {
-    assert.equal(step('idle', { type: 'exit' }), 'alert')
+  it('treats a shell that fell over as an alert', () => {
+    assert.equal(step('idle', { type: 'exit', code: 1 }), 'alert')
+  })
+
+  // Typing `exit` is how a shell is meant to end; a red light for that is crying wolf.
+  it('has nothing to report about a shell closed on purpose', () => {
+    assert.equal(step('working', { type: 'exit', code: 0 }), 'idle')
+    assert.equal(step('done', { type: 'exit', code: 0 }), 'idle')
   })
 
   /*
@@ -215,7 +221,7 @@ describe('deciding what a tab shows', () => {
 
   it('keeps a dead shell above a question', () => {
     const asking = step('idle', { type: 'output', signals: out({ dialog: true }) })
-    assert.equal(step(asking, { type: 'exit' }), 'alert')
+    assert.equal(step(asking, { type: 'exit', code: 1 }), 'alert')
   })
 
   it('keeps a bell above a question', () => {

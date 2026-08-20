@@ -736,9 +736,9 @@ window.api.terminal.onData(({ id, data }) => {
   scheduleSilence(tabs[index])
 })
 
-window.api.terminal.onExit(({ id }) => {
+window.api.terminal.onExit(({ id, exitCode }) => {
   const index = indexOfId(id)
-  if (index >= 0) applyActivity(tabs[index], { type: 'exit' })
+  if (index >= 0) applyActivity(tabs[index], { type: 'exit', code: exitCode })
 })
 
 /* ---------- shortcut help ---------- */
