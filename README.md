@@ -226,6 +226,19 @@ Markdown is untrusted display content, so:
   name an executable, it can only ask for *a shell in a directory* and the main
   process decides what to run. Nothing in the rendered Markdown — a link, an image,
   a click — has a path to that channel.
+- a command built from a project file is only ever `npm run <script>` or
+  `dotnet run`, never the body of that script, and the path inside it is quoted for
+  PowerShell with single quotes: in double quotes a directory named `$(something)`
+  would be run rather than opened
+- the web pane frames this machine and nothing else. The address is checked against a
+  fixed list of local hostnames, and `frame-src` in the CSP repeats that list for the
+  browser to enforce; `test/web.test.ts` fails if the two ever drift apart
+- the framed page keeps `allow-scripts allow-same-origin`, which Chromium warns about.
+  A dev server needs its own origin to have storage and same-origin requests at all,
+  and being cross-origin to this page it cannot reach into it. The exception is
+  `npm run dev`: pointing the pane at the app's own dev server on port 5173 makes it
+  same-origin and hands the framed page the preload API
+- the clipboard is read on one occasion only, when you paste into the shell
 
 ## Layout
 

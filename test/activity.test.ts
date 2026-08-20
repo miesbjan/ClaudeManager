@@ -34,6 +34,25 @@ describe('reading signals from terminal output', () => {
     assert.equal(read('w all').permission, true)
   })
 
+  /*
+   * The marker stays inside the reader's window for a while after the dialog has been
+   * answered. Reported for as long as it was visible, it kept overruling the
+   * program's own word that it had carried on - see the state test below.
+   */
+  it('reports the dialog arriving, not that it is still in view', () => {
+    const read = createSignalReader()
+    assert.equal(read(' 2. Yes, allow all').permission, true)
+    assert.equal(read('thinking').permission, false)
+    assert.equal(read(' about it').permission, false)
+  })
+
+  it('reports a dialog that comes back after the first scrolled away', () => {
+    const read = createSignalReader()
+    assert.equal(read(' 2. Yes, allow all').permission, true)
+    assert.equal(read('x'.repeat(300)).permission, false)
+    assert.equal(read(' 2. Yes, allow all').permission, true)
+  })
+
   it('sees the spinner a program reports while it works', () => {
     const read = createSignalReader()
     assert.deepEqual(read(progress('3')), { bell: false, progress: 'busy', permission: false })
@@ -175,6 +194,20 @@ describe('deciding what a tab shows', () => {
       step(asking, { type: 'output', signals: { bell: false, progress: 'busy', permission: false } }),
       'busy'
     )
+  })
+
+  /*
+   * The same thing over the real reader rather than hand-written signals: the answer
+   * is given, the agent reports it is busy again, and the marker is still sitting in
+   * the reader's window. The dot has to follow the agent, not the leftover text.
+   */
+  it('follows the agent out of a dialog whose text is still in the window', () => {
+    const read = createSignalReader()
+    let state: ActivityState = 'idle'
+    state = nextActivity(state, { type: 'output', signals: read(' 2. Yes, allow all') })
+    assert.equal(state, 'permission')
+    state = nextActivity(state, { type: 'output', signals: read(progress('3')) })
+    assert.equal(state, 'busy')
   })
 
   it('keeps a dead shell above a question', () => {

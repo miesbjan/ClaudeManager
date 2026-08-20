@@ -12,7 +12,10 @@ export type ProgressSignal = 'busy' | 'done' | 'error'
 export type OutputSignals = {
   bell: boolean
   progress: ProgressSignal | null
-  /** The agent is holding a dialog open and cannot continue without an answer. */
+  /**
+   * A permission dialog just appeared. This is the arrival, not the state: holding
+   * the state is `nextActivity`'s job, which latches it until the tab is looked at.
+   */
   permission: boolean
 }
 
@@ -92,13 +95,22 @@ export function createSignalReader(): (chunk: string) => OutputSignals {
   let pending = ''
   // The dialog is drawn in pieces, so a marker can straddle two chunks.
   let text = ''
+  let asking = false
 
   return (chunk: string): OutputSignals => {
     const data = pending + chunk
     pending = ''
 
     text = (text + stripAnsi(chunk)).slice(-MAX_PENDING)
-    const permission = PERMISSION_MARKERS.some((marker) => text.includes(marker))
+    /*
+     * Reported on arrival rather than for as long as the marker is in view. The
+     * window holds it for a while after the dialog is answered, and a signal that
+     * stayed true would keep overruling the program's own report that it has carried
+     * on - the dot would sit on "asking" while the agent was already working again.
+     */
+    const marker = PERMISSION_MARKERS.some((needle) => text.includes(needle))
+    const permission = marker && !asking
+    asking = marker
 
     let progress: ProgressSignal | null = null
     for (const match of data.matchAll(PROGRESS)) {

@@ -1,6 +1,31 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { pickDotnetProject, runScripts } from '../src/main/project.ts'
+import { pickDotnetProject, quoteForShell, runScripts } from '../src/main/project.ts'
+
+/*
+ * The command built here is typed into a live shell, so a path taken off disk is
+ * shell input. Directory names come from whoever wrote the repository.
+ */
+describe('quoteForShell', () => {
+  it('leaves an ordinary path alone', () => {
+    assert.equal(quoteForShell('src/App/App.csproj'), "'src/App/App.csproj'")
+  })
+
+  it('keeps a space from splitting the argument', () => {
+    assert.equal(quoteForShell('my app/App.csproj'), "'my app/App.csproj'")
+  })
+
+  // In double quotes PowerShell would run this; in single quotes it is a filename.
+  it('does not let a directory name become a command', () => {
+    const quoted = quoteForShell('src/$(hostname)/App.csproj')
+    assert.equal(quoted, "'src/$(hostname)/App.csproj'")
+    assert.ok(!quoted.includes('"'))
+  })
+
+  it('doubles an apostrophe, the way PowerShell escapes it', () => {
+    assert.equal(quoteForShell("Bob's app/App.csproj"), "'Bob''s app/App.csproj'")
+  })
+})
 
 describe('runScripts', () => {
   it('answers with the one script that runs a single-app project', () => {

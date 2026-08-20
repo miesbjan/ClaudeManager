@@ -207,12 +207,29 @@ chce vyhnout:
   `electron-rebuild`, a povýšení Electronu nevyžaduje přestavění. Zůstal jen
   `asarUnpack` pro `.node` soubory a vypnutý automatický rebuild v electron-builderu
   (`npmRebuild: false`), který jinak volá node-gyp a bez kompilátoru spadne.
-- **Mění se bezpečnostní model.** Dnes renderer nedokáže spustit vůbec nic; celý
-  návrh stojí na tom, že Markdown je jen zobrazovaný obsah. PTY je z definice kanál
-  pro libovolné spuštění kódu. Hranici drží dvě pravidla: z vyrenderovaného Markdownu
-  nesmí vést k PTY žádná cesta (kliknutí na odkaz, obrázky, nic), a tasky
-  z projektové konfigurace se nikdy nespouští automaticky při otevření — jen na
-  explicitní klik a s viditelným příkazem.
+- **Bezpečnostní model se změnil a takhle se drží.** Renderer umí tři věci, které dřív
+  neuměl, a každá má svoje pravidlo.
+  PTY je z definice kanál pro libovolné spuštění kódu, takže do něj zapisují jen dvě
+  místa: klávesy z terminálu a příkaz z tlačítka Run.
+  Z vyrenderovaného Markdownu k němu nevede cesta žádná, ani přes odkaz, ani přes
+  obrázek.
+  Příkaz z projektu je vždycky `npm run <script>` nebo `dotnet run`, nikdy obsah toho
+  skriptu, spustí se jen na klik a je vidět na tlačítku i v terminálu.
+  Cesta v něm se uvozuje jednoduchými uvozovkami, protože v dvojitých by PowerShell
+  vyhodnotil adresář pojmenovaný `$(něco)`.
+  Vložená stránka smí být jen z tohohle stroje: adresa se kontroluje proti seznamu
+  lokálních hostů a `frame-src` v CSP ten seznam opakuje pro prohlížeč, přičemž soulad
+  obou hlídá test.
+  Schránka se čte jen při vložení do shellu.
+- **Sandbox vloženého rámu je vědomý kompromis.** Rám má `allow-scripts` i
+  `allow-same-origin` a Chromium na to vypisuje varování, že z takového sandboxu se dá
+  uniknout.
+  Bez `allow-same-origin` ale vložená aplikace nemá vlastní origin, takže jí nefunguje
+  `localStorage` ani vlastní `fetch`, a panel by byl k ničemu.
+  V praxi je stránka jiného originu než tahle, takže na ni nedosáhne.
+  Jediná výjimka je `npm run dev`: kdyby panel ukazoval vlastní dev server aplikace na
+  portu 5173, je stejného originu a dostane se na `window.api`. Zabalené aplikace se to
+  netýká, tam je rodič `file://`.
 - **Kolize kláves — vyřešeno v L2.** `Ctrl+O/W/D` patří shellu ve chvíli, kdy má
   terminál fokus; zkratky aplikace se tehdy stahují na `Ctrl+Shift+…`. Průchozí
   zůstávají ``Ctrl+` `` a `Ctrl+Tab`, které žádný shell nepoužívá.

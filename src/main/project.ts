@@ -128,6 +128,19 @@ function nodeProject(root: string): ProjectInfo | null {
   }
 }
 
+/**
+ * A command is typed into the shell, so a path inside it has to survive that shell's
+ * parsing. PowerShell expands `$(...)` inside double quotes, which would turn a
+ * directory named `$(something)` - legal on Windows - into a command to run. Single
+ * quotes take nothing but an apostrophe, and PowerShell escapes that by doubling it.
+ *
+ * This assumes PowerShell, which is what `src/main/terminal.ts` starts unless neither
+ * `pwsh.exe` nor `powershell.exe` exists on the machine.
+ */
+export function quoteForShell(value: string): string {
+  return "'" + value.replace(/'/g, "''") + "'"
+}
+
 function dotnetProject(root: string): ProjectInfo | null {
   const files = findProjectFiles(root)
   const chosen = pickDotnetProject(files)
@@ -138,7 +151,7 @@ function dotnetProject(root: string): ProjectInfo | null {
     kind: 'dotnet',
     root,
     name,
-    commands: [rel.includes('/') ? `dotnet run --project "${rel}"` : 'dotnet run']
+    commands: [rel.includes('/') ? `dotnet run --project ${quoteForShell(rel)}` : 'dotnet run']
   }
 }
 

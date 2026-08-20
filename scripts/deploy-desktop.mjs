@@ -84,9 +84,11 @@ function copyPortable(desktop) {
 
 try {
   const desktop = desktopDir()
-  const done = wantExe ? copyPortable(desktop) : makeShortcut(desktop)
-  // A failed hand-off must never fail a build that otherwise succeeded.
-  process.exit(done ? 0 : 0)
+  // A failed hand-off must never fail a build that otherwise succeeded, so the
+  // outcome is only reported in the log above; this always exits 0.
+  if (wantExe) copyPortable(desktop)
+  else makeShortcut(desktop)
+  process.exit(0)
 } catch (error) {
   console.warn(`[desktop] skipped: ${error.message}`)
   process.exit(0)

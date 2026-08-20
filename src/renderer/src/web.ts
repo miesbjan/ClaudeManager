@@ -6,7 +6,22 @@
  * URL would be a different app. A dev server on localhost is content you started
  * yourself, from a project you opened yourself.
  */
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '[::1]', '::1'])
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '[::1]'])
+
+/**
+ * The hostnames an address can still carry once it has been normalised, which is what
+ * the `frame-src` list in `index.html` has to cover. Two allowlists, one of them in
+ * static HTML, cannot share a constant; `test/web.test.ts` holds them together.
+ *
+ * There are only two, because CSP's grammar for a host has no room for an IPv6
+ * literal: Chromium answers `http://[::1]:*` with "contains an invalid source. It
+ * will be ignored." Anything that cannot be written here has to be normalised into
+ * something that can.
+ */
+export const FRAMED_HOSTS = ['localhost', '127.0.0.1'] as const
+
+/** Loopback names that CSP cannot name, and what to call them instead. */
+const REWRITE_TO_LOCALHOST = new Set(['0.0.0.0', '[::1]'])
 
 export function isLocalUrl(url: string): boolean {
   try {
@@ -18,7 +33,16 @@ export function isLocalUrl(url: string): boolean {
   }
 }
 
-/** Accepts what a person would type - `3000`, `localhost:3000`, a full URL. */
+/**
+ * Accepts what a person would type - `3000`, `localhost:3000`, a full URL - and
+ * answers with an address the frame policy can actually allow.
+ *
+ * `0.0.0.0` is what a server prints when it binds every interface rather than an
+ * address to visit, and `[::1]` is a name CSP has no syntax for. Both are the same
+ * service `localhost` reaches, so both are rewritten to it. Without that they were
+ * accepted, remembered, and then refused by the browser: an empty pane and nothing to
+ * explain it.
+ */
 export function normalizeUrl(input: string): string | null {
   const text = input.trim()
   if (text === '') return null
@@ -29,7 +53,14 @@ export function normalizeUrl(input: string): string | null {
       ? text
       : `http://${text}`
 
-  return isLocalUrl(candidate) ? candidate : null
+  if (!isLocalUrl(candidate)) return null
+
+  const parsed = new URL(candidate)
+  if (REWRITE_TO_LOCALHOST.has(parsed.hostname)) {
+    parsed.hostname = 'localhost'
+    return parsed.toString()
+  }
+  return candidate
 }
 
 /*
