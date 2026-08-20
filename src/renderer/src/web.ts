@@ -120,11 +120,12 @@ export function createUrlReader(): (chunk: string) => string | null {
 export type RightMode = 'doc' | 'web' | 'both'
 
 /**
- * One key cycles the three arrangements. Without an address there is nothing to
- * cycle to, so the document simply stays.
+ * One key cycles the three arrangements. Without an address there is nothing to put
+ * beside the document, so the cycle shrinks to two: open the pane to type an address
+ * into, and close it again.
  */
 export function nextRightMode(mode: RightMode, hasUrl: boolean): RightMode {
-  if (!hasUrl) return 'doc'
+  if (!hasUrl) return mode === 'doc' ? 'web' : 'doc'
   if (mode === 'doc') return 'web'
   if (mode === 'web') return 'both'
   return 'doc'

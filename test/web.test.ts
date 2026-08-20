@@ -199,8 +199,13 @@ describe('nextRightMode', () => {
     assert.equal(nextRightMode('both', true), 'doc')
   })
 
-  it('has nowhere to go without an address', () => {
-    assert.equal(nextRightMode('doc', false), 'doc')
+  /*
+   * The field for typing an address lives inside the pane, so there has to be a way to
+   * open it empty - otherwise a server started by hand can never be shown at all.
+   */
+  it('opens an empty pane and closes it again without an address', () => {
+    assert.equal(nextRightMode('doc', false), 'web')
+    assert.equal(nextRightMode('web', false), 'doc')
     assert.equal(nextRightMode('both', false), 'doc')
   })
 })

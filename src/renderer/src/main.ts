@@ -819,7 +819,7 @@ function applyLayout(): void {
   const tab = tabs[activeIndex]
   const shellOpen = tab?.terminalOpen === true
   const zoom = tab?.zoom ?? null
-  const mode = tab?.webUrl ? tab.rightMode : 'doc'
+  const mode = tab?.rightMode ?? 'doc'
 
   const showShell = shellOpen && (zoom === null || zoom === 'terminal')
   const showDoc = zoom === null ? mode !== 'web' : zoom === 'document'
@@ -834,7 +834,12 @@ function applyLayout(): void {
   rightSplitter.hidden = !showDoc || !showWeb
 
   shellButton.classList.toggle('active', shellOpen)
-  webButton.hidden = !tab || tab.webUrl === null
+  /*
+   * Offered even with no address yet: the field to type one into lives inside the pane,
+   * so hiding the pane until an address exists left no way to enter the first one. A
+   * server started somewhere other than the Run button announces itself to nobody.
+   */
+  webButton.hidden = !tab
   webButton.classList.toggle('active', showWeb)
 
   if (tab && showShell) {
@@ -867,6 +872,8 @@ function renderWebFrame(): void {
   if (!webPane.hidden && tab.webUrl && webFrame.getAttribute('src') !== tab.webUrl) {
     webFrame.setAttribute('src', tab.webUrl)
   }
+  // No address in this tab means nothing to show; a page from the last one would lie.
+  if (!tab.webUrl && webFrame.hasAttribute('src')) webFrame.removeAttribute('src')
 }
 
 function setWebUrl(tab: Tab, url: string | null, manual = false): void {
@@ -905,11 +912,16 @@ function setWebUrl(tab: Tab, url: string | null, manual = false): void {
 /** Document, dev server, both - one key, in that order. */
 function cycleRight(): void {
   const tab = tabs[activeIndex]
-  if (!tab?.webUrl) return
-  tab.rightMode = nextRightMode(tab.rightMode, true)
+  if (!tab) return
+  tab.rightMode = nextRightMode(tab.rightMode, tab.webUrl !== null)
   tab.zoom = null
   applyLayout()
   persistSession()
+  // An empty pane is a question, so the field that answers it takes the keyboard.
+  if (!tab.webUrl && !webPane.hidden) {
+    webUrlInput.focus()
+    webUrlInput.select()
+  }
 }
 
 webButton.addEventListener('click', cycleRight)
