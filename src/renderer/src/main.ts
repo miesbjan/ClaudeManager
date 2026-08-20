@@ -112,10 +112,47 @@ const indexOfId = (id: string): number => tabs.findIndex((t) => t.id === id)
 let nextTabId = 1
 const baseName = (path: string): string => path.replace(/[\\/]+$/, '').split(/[\\/]/).pop() ?? path
 
+/** The tab being named by hand, and what has been typed into it so far. */
+let renaming: { id: string; value: string } | null = null
+
 const tabHandlers: TabHandlers = {
   onSelect: selectTab,
   onClose: closeTab,
-  onContextMenu: showContextMenu
+  onContextMenu: showContextMenu,
+  onRenameStart: startRename,
+  onRenameEdit: (value) => {
+    if (renaming) renaming.value = value
+  },
+  onRename: finishRename,
+  onRenameCancel: () => {
+    renaming = null
+    paintTabs()
+  }
+}
+
+/**
+ * The bar repaints on every chunk of shell output, which would take a half-typed name
+ * with it. While a field is up it is left alone; the dots catch up when it is gone.
+ */
+function paintTabs(): void {
+  if (renaming && tabbar.querySelector('.tab-rename')) return
+  renderTabBar(tabbar, tabs, activeIndex, tabHandlers, renaming)
+}
+
+function startRename(index: number): void {
+  const tab = tabs[index]
+  if (!tab) return
+  renaming = { id: tab.id, value: tab.name ?? '' }
+  renderTabBar(tabbar, tabs, activeIndex, tabHandlers, renaming)
+}
+
+/** An empty name is how you go back to being named after the file on screen. */
+function finishRename(index: number, name: string): void {
+  const tab = tabs[index]
+  renaming = null
+  if (tab) tab.name = name.trim() === '' ? null : name.trim()
+  paintTabs()
+  persistSession()
 }
 
 /** A fresh place, with nothing open in it yet. */
@@ -124,6 +161,7 @@ function createTab(): Tab {
     id: 'tab-' + nextTabId++,
     docs: [],
     docIndex: -1,
+    name: null,
     terminalOpen: false,
     ratio: DEFAULT_RATIO,
     zoom: null,
@@ -283,7 +321,7 @@ function render(): void {
   const current = tabs[activeIndex]
   if (current && isSeen(current)) applyActivity(current, { type: 'seen' })
 
-  renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
+  paintTabs()
 
   const tab = tabs[activeIndex]
   const doc = shownDoc(tab)
@@ -388,6 +426,7 @@ function persistSession(): void {
       .map((tab) => ({
         files: tab.docs.map((doc) => doc.path),
         active: shownDoc(tab)?.path ?? null,
+        name: tab.name,
         pane: {
           terminal: tab.terminalOpen,
           ratio: tab.ratio,
@@ -434,13 +473,13 @@ async function reloadPath(path: string): Promise<void> {
   if (doc.draft !== null) {
     doc.staleOnDisk = true
     if (isShowing(found)) renderStatus(tab, doc)
-    renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
+    paintTabs()
     return
   }
   await loadDoc(tab, doc, true)
   // Only the visible document needs repainting; the rest refresh on switch.
   if (isShowing(found)) render()
-  else renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
+  else paintTabs()
 }
 
 window.api.onFileEvent(({ path, type }) => {
@@ -453,7 +492,7 @@ window.api.onFileEvent(({ path, type }) => {
   found.doc.error = 'The file no longer exists on disk.'
   found.doc.html = ''
   if (isShowing(found)) render()
-  else renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
+  else paintTabs()
 })
 
 window.api.onOpenFiles((paths) => void openFiles(paths))
@@ -470,6 +509,7 @@ function showContextMenu(index: number, x: number, y: number): void {
 
   const doc = shownDoc(tab)
   const items: Array<[string, () => void]> = [
+    ['Rename tab', () => startRename(index)],
     ['Reload', () => void (doc && reloadPath(doc.path))],
     ['Close file', closeDoc],
     ['Close tab', () => closeTab(index)],
@@ -634,7 +674,7 @@ function applyActivity(tab: Tab, event: ActivityEvent): void {
   if (justFinished(tab.activity, next)) tab.finished = true
   if (next === 'working' || next === 'busy') tab.finished = false
   tab.activity = next
-  renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
+  paintTabs()
   reportTaskbar()
 }
 
@@ -1359,6 +1399,7 @@ async function start(): Promise<void> {
     await openFiles(saved.files, false, tab)
     const shown = saved.active ? tab.docs.findIndex((doc) => samePath(doc.path, saved.active!)) : -1
     tab.docIndex = shown >= 0 ? shown : 0
+    tab.name = saved.name ?? null
     tab.terminalOpen = saved.pane.terminal
     tab.ratio = clampRatio(saved.pane.ratio)
     tab.runCommand = saved.pane.run ?? null

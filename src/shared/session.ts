@@ -51,10 +51,12 @@ function readTabs(raw: unknown): SessionTab[] {
     const files = paths((entry as { files?: unknown }).files)
     if (files.length === 0) continue
     const active = (entry as { active?: unknown }).active
+    const name = (entry as { name?: unknown }).name
     tabs.push({
       files,
       active: typeof active === 'string' && files.includes(active) ? active : files[0],
-      pane: sanitisePane((entry as { pane?: unknown }).pane)
+      pane: sanitisePane((entry as { pane?: unknown }).pane),
+      name: typeof name === 'string' && name.trim() !== '' ? name.trim() : null
     })
   }
   return tabs
@@ -69,7 +71,8 @@ function fromDocumentsPerTab(raw: Record<string, unknown>): SessionTab[] {
   return paths(raw.files).map((file) => ({
     files: [file],
     active: file,
-    pane: sanitisePane(panes[file])
+    pane: sanitisePane(panes[file]),
+    name: null
   }))
 }
 

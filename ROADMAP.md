@@ -291,6 +291,7 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Extra   | zvýraznění změn, tečka aktivity, prompt buffer, `Ctrl+F`, paleta     |
 | Extra   | stav v hlavním panelu, agregovaný přes všechny taby                  |
 | Extra   | velikost a rodina fontu v terminálu                                  |
+| Extra   | vlastní jméno tabu                                                   |
 
 Přidání položky na tenhle seznam je rozhodnutí, ne detail — patří k němu řádek
 v decision logu níže.
@@ -501,6 +502,11 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   Vyplynulo z prvního dne používání: nainstalovaná aplikace drží single-instance lock
   a sdílí `state.json`, takže dev vedle ní nenaběhne a testování přepisuje otevřené
   taby skutečné práce. Jedno jméno navíc obojí ruší.
+- **20. 8. 2026** - Tab se dá pojmenovat po svém. Vyplynulo z prvního dne s víc
+  soubory v tabu: jmenovat místo podle toho, co v něm právě je vidět, je slabší než
+  jmenovat ho podle toho, co tam děláš. Přepisuje se v liště, ne dialogem, protože
+  Electron nemá `prompt()` a dialog na tři slova by vážil víc než ta věc sama.
+  Prázdné jméno je cesta zpátky k pojmenování podle souboru.
 - **20. 8. 2026** - Font terminálu se dá nastavit, a přesto zůstává „UI pro nastavení"
   non-goal. Velikost se mění zkratkou a pamatuje se, přesně jako téma, které pro tohle
   slouží jako předloha. Rodinu člověk nastaví jednou za život, takže se čte ze

@@ -212,6 +212,10 @@ Files passed on the command line are opened too, so the app works as a handler f
   `Ctrl+PageDown` move between them, the status bar says which of how many, and the
   tab's tooltip lists them all - there is deliberately no second row of chrome for it.
   Switching the file moves neither the shell nor the project: those belong to the place.
+- **Naming a tab.** Double-click its label, or right-click it, and give the place a
+  name of its own - what you are doing there usually describes it better than whichever
+  file is on screen. A named tab is shown in italics, an empty name goes back to being
+  named after the file, and the name is remembered with the rest of the place.
 - **Unsaved edits cannot be lost quietly.** Closing a file, a tab or the window asks
   first. The window is refused rather than asked, because a dialog raised while the
   window is already closing proved unreliable; the status bar says what to do.

@@ -81,6 +81,8 @@ export type SessionTab = {
   files: string[]
   active: string | null
   pane: PaneState
+  /** A name given by hand, which beats the name of the file being shown. */
+  name?: string | null
 }
 
 export type SessionState = {

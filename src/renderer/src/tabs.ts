@@ -30,6 +30,11 @@ export type Tab = {
   docs: Doc[]
   /** Which of them is on screen. */
   docIndex: number
+  /**
+   * A name given by hand. A place is often better described by what you are doing there
+   * than by whichever file happens to be on screen, so this beats the file's name.
+   */
+  name: string | null
   /** Whether this tab shows a shell next to the document. */
   terminalOpen: boolean
   /** Width of the shell pane as a fraction of the tab. */
@@ -60,6 +65,13 @@ export type TabHandlers = {
   onSelect: (index: number) => void
   onClose: (index: number) => void
   onContextMenu: (index: number, x: number, y: number) => void
+  /** Start naming this tab by hand; the bar renders a field for it. */
+  onRenameStart: (index: number) => void
+  /** Every keystroke, so the value is held outside and a repaint cannot lose it. */
+  onRenameEdit: (value: string) => void
+  /** Empty means going back to being named after the file. */
+  onRename: (index: number, name: string) => void
+  onRenameCancel: () => void
 }
 
 /**
@@ -90,7 +102,9 @@ export function renderTabBar(
   container: HTMLElement,
   tabs: Tab[],
   activeIndex: number,
-  handlers: TabHandlers
+  handlers: TabHandlers,
+  /** The tab being named and what is typed so far, held outside this function. */
+  renaming: { id: string; value: string } | null = null
 ): void {
   container.textContent = ''
   // A tab is named after the file it is showing, disambiguated against the others.
@@ -121,9 +135,38 @@ export function renderTabBar(
       el.append(dot)
     }
 
+    if (tab.id === renaming?.id) {
+      const field = document.createElement('input')
+      field.className = 'tab-rename'
+      field.value = renaming.value
+      field.spellcheck = false
+      field.placeholder = labels[index]
+      field.addEventListener('input', () => handlers.onRenameEdit(field.value))
+      field.addEventListener('keydown', (event) => {
+        event.stopPropagation()
+        if (event.key === 'Enter') handlers.onRename(index, field.value)
+        else if (event.key === 'Escape') handlers.onRenameCancel()
+      })
+      // Clicking elsewhere keeps what was typed; losing a name to a stray click is
+      // more annoying than having to clear one.
+      field.addEventListener('blur', () => handlers.onRename(index, field.value))
+      field.addEventListener('mousedown', (event) => event.stopPropagation())
+      el.append(field)
+      container.append(el)
+      // Focus only works once the element is in the document.
+      field.focus()
+      field.select()
+      return
+    }
+
     const label = document.createElement('span')
     label.className = 'tab-label'
-    label.textContent = labels[index]
+    label.textContent = tab.name ?? labels[index]
+    if (tab.name) label.classList.add('named')
+    label.addEventListener('dblclick', (event) => {
+      event.stopPropagation()
+      handlers.onRenameStart(index)
+    })
     el.append(label)
 
     const close = document.createElement('button')

@@ -46,9 +46,9 @@ export const SHORTCUTS: HelpSection[] = [
     title: 'Mouse',
     rows: [
       { keys: 'middle-click a tab', action: 'close it' },
-      { keys: 'right-click a tab', action: 'reload, close, copy path, reveal' },
-      { keys: 'drag a file in', action: 'open it in this tab' },
-      { keys: 'drag the divider', action: 'resize the panes' }
+      { keys: 'double-click a tab', action: 'name it something of your own' },
+      { keys: 'right-click a tab', action: 'rename, reload, close, reveal' },
+      { keys: 'drag a file in', action: 'open it in this tab' }
     ]
   }
 ]

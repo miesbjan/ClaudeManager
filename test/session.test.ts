@@ -75,7 +75,9 @@ describe('sanitiseSession', () => {
     assert.deepEqual(session.tabs[0], {
       files: ['C:/x/a.md'],
       active: 'C:/x/a.md',
-      pane: sanitisePane({ terminal: true, ratio: 0.35 })
+      pane: sanitisePane({ terminal: true, ratio: 0.35 }),
+      // Nothing was ever named by hand back then.
+      name: null
     })
     assert.equal(session.tabs[1].pane.web, 'http://localhost:5173')
     assert.equal(session.activeTab, 1, 'the document that was active becomes the active tab')
@@ -95,6 +97,22 @@ describe('sanitiseSession', () => {
   it('falls back to the first file when the remembered one is gone', () => {
     const session = sanitiseSession({ tabs: [{ files: ['a.md', 'b.md'], active: 'vanished.md' }] })
     assert.equal(session.tabs[0].active, 'a.md')
+  })
+
+  it('keeps a name given by hand', () => {
+    const session = sanitiseSession({
+      tabs: [{ files: ['a.md'], active: 'a.md', pane: {}, name: '  the plan  ' }]
+    })
+    assert.equal(session.tabs[0].name, 'the plan')
+  })
+
+  it('treats an empty name as none at all', () => {
+    const named = (name: unknown) =>
+      sanitiseSession({ tabs: [{ files: ['a.md'], active: 'a.md', pane: {}, name }] }).tabs[0].name
+    assert.equal(named('   '), null)
+    assert.equal(named(''), null)
+    assert.equal(named(42), null)
+    assert.equal(named(undefined), null)
   })
 
   it('answers with nothing for nothing', () => {

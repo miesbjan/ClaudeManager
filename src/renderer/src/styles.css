@@ -814,6 +814,28 @@ body.resizing {
   overflow: hidden;
 }
 
+/*
+ * Naming a tab happens in the bar itself: Electron has no prompt(), and a dialog for
+ * three words would be heavier than the thing it asks for. The field takes the shape of
+ * the tab it replaces so the bar does not jump.
+ */
+.tab-rename {
+  width: 12ch;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--accent);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+/* A name given by hand is the tab's own, not the file's, so it does not look derived. */
+.tab-label.named {
+  font-style: italic;
+}
+
 /* ---------- changed blocks ---------- */
 
 /*
