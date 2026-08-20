@@ -119,6 +119,95 @@ Shell navíc dostává `BROWSER=none`, aby si projekt neotevřel systémový pro
 Tím vznikla ta smyčka, o kterou šlo: vlevo běží aplikace, vpravo se na ni koukáš,
 dokument je na jedno kliknutí zpátky.
 
+### L3c - Prostý text a malé úpravy
+
+Panel umí zobrazit i soubor, který není Markdown, a udělat v něm malou úpravu.
+Vložit API klíč do `.env`, přepnout jednu hodnotu v konfiguraci, opravit překlep.
+Tedy věci, pro které je otevírání celého editoru neúměrné, a které se s agentem
+odbavují špatně.
+
+Je to jedna funkce, ne dvě. Jakmile panel zvládne surový text, umí tím zobrazit
+`.json`, `.log`, `.env` i `.txt`, a editace je pak textarea nad tím samým.
+Dnes je konzole projektu slepá ke všemu kromě jednoho formátu, přitom agent běžně
+píše logy a data.
+
+Bez nové závislosti, žádný CodeMirror ani Monaco: všechno nad prostou textareou je
+editor, a ten je non-goal. Zvýraznění syntaxe v editačním režimu taky ne, i když je
+`highlight.js` v projektu už dnes - pro vložení klíče nemá žádnou hodnotu a je to
+první krok jinam.
+
+Pravidla, na kterých to stojí:
+
+- Ukládá se jen na `Ctrl+S`. Autosave v aplikaci, která sleduje soubory přepisované
+  agentem, je cesta k tomu, že si navzájem přepíšete práci.
+- Když se soubor na disku změní a v panelu jsou neuložené úpravy, nereloaduje se.
+  Panel to oznámí a rozhodnutí nechá na člověku.
+- Zapisuje se výhradně do cesty, která je právě otevřená v panelu, a jen na tu
+  klávesu. Nikdy do cesty odvozené z obsahu dokumentu. To je třetí pravidlo
+  k těm dvěma v bezpečnostní sekci.
+
+*Hotovo, když:* vložíš klíč do `.env` otevřeného projektu a uložíš ho, aniž bys sáhl
+po editoru, a prohlédneš si `.log`, který agent napsal.
+
+### L3d - Navigace v adresáři
+
+Dvě věci, které z „jsem v adresáři" udělají pravdu.
+
+`Ctrl+P` a jméno souboru, hledané v kořeni projektu, který už `detectProject` umí
+najít. Dnes se soubor otevírá dialogem nebo přetažením, což je u konzole projektu
+rozpor v základu.
+
+A kliknutelné cesty ve výstupu terminálu: agent napíše `src/main/index.ts:224`
+a kliknutí to otevře v pravém panelu, ne v systémovém editoru.
+xterm na to má link provider. Z výpisu agenta se tím stane navigace, a je to ta
+nejčastější věc, kterou v něm člověk hledá.
+
+*Hotovo, když:* soubor, na který agent odkazuje, otevřeš kliknutím, a jakýkoli soubor
+v projektu najdeš bez dialogu.
+
+### Mimo vrstvy
+
+**Stav v hlavním panelu Windows** (hotovo). Kontrolka na tabu řekne, co agent dělá, jen
+když se na okno koukáš. Když řešíš něco jiného na jiné obrazovce, musí to říct ikona aplikace
+v hlavním panelu. Je to třetí kus téhož: dokument ukazuje, co agent přepsal, tab
+ukazuje, co dělá, hlavní panel ukazuje, že po tobě něco chce, i když se nekoukáš.
+
+Agreguje se přes všechny taby a vyhrává ten nejnaléhavější stav:
+chyba, pak čeká na povolení, pak dokončeno, pak pracuje.
+„Aspoň jeden dobehl" je tedy zelená, dokud zároveň někdo jiný nečeká na odpověď nebo
+nespadl.
+
+Mechanismus je `win.setProgressBar(hodnota, { mode })`, což na Windows obarví ikonu
+v hlavním panelu a přesně pokrývá ty čtyři stavy: `indeterminate` pro pracuje,
+`normal` na 1.0 pro dokončeno (plný zelený pruh), `paused` pro čeká na povolení,
+`error` pro chybu, `none` pro nic. Nepotřebuje to žádný obrázek, což je podstatné,
+protože aplikace dneska nemá ani vlastní ikonu a `setOverlayIcon` by znamenal první
+binární assety v repozitáři. K okamžiku přechodu se přidá `flashFrame`, aby si toho
+člověk na jiné obrazovce všiml.
+
+Postaveno tak, že se hlásí jen když okno nemá fokus, a „dokončeno" zhasne návratem
+k oknu. Obojí je to volba z těch dvou, které tu byly otevřené, a důvod je v decision
+logu: „dobehl" musí být přechod, ne stav, jinak by zelená svítila pořád, protože shell
+stojící na promptu je trvale dokončený.
+
+*Hotovo, když:* pustíš agenta, přepneš se na jinou obrazovku a poznáš z hlavního
+panelu, že dobehl, aniž bys okno hledal.
+
+**Font terminálu.** Velikost a rodina, nic dalšího. V panelu, ve kterém se celý den
+čte výstup agenta, je čitelnost základ, a výchozí velikost xtermu sedí každému jinak.
+
+Velikost se mění zkratkou a pamatuje se mezi spuštěními, tedy stejným způsobem jako
+téma. Rodina se zadá jednou v souboru vedle `state.json` a čte se při startu; výchozí
+hodnota zůstane `--font-mono`, kterou používá zbytek aplikace. Po změně je potřeba
+znovu spočítat rozměr panelu, protože na velikosti znaku závisí počet řádků a sloupců,
+které se posílají do PTY.
+
+Žádný dialog s náhledem: „UI pro nastavení" je non-goal a zkratka se souborem dají
+stejný výsledek za desetinu práce.
+
+*Hotovo, když:* zvětšíš písmo v terminálu, restartuješ aplikaci a zůstane zvětšené,
+aniž by se rozsypalo zalomení výstupu.
+
 ### L4 — Šuplík
 
 Jeden sbalitelný panel per tab, defaultně zavřený, uvnitř přepínač obsahu — takže
@@ -159,11 +248,14 @@ Všechno ostatní na seznamu je reimplementace editoru. Tyhle ne:
    změnily, ať je vidět, co agent právě přepsal, bez čtení celého dokumentu znovu.
    Granularita je blok, ne slovo, a změna mimo viditelnou část dokumentu se neohlásí.
    Na to druhé je odpověď tečka aktivity, ne autoscroll.
-2. **Tečka aktivity na tabu** (hotovo) — tlumená, dokud teče výstup, zelená po
-   dokončení, oranžová když se agent ptá na povolení a dál se nehne, červená při
-   zvonku, chybě nebo spadlém shellu. Kde program hlásí svůj
-   stav sám (`OSC 9;4`), je tečka přesná; jinde platí odhad z ticha. Zdroje jsou dva:
-   shell i dokument přepsaný na pozadí.
+2. **Tečka aktivity na tabu** (hotovo) - **stavová kontrolka**, která v každou chvíli
+   říká, co agent dělá: tlumená, dokud teče výstup, zelená po dokončení, oranžová když
+   se ptá na povolení a dál se nehne, červená při zvonku, chybě nebo spadlém shellu.
+   Kde program hlásí svůj stav sám (`OSC 9;4`), je přesná; jinde platí odhad z ticha.
+   Svítí i na tabu, na který se koukáš, protože to, co agent dělá, se pohledem nemění.
+   Jediné, co pohled zhasne, je červená, protože chyba je událost, ne stav.
+   Zdrojem je shell. Dokument přepsaný na pozadí má svůj vlastní signál, totiž
+   zvýraznění změn, viz decision log z 20. 8. 2026.
 3. **Prompt buffer** — pole pro složení delšího zadání, odeslané do terminálu jednou
    klávesou. Psát víceřádkové prompty přímo do TUI je otrava.
 
@@ -177,12 +269,16 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Oblast  | Funkce                                                              |
 | ------- | ------------------------------------------------------------------- |
 | Základ  | taby vázané na adresář, rozdělené panely, ukládání rozložení         |
-| Základ  | živý panel s Markdownem (jen ke čtení, sanitizovaný)                 |
+| Základ  | živý panel s Markdownem (renderovaný náhled, sanitizovaný)           |
 | Základ  | terminálový panel                                                    |
 | Základ  | tlačítko na spuštění projektu                                        |
 | Základ  | webový panel na localhost místo dokumentu                            |
+| Základ  | panel s prostým textem a úprava s explicitním uložením               |
+| Základ  | `Ctrl+P` nad adresářem projektu, kliknutelné cesty ve výstupu        |
 | Šuplík  | feed změn, prompt buffer, tail logu                                  |
 | Extra   | zvýraznění změn, tečka aktivity, prompt buffer, `Ctrl+F`, paleta     |
+| Extra   | stav v hlavním panelu, agregovaný přes všechny taby                  |
+| Extra   | velikost a rodina fontu v terminálu                                  |
 
 Přidání položky na tenhle seznam je rozhodnutí, ne detail — patří k němu řádek
 v decision logu níže.
@@ -199,6 +295,14 @@ chce vyhnout:
 - debugger, jazykové servery, hledání symbolů
 - AI uvnitř aplikace: agent zůstává externím procesem
 - UI pro nastavení; konfigurační soubor stačí
+- práce na jiném stroji: SSH, WSL, kontejnery. Tohle je architektonická hranice,
+  ne odložený úkol.
+
+Z toho plyne jedna věc, kterou je lepší mít napsanou než ji zjistit provozem:
+**tohle není náhrada editoru, je to doplněk.** Psaní kódu a review velkého diffu po
+hunkách zůstane v editoru, protože to je přesně to, co dělá dobře a co se tady
+vědomě nestaví. Původní srovnání v sekci „Proč ne VS Code nebo Cursor" mluví o volbě
+mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Rizika a přijaté náklady
 
@@ -341,6 +445,55 @@ chce vyhnout:
   tmuxího prefixu. Přibyl tím zoom panelu, což je rozšíření uzavřeného seznamu.
 - **19. 8. 2026** — Shell vybírá main proces (pwsh, jinak Windows PowerShell), renderer
   nikdy nepojmenuje spustitelný soubor. Drží to IPC hranici z bezpečnostní sekce.
+- **20. 8. 2026** - L3c a L3d jdou před šuplík. Důvod je z prvního reálného používání:
+  hlavní workflow je jeden adresář, vlevo agent, vpravo dokument nebo běžící aplikace.
+  V tom rozložení chybí dvě věci dřív než cokoli ze L4 - podívat se na soubor, který
+  není Markdown, a dostat se k souboru bez dialogu. Šuplík je užitečný, ale je to
+  přístavba k něčemu, co ještě neumí otevřít `.log`.
+- **20. 8. 2026** - Editace v rozsahu jednoho vloženého klíče, ne editor. Hranice je
+  ostrá a je to hranice závislostí: prostá textarea ano, CodeMirror nebo Monaco ne.
+  Dvě věci, které to nese s sebou, jsou důležitější než samo psaní - explicitní
+  ukládání a odmítnutí reloadu nad neuloženými změnami. Bez nich by první souběh
+  s agentem znamenal ztrátu práce, a tím i důvěry v celý panel.
+- **20. 8. 2026** - Tečka je **stavová kontrolka, ne odznak nepřečteného**.
+  Postavená je jako to druhé: stav se sbírá jen pro tab, na který se nekoukáš
+  (`isSeen` v rendereru), takže při jednom tabu se shellem na obrazovce nesvítí vůbec
+  a to je zároveň hlavní workflow. Záměr byl od začátku jiný: řekni mi, jestli agent
+  pracuje, dopracoval, chce něco po mně, nebo spadl, a to bez ohledu na to, kam se
+  koukám.
+  Z toho plyne dělící čára, kterou je potřeba držet: „viděno" přestane mazat všechno,
+  co je **stav** (pracuje, hotovo, čeká na povolení), a zůstane jen u toho, co je
+  **událost** (zvonek, chyba, spadlý shell). Čekání na povolení tedy nezhasne tím, že
+  se na tab podíváš, ale až tím, že agent pokračuje - to už stavový automat umí.
+  Kontrolka na tabu ale nepomůže, když je celé okno za prohlížečem nebo na jiné
+  obrazovce. Proto k ní patří stav v hlavním panelu Windows, agregovaný přes všechny
+  taby: jeden signál, který říká „někdo dobehl" nebo „někdo se ptá", i když na
+  aplikaci nevidíš. Popis je v sekci Mimo vrstvy.
+  Je to rozšíření uzavřeného seznamu o prvek, který nestojí v okně žádný pixel.
+- **20. 8. 2026** - Dokument přestal být zdrojem tečky. U stavové kontrolky se to
+  nedalo udržet: „přepsal se dokument" je zpráva, kterou pohled vyřídí, kdežto stavy
+  se pohledem nemažou, takže by po první změně zůstala zelená natrvalo. Dokument má
+  svůj vlastní signál, zvýraznění změn, a ten funguje i po přepnutí na ten tab.
+  Kdyby se ukázalo, že u tabu bez shellu chybí, patří to jako vlastní značka, ne jako
+  další stav v téhle kontrolce.
+- **20. 8. 2026** - Přítomnost dialogu je stav, ne příchod, a hlášení programu ho
+  přebíjí. Změna proti 19. 8., kdy se to udělalo obráceně: tehdejší problém byl, že
+  doznívající značka v okně čtečky maskovala hlášené `busy`, a řešilo se to hlášením
+  jen na příchod. Jenže ve chvíli, kdy pohled na tab přestal mazat stavy, zmizela
+  jediná cesta ze stavu „čeká na povolení" a oranžová by tam uvízla natrvalo.
+  Správné řešení je pořadí: nejdřív se věří tomu, co program hlásí o sobě (`busy`
+  i `done`), a teprve pak textu seškrábanému z obrazovky. Ze stavu „čeká" pak vedou
+  dvě cesty, hlášení programu a zmizení dialogu z okna, takže funguje i pro program,
+  který o sobě nehlásí nic.
+- **20. 8. 2026** - Vývojový běh má vlastní `userData` (`project-console-dev`).
+  Vyplynulo z prvního dne používání: nainstalovaná aplikace drží single-instance lock
+  a sdílí `state.json`, takže dev vedle ní nenaběhne a testování přepisuje otevřené
+  taby skutečné práce. Jedno jméno navíc obojí ruší.
+- **20. 8. 2026** - Font terminálu se dá nastavit, a přesto zůstává „UI pro nastavení"
+  non-goal. Velikost se mění zkratkou a pamatuje se, přesně jako téma, které pro tohle
+  slouží jako předloha. Rodinu člověk nastaví jednou za život, takže se čte ze
+  souboru, ne z dialogu. Dialog s náhledem fontu je ta věc, kterou tenhle projekt
+  nechce stavět, a zkratka plus jeden řádek v souboru dají stejný výsledek.
 - **18. 8. 2026** - Testy dělané Node runnerem (`node:test`) nad `.ts` přímo.
   Důvod: nula nových závislostí, což drží pravidlo o závislostech na prstech jedné ruky.
   Pokrývají se jen čisté funkce; DOM se nechává na ruční průchod, protože DOM harness
