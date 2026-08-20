@@ -67,7 +67,7 @@ let theme: Theme = 'system'
 const reloadTimers = new Map<string, number>()
 let reportedTaskbar: TaskbarState = 'none'
 let terminalFont: TerminalFont = { family: DEFAULT_FAMILY, size: DEFAULT_SIZE }
-/** One shell per tab, kept alive while the tab exists - keyed by document path. */
+/** One shell per tab, alive while the tab is - keyed by tab id, not by document. */
 const shells = new Map<string, TerminalPane>()
 /** Per tab: the escape-sequence reader and the timer that notices silence. */
 const signalReaders = new Map<string, (chunk: string) => OutputSignals>()
@@ -76,7 +76,17 @@ const silenceTimers = new Map<string, number>()
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
 const samePath = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase()
+/** By file: for anything the watcher reports, which speaks in paths. */
 const indexOfPath = (path: string): number => tabs.findIndex((t) => samePath(t.path, path))
+/** By tab: for anything belonging to the tab as a place, above all its shell. */
+const indexOfId = (id: string): number => tabs.findIndex((t) => t.id === id)
+
+/**
+ * Unique for as long as the window lives, which is as long as any shell does. A
+ * counter is enough and stays readable in a log; nothing outside this session ever
+ * sees it, so it is deliberately not derived from the document.
+ */
+let nextTabId = 1
 const baseName = (path: string): string => path.replace(/[\\/]+$/, '').split(/[\\/]/).pop() ?? path
 
 const tabHandlers: TabHandlers = {
@@ -94,6 +104,7 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       continue
     }
     const tab: Tab = {
+      id: 'tab-' + nextTabId++,
       path,
       dir: '',
       html: '',
@@ -157,13 +168,13 @@ function closeTab(index: number): void {
   const tab = tabs[index]
   if (!tab) return
   void window.api.unwatch(tab.path)
-  shells.get(tab.path)?.dispose()
-  shells.delete(tab.path)
-  signalReaders.delete(tab.path)
-  urlReaders.delete(tab.path)
-  const silence = silenceTimers.get(tab.path)
+  shells.get(tab.id)?.dispose()
+  shells.delete(tab.id)
+  signalReaders.delete(tab.id)
+  urlReaders.delete(tab.id)
+  const silence = silenceTimers.get(tab.id)
   if (silence) window.clearTimeout(silence)
-  silenceTimers.delete(tab.path)
+  silenceTimers.delete(tab.id)
   tabs.splice(index, 1)
   if (tabs.length === 0) activeIndex = -1
   else if (index < activeIndex) activeIndex--
@@ -464,7 +475,7 @@ document.getElementById('find-close')?.addEventListener('click', closeFind)
  */
 function isSeen(tab: Tab): boolean {
   if (tab !== tabs[activeIndex]) return false
-  if (!tab.terminalOpen) return !shells.has(tab.path)
+  if (!tab.terminalOpen) return !shells.has(tab.id)
   return tab.zoom !== 'document'
 }
 
@@ -503,19 +514,19 @@ window.addEventListener('focus', () => {
 window.addEventListener('blur', reportTaskbar)
 
 function scheduleSilence(tab: Tab): void {
-  const pending = silenceTimers.get(tab.path)
+  const pending = silenceTimers.get(tab.id)
   if (pending) window.clearTimeout(pending)
   silenceTimers.set(
-    tab.path,
+    tab.id,
     window.setTimeout(() => {
-      silenceTimers.delete(tab.path)
+      silenceTimers.delete(tab.id)
       applyActivity(tab, { type: 'silence' })
     }, SILENCE_MS)
   )
 }
 
 window.api.terminal.onData(({ id, data }) => {
-  const index = indexOfPath(id)
+  const index = indexOfId(id)
   if (index < 0) return
   let read = signalReaders.get(id)
   if (!read) {
@@ -536,7 +547,7 @@ window.api.terminal.onData(({ id, data }) => {
 })
 
 window.api.terminal.onExit(({ id }) => {
-  const index = indexOfPath(id)
+  const index = indexOfId(id)
   if (index >= 0) applyActivity(tabs[index], { type: 'exit' })
 })
 
@@ -602,8 +613,8 @@ function applyLayout(): void {
     viewer.style.flexBasis = showWeb ? String(clampRatio(tab.rightRatio) * 100) + '%' : '100%'
   }
 
-  for (const [path, pane] of shells) {
-    pane.setVisible(showShell && tab !== undefined && samePath(path, tab.path))
+  for (const [id, pane] of shells) {
+    pane.setVisible(showShell && tab !== undefined && id === tab.id)
   }
 
   renderShellBar()
@@ -694,15 +705,15 @@ webUrlInput.addEventListener('keydown', (event) => {
 /** Start the shell of the active tab if it is meant to be open but has none yet. */
 function ensureShell(): void {
   const tab = tabs[activeIndex]
-  if (tab && tab.terminalOpen && !shells.has(tab.path)) void openShell(tab)
+  if (tab && tab.terminalOpen && !shells.has(tab.id)) void openShell(tab)
 }
 
 async function openShell(tab: Tab): Promise<void> {
-  let pane = shells.get(tab.path)
+  let pane = shells.get(tab.id)
   if (!pane) {
-    pane = new TerminalPane(tab.path, tab.project?.root ?? tab.dir, darkQuery.matches, terminalFont)
+    pane = new TerminalPane(tab.id, tab.project?.root ?? tab.dir, darkQuery.matches, terminalFont)
     // Registered before the await so a second call cannot spawn a second shell.
-    shells.set(tab.path, pane)
+    shells.set(tab.id, pane)
     applyLayout()
     const error = await pane.start(termHosts)
     if (error) status.textContent = 'Shell: ' + error
@@ -746,7 +757,7 @@ function focusPane(which: PaneName): void {
   if (!visiblePanes().includes(which)) return
   if (which === 'terminal') {
     const tab = tabs[activeIndex]
-    if (tab) shells.get(tab.path)?.focus()
+    if (tab) shells.get(tab.id)?.focus()
     return
   }
   if (which === 'web') {
@@ -810,7 +821,7 @@ function runPaneCommand(command: PaneCommand): void {
       return
     }
     applyLayout()
-    shells.get(tab.path)?.resize()
+    shells.get(tab.id)?.resize()
     persistSession()
   }
 }
@@ -879,7 +890,7 @@ async function sendRun(tab: Tab, command: string): Promise<void> {
   tab.awaitingServer = true
   tab.webManual = false
   await openShell(tab)
-  window.api.terminal.write(tab.path, command + String.fromCharCode(13))
+  window.api.terminal.write(tab.id, command + String.fromCharCode(13))
 }
 
 async function runProject(): Promise<void> {
@@ -897,7 +908,7 @@ runButton.addEventListener('click', () => void runProject())
 
 function terminalHasFocus(): boolean {
   const tab = tabs[activeIndex]
-  return tab ? shells.get(tab.path)?.hasFocus() === true : false
+  return tab ? shells.get(tab.id)?.hasFocus() === true : false
 }
 
 shellButton.addEventListener('click', toggleShell)
@@ -908,7 +919,7 @@ makeSplitter(splitter, panes, {
     if (!tab) return
     tab.ratio = ratio
     terminalPane.style.flexBasis = String(ratio * 100) + '%'
-    shells.get(tab.path)?.resize()
+    shells.get(tab.id)?.resize()
   },
   onCommit: (ratio) => {
     const tab = tabs[activeIndex]

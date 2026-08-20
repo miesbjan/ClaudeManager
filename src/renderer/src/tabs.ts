@@ -13,6 +13,14 @@ const ACTIVITY_TITLE: Record<Exclude<ActivityState, 'idle'>, string> = {
 }
 
 export type Tab = {
+  /**
+   * Identity of the tab itself, not of what it happens to be showing. Everything
+   * belonging to the tab as a place - above all its shell - is keyed by this, so the
+   * document can be replaced without the shell losing its owner. What belongs to the
+   * file rather than the tab stays keyed by `path`: watching it, reloading it, and the
+   * remembered layout, which is per document on purpose.
+   */
+  id: string
   path: string
   dir: string
   html: string

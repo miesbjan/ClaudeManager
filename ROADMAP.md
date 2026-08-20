@@ -92,9 +92,13 @@ tab, takže když sleduješ konkrétní session Claudea a chceš si na chvíli v
 jiný dokument, shell ti zmizí z očí — přepnul ses jinam. Chtělo by to „otevři sem“:
 dokument se vymění a shell běží dál na očích.
 
-Uvnitř to blokuje jedna věc: shelly jsou klíčované cestou k dokumentu, takže výměnou
-by se klíč rozpadl. Napřed musí mít tab **stabilní identitu** nezávislou na dokumentu —
-mechanická změna, a zároveň první krok k celému „tab = adresář“.
+**Stabilní identita tabu** (hotovo). Shelly byly klíčované cestou k dokumentu, takže
+výměna dokumentu by klíč rozpadla. Tab má teď vlastní id a podle něj se drží všechno,
+co patří tabu jako místu, především jeho shell. Co patří souboru, tedy sledování,
+reload a zapamatované rozložení, zůstává klíčované cestou.
+
+Tím je výměna dokumentu odblokovaná. Zbytek modelu „tab = adresář“, tedy otevřít tab
+nad adresářem bez dokumentu, pořád není.
 
 ### L3 — Spuštění projektu (hotovo)
 
