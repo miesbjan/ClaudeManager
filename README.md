@@ -34,6 +34,14 @@ elsewhere, `npm run desktop -- --exe` copies the portable executable instead - a
 shortcut is the default because a desktop redirected into OneDrive would otherwise
 upload 80 MB after every build.
 
+`npm run build:exe` is the same build ending with the portable binary on the desktop
+instead of a shortcut, and `npm run desktop:sync` runs it only when something has
+actually changed: it compares the newest source file against the exe already on the
+desktop and does nothing when that one is current. A packaging run takes over a
+minute, so that check is what makes it reasonable to call after every change - which
+is what the `Stop` hook in `.claude/settings.local.json` does. That file is personal
+and git-ignored; the other machine needs its own copy to do the same.
+
 Other scripts: `npm run compile` (bundle without packaging), `npm start`
 (run the bundled app), `npm run typecheck`, `npm test`, `npm run desktop`.
 
