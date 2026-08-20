@@ -119,7 +119,7 @@ describe('change marking', () => {
 describe('rendering', () => {
   it('keeps syntax highlighting on a fence', () => {
     const html = renderMarkdown(`${FENCE}js\nconst x = 1\n${FENCE}\n`, 'C:/docs')
-    assert.match(html, /<pre class="hljs"><code class="language-js">/)
+    assert.match(html, /<pre class="hljs" data-line="0"><code class="language-js">/)
     assert.match(html, /<span class="hljs-keyword">const<\/span>/)
   })
 
@@ -127,13 +127,13 @@ describe('rendering', () => {
     const before = `${FENCE}js\nconst x = 1\n${FENCE}\n`
     const after = `${FENCE}js\nconst x = 2\n${FENCE}\n`
     const html = renderMarkdown(after, 'C:/docs', changedLines(before, after))
-    assert.match(html, /<pre class="hljs md-changed"><code class="language-js">/)
+    assert.match(html, /<pre class="hljs md-changed" data-line="0"><code class="language-js">/)
     assert.match(html, /<span class="hljs-number">2<\/span>/)
   })
 
   it('leaves an unknown language as escaped plain text', () => {
     const html = renderMarkdown(`${FENCE}nosuchlang\nfoo <b>bar</b>\n${FENCE}\n`, 'C:/docs')
-    assert.match(html, /<pre class="hljs"><code>foo &lt;b&gt;bar&lt;\/b&gt;/)
+    assert.match(html, /<pre class="hljs" data-line="0"><code>foo &lt;b&gt;bar&lt;\/b&gt;/)
   })
 
   it('renders task list items as disabled checkboxes', () => {
@@ -144,8 +144,8 @@ describe('rendering', () => {
 
   it('gives headings stable ids, disambiguating duplicates', () => {
     const html = renderMarkdown('# Same\n\n# Same\n', 'C:/docs')
-    assert.match(html, /<h1 id="same">/)
-    assert.match(html, /<h1 id="same-1">/)
+    assert.match(html, /<h1 id="same" data-line="0">/)
+    assert.match(html, /<h1 id="same-1" data-line="2">/)
   })
 
   it('routes images through the asset protocol', () => {
@@ -168,12 +168,24 @@ describe('rendering', () => {
     assert.doesNotMatch(html, /<b>/)
   })
 
+  /*
+   * The stamp is what a `file.md:88` click in the terminal aims at. Top-level blocks
+   * only, so nested paragraphs do not each carry one of their own.
+   */
+  it('stamps each top-level block with the line it starts on', () => {
+    const html = renderMarkdown('# One\n\ntext\n\n- item\n', 'C:/docs')
+    assert.match(html, /<h1 id="one" data-line="0">/)
+    assert.match(html, /<p data-line="2">text<\/p>/)
+    assert.match(html, /<ul data-line="4">/)
+    assert.doesNotMatch(html, /<li data-line=/)
+  })
+
   // markdown-it refuses the link outright, so the source stays visible as plain text
   // rather than becoming something clickable.
   it('never turns a javascript: url into a link', () => {
     const html = renderMarkdown('[click](javascript:alert(1))\n', 'C:/docs')
     assert.doesNotMatch(html, /<a\s/)
-    assert.equal(html, '<p>[click](javascript:alert(1))</p>\n')
+    assert.equal(html, '<p data-line="0">[click](javascript:alert(1))</p>\n')
   })
 })
 

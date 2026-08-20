@@ -1,6 +1,7 @@
-import { Terminal } from '@xterm/xterm'
+import { Terminal, type IDisposable, type ILink } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { DEFAULT_FAMILY, DEFAULT_SIZE, type TerminalFont } from '../../shared/font'
+import { cellRange, findPaths, rowOf } from './paths'
 import { paneCommand } from '../../shared/shortcuts'
 import '@xterm/xterm/css/xterm.css'
 
@@ -31,6 +32,7 @@ export class TerminalPane {
   private readonly observer: ResizeObserver
   private readonly offData: () => void
   private readonly offExit: () => void
+  private readonly linkProvider: IDisposable
   private cols = 0
   private rows = 0
   private disposed = false
@@ -40,7 +42,8 @@ export class TerminalPane {
     readonly id: string,
     private readonly cwd: string,
     dark: boolean,
-    font: TerminalFont = { family: DEFAULT_FAMILY, size: DEFAULT_SIZE }
+    font: TerminalFont = { family: DEFAULT_FAMILY, size: DEFAULT_SIZE },
+    private readonly onOpenPath: (path: string, line: number | null) => void = () => undefined
   ) {
     this.host = document.createElement('div')
     this.host.className = 'term-host'
@@ -67,6 +70,10 @@ export class TerminalPane {
       if (id !== this.id) return
       this.exited = true
       this.term.write(`\r\n\x1b[90m[shell exited with code ${exitCode}]\x1b[0m\r\n`)
+    })
+
+    this.linkProvider = this.term.registerLinkProvider({
+      provideLinks: (row, callback) => void this.provideLinks(row, callback)
     })
 
     // Only fires while the pane is visible; a hidden pane reports zero and is skipped.
@@ -135,11 +142,64 @@ export class TerminalPane {
     if (this.disposed) return
     this.disposed = true
     this.observer.disconnect()
+    this.linkProvider.dispose()
     this.offData()
     this.offExit()
     window.api.terminal.kill(this.id)
     this.term.dispose()
     this.host.remove()
+  }
+
+  /**
+   * The paths an agent writes into its output, turned into something you can click.
+   *
+   * xterm asks one row at a time, but a path can be split across two rows by wrapping,
+   * so the whole logical line is put back together first and offsets are then divided
+   * by the width to land back on the grid. Only the matches that begin on the row being
+   * asked about are returned, otherwise a wrapped line would report each of them twice.
+   */
+  private async provideLinks(row: number, callback: (links: ILink[] | undefined) => void) {
+    const buffer = this.term.buffer.active
+    const cols = this.term.cols
+    if (cols === 0) return callback(undefined)
+
+    let first = row
+    while (first > 1 && buffer.getLine(first - 1)?.isWrapped) first--
+
+    let text = ''
+    for (let y = first; ; y++) {
+      const line = buffer.getLine(y - 1)
+      if (!line || (y > first && !line.isWrapped)) break
+      text += line.translateToString(false)
+    }
+
+    const found = findPaths(text.trimEnd()).filter(
+      (match) => rowOf(match.start, first, cols) === row
+    )
+    if (found.length === 0) return callback(undefined)
+
+    /*
+     * Shape alone would underline half the output, so the disk decides. Resolving is
+     * relative to where the shell was started, which is the project root - a path an
+     * agent writes is relative to the same place.
+     */
+    const resolved = await window.api.resolveFiles(
+      this.cwd,
+      found.map((match) => match.path)
+    )
+    if (this.disposed) return
+
+    const links: ILink[] = []
+    found.forEach((match, index) => {
+      const path = resolved[index]
+      if (!path) return
+      links.push({
+        range: cellRange(match.start, match.end - match.start, first, cols),
+        text: text.slice(match.start, match.end),
+        activate: () => this.onOpenPath(path, match.line)
+      })
+    })
+    callback(links.length > 0 ? links : undefined)
   }
 
   /**

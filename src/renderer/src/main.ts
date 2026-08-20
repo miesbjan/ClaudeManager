@@ -903,7 +903,9 @@ async function openShell(tab: Tab): Promise<void> {
   let pane = shells.get(tab.id)
   if (!pane) {
     const cwd = tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
-    pane = new TerminalPane(tab.id, cwd, darkQuery.matches, terminalFont)
+    pane = new TerminalPane(tab.id, cwd, darkQuery.matches, terminalFont, (path, line) =>
+      void openFromTerminal(path, line)
+    )
     // Registered before the await so a second call cannot spawn a second shell.
     shells.set(tab.id, pane)
     applyLayout()
@@ -1140,6 +1142,55 @@ makeSplitter(rightSplitter, rightArea, {
 darkQuery.addEventListener('change', () => {
   for (const pane of shells.values()) pane.setTheme(darkQuery.matches)
 })
+
+/* ---------- following a path out of the terminal ---------- */
+
+/**
+ * A path clicked in the shell output. It opens where every other file opens, in the tab
+ * you are in, because the shell you clicked belongs to that tab.
+ */
+async function openFromTerminal(path: string, line: number | null): Promise<void> {
+  await openFiles([path])
+  const doc = shownDoc(tabs[activeIndex])
+  if (!doc || doc.error) return
+  if (line !== null) goToLine(line)
+  status.textContent = baseName(path) + (line === null ? '' : ':' + line)
+}
+
+/**
+ * Land on a line. In the plain-text pane it can be pointed at exactly, so the line is
+ * selected; in a rendered document the block it belongs to is as close as it honestly
+ * gets, because one source line and one rendered line are not the same thing.
+ */
+function goToLine(line: number): void {
+  const target = Math.max(line - 1, 0)
+
+  if (!raw.hidden) {
+    const lines = raw.value.split('\n')
+    let start = 0
+    for (let i = 0; i < target && i < lines.length; i++) start += lines[i].length + 1
+    raw.focus()
+    raw.setSelectionRange(start, start + (lines[target]?.length ?? 0))
+    /*
+     * A textarea does not scroll to its selection on its own, and there is no way to
+     * ask it to, so the row is measured and the line put a third of the way down -
+     * near the top, but with enough above it to see where you landed.
+     */
+    const height = Number.parseFloat(getComputedStyle(raw).lineHeight)
+    if (Number.isFinite(height)) {
+      raw.scrollTop = Math.max(target * height - raw.clientHeight / 3, 0)
+    }
+    return
+  }
+
+  const blocks = [...content.querySelectorAll<HTMLElement>('[data-line]')]
+  let landing: HTMLElement | null = null
+  for (const block of blocks) {
+    if (Number(block.dataset.line) > target) break
+    landing = block
+  }
+  ;(landing ?? content.firstElementChild)?.scrollIntoView({ block: 'start' })
+}
 
 /* ---------- go to file ---------- */
 

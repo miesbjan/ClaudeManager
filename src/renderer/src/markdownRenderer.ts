@@ -130,8 +130,24 @@ function enclosingListItem(tokens: Token[], index: number): Token | null {
   return null
 }
 
+/**
+ * Stamp each block with the source line it starts on, so `ROADMAP.md:88` clicked in the
+ * terminal can be answered with a place in the document. A rendered line and a source
+ * line are not the same thing, so the block is as exact as this can honestly get.
+ */
+const markLines: CoreRule = (state) => {
+  for (const token of state.tokens) {
+    // Top-level blocks only: a stamp on every nested paragraph would double the
+    // attributes in the output, and landing on the list is close enough to land.
+    if (token.level !== 0 || !token.map || token.nesting === -1) continue
+    if (token.type === 'inline') continue
+    token.attrSet('data-line', String(token.map[0]))
+  }
+}
+
 md.core.ruler.after('inline', 'task-lists', taskLists)
 md.core.ruler.push('heading-ids', headingIds)
+md.core.ruler.push('mark-lines', markLines)
 md.core.ruler.push('mark-changes', markChanges)
 
 /**
@@ -144,12 +160,14 @@ md.renderer.rules.fence = (tokens, idx, options) => {
   const token = tokens[idx]
   const lang = token.info.trim().split(/\s+/)[0]
   const preClass = ['hljs', token.attrGet('class')].filter(Boolean).join(' ')
+  const line = token.attrGet('data-line')
+  const lineAttr = line === null ? '' : ` data-line="${md.utils.escapeHtml(line)}"`
   const codeClass =
     lang && hljs.getLanguage(lang) ? ` class="language-${md.utils.escapeHtml(lang)}"` : ''
   const body = options.highlight
     ? options.highlight(token.content, lang, '')
     : md.utils.escapeHtml(token.content)
-  return `<pre class="${preClass}"><code${codeClass}>${body}</code></pre>
+  return `<pre class="${preClass}"${lineAttr}><code${codeClass}>${body}</code></pre>
 `
 }
 
