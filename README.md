@@ -101,6 +101,8 @@ anywhere else closes it.
 | `Ctrl+R`                  | force reload of the current file          |
 | `Ctrl+D`                  | switch theme: Auto → Light → Dark         |
 | ``Ctrl+` ``               | show or hide the shell pane               |
+| `Alt+P`                   | prompt buffer under the shell             |
+| `Ctrl+Enter`              | send the buffer to the shell              |
 | `Ctrl+=` / `Ctrl+-`       | terminal font bigger / smaller            |
 | `Ctrl+Shift+C` / `Ctrl+Shift+V` | copy / paste inside the shell       |
 | `F12`                     | toggle DevTools                           |
@@ -186,6 +188,18 @@ Files passed on the command line are opened too, so the app works as a handler f
   alive while the tab is open — hiding the pane or switching tabs does not disturb a
   process running inside it; closing the tab kills it. Whether the pane is open and
   how wide it is are remembered per document.
+- **Prompt buffer.** `Alt+P` opens a drawer under the shell to compose a longer
+  instruction in, and `Ctrl+Enter` sends it. Writing a multi-line prompt straight into a
+  TUI is a fight, because the first newline submits it; the buffer hands the text over as
+  a bracketed paste, where newlines are text, and adds the submitting newline afterwards.
+  What the shell then does with several lines is the shell's business - PowerShell runs
+  them one after another, an agent keeps them as one instruction.
+
+  The drawer belongs to the shell, so opening it in a tab without one starts the shell:
+  there would be nowhere to send anything otherwise. A half-written prompt is remembered
+  with the place and survives a restart, the way a draft of a file does, and is cleared
+  when it is sent - it is in the shell's own history by then, and a buffer that kept it
+  would send it twice as easily as once.
 - **Find.** `Ctrl+F` searches whichever pane is showing the file - only the document,
   never the shell next to it. In a rendered document matches are painted with the CSS
   custom highlight API rather than by wrapping text in elements, so the markup

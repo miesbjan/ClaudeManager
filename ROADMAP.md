@@ -265,14 +265,25 @@ stejný výsledek za desetinu práce.
 *Hotovo, když:* zvětšíš písmo v terminálu, restartuješ aplikaci a zůstane zvětšené,
 aniž by se rozsypalo zalomení výstupu.
 
-### L4 — Šuplík
+### L4 — Šuplík (rozdělaný)
 
 Jeden sbalitelný panel per tab, defaultně zavřený, uvnitř přepínač obsahu — takže
 základní UI získá přesně jeden prvek, ne pět.
 
-- prompt buffer — složit delší zadání, jednou klávesou poslat do terminálu
+- prompt buffer (hotovo) — složit delší zadání, jednou klávesou poslat do terminálu
 - feed změn — kterých souborů se za poslední minuty dotkl
 - tail logu
+
+Šuplík dnes existuje, ale bez přepínače: je v něm jedna věc, a přepínač mezi jednou
+možností je ovládací prvek pro nic. Přijde s druhým obsahem, ne dřív.
+
+Sedí pod shellem, protože do shellu odesílá, a `Alt+P` ho otevírá i zavírá - je to
+panel, takže platí pravidlo „Ctrl na taby, Alt na panely". Otevřít ho v tabu bez
+shellu shell rovnou spustí; posílat by jinak nebylo kam. Rozdělaný prompt se pamatuje
+u místa a přežije restart, protože je to rozdělaná práce jako draft souboru.
+
+*Hotovo, když:* složíš víceřádkové zadání, jednou klávesou ho pošleš agentovi a nic
+z něj se po cestě nerozpadne.
 
 ### L5 — Konfigurace workspace a paleta příkazů
 
@@ -313,8 +324,10 @@ Všechno ostatní na seznamu je reimplementace editoru. Tyhle ne:
    Jediné, co pohled zhasne, je červená, protože chyba je událost, ne stav.
    Zdrojem je shell. Dokument přepsaný na pozadí má svůj vlastní signál, totiž
    zvýraznění změn, viz decision log z 20. 8. 2026.
-3. **Prompt buffer** — pole pro složení delšího zadání, odeslané do terminálu jednou
-   klávesou. Psát víceřádkové prompty přímo do TUI je otrava.
+3. **Prompt buffer** (hotovo) - pole pro složení delšího zadání, odeslané do terminálu
+   jednou klávesou. Psát víceřádkové prompty přímo do TUI je otrava, protože první
+   Enter je odešle. Do shellu jde jako **bracketed paste**, kde jsou konce řádků text,
+   a odesílající Enter se přidá až za ním. Tím je hotová i třetí z těchto funkcí.
 
 Levné drobnosti ve stejném duchu, žádná nestojí trvalý pixel: `Ctrl+F` uvnitř
 dokumentu (hotovo) a název větve s počtem změněných souborů v titulku tabu.
@@ -589,3 +602,9 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   zásah. Ověřeno screenshotem, i s vynuceným `::selection`. Kreslit vlastní překryv nad
   textareou je práce na editor, což je non-goal. `Esc` postaví kurzor na zásah, tam už
   výběr vidět je.
+- **20. 8. 2026** - Prompt buffer posílá text jako bracketed paste, ne jako psaní.
+  Uvnitř `ESC[200~ ... ESC[201~` jsou konce řádků text, takže víceřádkové zadání
+  nedojde k TUI po částech - a přesně tomu se ta funkce vyhýbá. Odesílající `CR` jde
+  až za koncem pastu, proto se z bufferu předem odřežou koncové prázdné řádky.
+  Šuplík zůstal bez přepínače obsahu: je v něm jedna věc a přepínač mezi jednou
+  možností je ovládací prvek pro nic. Přijde s druhým obsahem.
