@@ -143,6 +143,16 @@ function createWindow(): void {
     event.preventDefault()
     openExternal(url)
   })
+  /*
+   * A renderer that goes away takes the knowledge of which shell belonged to which
+   * pane with it, but not the shells themselves: nothing calls dispose on the way out,
+   * so every PTY it had open would be left running with no owner. A reload is exactly
+   * that, and in development it happens on every saved file.
+   */
+  win.webContents.on('did-start-navigation', (details) => {
+    if (details.isMainFrame && !details.isSameDocument) terminals?.disposeAll()
+  })
+
   win.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return
     if (input.key === 'F12') {
