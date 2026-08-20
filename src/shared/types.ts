@@ -38,10 +38,9 @@ export type Theme = 'system' | 'light' | 'dark'
 export type TaskbarState = 'none' | 'working' | 'done' | 'permission' | 'alert'
 
 export type StartupPayload = {
-  files: string[]
-  active: string | null
+  tabs: SessionTab[]
+  activeTab: number
   theme: Theme
-  panes: Record<string, PaneState>
   font: TerminalFont
 }
 
@@ -50,18 +49,21 @@ export type PaneState = {
   terminal: boolean
   /** Width of the terminal pane as a fraction of the tab, 0.15-0.85. */
   ratio: number
-  /** The run command chosen for this document, when the project offers several. */
-  run?: string | null
-  /** Address of the dev server seen for this document. */
-  web?: string | null
+  /** The run command chosen here, when the project offers several. */
+  run: string | null
+  /** Address of the dev server seen in this place. */
+  web: string | null
   /** Whether the right side showed the document, the dev server, or both. */
-  rightMode?: 'doc' | 'web' | 'both'
+  rightMode: 'doc' | 'web' | 'both'
   /** Width of the document as a fraction of the right side. */
-  rightRatio?: number
-  /** Older state knew only "the server is showing"; kept so it still restores. */
-  showWeb?: boolean
+  rightRatio: number
   /** The address was typed by hand rather than read from the output. */
-  webManual?: boolean
+  webManual: boolean
+  /**
+   * Older state knew only "the server is showing". Read on the way in and never
+   * written, which is why it is the one optional field here.
+   */
+  showWeb?: boolean
 }
 
 /** The project a document belongs to, and the single command that runs it. */
@@ -74,10 +76,16 @@ export type ProjectInfo = {
   commands: string[]
 }
 
-export type SessionState = {
+/** One place, with the files it holds and which of them was on screen. */
+export type SessionTab = {
   files: string[]
   active: string | null
-  panes: Record<string, PaneState>
+  pane: PaneState
+}
+
+export type SessionState = {
+  tabs: SessionTab[]
+  activeTab: number
 }
 
 /** Output from a shell, addressed to the pane that owns it. */

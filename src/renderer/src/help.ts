@@ -10,17 +10,18 @@ export const SHORTCUTS: HelpSection[] = [
   {
     title: 'Documents and tabs',
     rows: [
-      { keys: 'Ctrl+O', action: 'open Markdown file' },
-      { keys: 'Ctrl+W', action: 'close current tab' },
+      { keys: 'Ctrl+O', action: 'open a file, into this tab' },
+      { keys: 'Ctrl+T', action: 'new tab, for another place' },
+      { keys: 'Ctrl+W', action: 'close the file; the last one closes the tab' },
+      { keys: 'Ctrl+PageUp / PageDown', action: 'the other files open in this tab' },
       { keys: 'Ctrl+Tab / Ctrl+Shift+Tab', action: 'next / previous tab' },
       { keys: 'Ctrl+1 … Ctrl+9', action: 'jump to tab by position' },
       { keys: 'Ctrl+F', action: 'find in the document' },
       { keys: 'Ctrl+R', action: 'reload the document' },
-      { keys: 'Ctrl+E', action: 'Markdown: rendered or as written' },
-      { keys: 'Ctrl+S', action: 'save the file you edited' },
+      { keys: 'Ctrl+E / Ctrl+S', action: 'rendered or as written / save' },
       { keys: 'Ctrl+D', action: 'theme: Auto / Light / Dark' },
       { keys: 'Ctrl+`', action: 'show or hide the shell' },
-      { keys: 'Ctrl+= / Ctrl+-', action: 'terminal font bigger / smaller' }
+      { keys: 'Ctrl+= / Ctrl+-', action: 'terminal font, from anywhere' }
     ]
   },
   {
@@ -38,7 +39,6 @@ export const SHORTCUTS: HelpSection[] = [
     rows: [
       { keys: 'Ctrl+Shift+C / V', action: 'copy / paste' },
       { keys: 'Ctrl+Shift+O, W, R, D, 1…9', action: 'the app shortcuts above' },
-      { keys: 'Ctrl+= / Ctrl+-', action: 'font size, here too' },
       { keys: 'everything else', action: 'goes to the shell untouched' }
     ]
   },
@@ -47,7 +47,7 @@ export const SHORTCUTS: HelpSection[] = [
     rows: [
       { keys: 'middle-click a tab', action: 'close it' },
       { keys: 'right-click a tab', action: 'reload, close, copy path, reveal' },
-      { keys: 'drag a .md file in', action: 'open it in a new tab' },
+      { keys: 'drag a file in', action: 'open it in this tab' },
       { keys: 'drag the divider', action: 'resize the panes' }
     ]
   }

@@ -205,6 +205,16 @@ Files passed on the command line are opened too, so the app works as a handler f
   if the file reappears.
 - **Duplicate names.** Tabs show the file name, extended with as many parent
   directories as needed to stay unambiguous.
+- **Files in a tab.** A tab is a place - a directory, its shell, its dev server - and
+  it holds however many files you open while working there, one of them on screen.
+  Opening a file puts it in the tab you are in; `Ctrl+T` makes another place. `Ctrl+W`
+  closes the file and only the last one closes the tab. `Ctrl+PageUp` and
+  `Ctrl+PageDown` move between them, the status bar says which of how many, and the
+  tab's tooltip lists them all - there is deliberately no second row of chrome for it.
+  Switching the file moves neither the shell nor the project: those belong to the place.
+- **Unsaved edits cannot be lost quietly.** Closing a file, a tab or the window asks
+  first. The window is refused rather than asked, because a dialog raised while the
+  window is already closing proved unreliable; the status bar says what to do.
 - **Terminal font.** `Ctrl+=` and `Ctrl+-` change the size, between 8 and 28, and
   the choice is remembered the way the theme is. Those two keys are claimed even while
   the shell has focus, because that is where you are when you want them. Changing the

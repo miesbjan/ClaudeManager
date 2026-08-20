@@ -18,6 +18,7 @@ import {
   scrollToMatch,
   stepIndex
 } from './find'
+import { createDoc, indexAfterClose, isDirty, nextDocIndex, type Doc } from './docs'
 import { renderShortcuts } from './help'
 import { detectEol, isMarkdown, toEditorText, toFileText } from './plaintext'
 import { createUrlReader, nextRightMode, normalizeUrl } from './web'
@@ -25,7 +26,7 @@ import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { paneCommand, type PaneCommand } from '../../shared/shortcuts'
 import { TerminalPane } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
-import type { PaneState, TaskbarState, Theme } from '../../shared/types'
+import type { TaskbarState, Theme } from '../../shared/types'
 
 const THEMES: Theme[] = ['system', 'light', 'dark']
 const THEME_LABELS: Record<Theme, string> = {
@@ -76,9 +77,30 @@ const urlReaders = new Map<string, (chunk: string) => string | null>()
 const silenceTimers = new Map<string, number>()
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
-const samePath = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase()
-/** By file: for anything the watcher reports, which speaks in paths. */
-const indexOfPath = (path: string): number => tabs.findIndex((t) => samePath(t.path, path))
+/*
+ * The same file arrives written in different ways: the dialog and a dropped file give
+ * Windows separators, a link inside a document gives forward ones, and the command line
+ * gives whatever was typed. Comparing them as they come opens a second copy of a file
+ * that is already open, and then there are two drafts of it.
+ */
+const samePath = (a: string, b: string): boolean =>
+  a.toLowerCase().split('/').join('\\') === b.toLowerCase().split('/').join('\\')
+
+/** The file on screen in a tab, or undefined for a tab with nothing open. */
+const shownDoc = (tab: Tab | undefined): Doc | undefined => tab?.docs[tab.docIndex]
+
+/**
+ * Where a file is open, if it is. The watcher speaks in paths and a path is open in at
+ * most one place, because opening one already open brings you to it instead.
+ */
+function findDoc(path: string): { tab: Tab; tabIndex: number; doc: Doc; docIndex: number } | null {
+  for (const [tabIndex, tab] of tabs.entries()) {
+    const docIndex = tab.docs.findIndex((doc) => samePath(doc.path, path))
+    if (docIndex >= 0) return { tab, tabIndex, doc: tab.docs[docIndex], docIndex }
+  }
+  return null
+}
+
 /** By tab: for anything belonging to the tab as a place, above all its shell. */
 const indexOfId = (id: string): number => tabs.findIndex((t) => t.id === id)
 
@@ -96,50 +118,57 @@ const tabHandlers: TabHandlers = {
   onContextMenu: showContextMenu
 }
 
-async function openFiles(paths: string[], activate = true): Promise<void> {
-  let target = activeIndex
+/** A fresh place, with nothing open in it yet. */
+function createTab(): Tab {
+  const tab: Tab = {
+    id: 'tab-' + nextTabId++,
+    docs: [],
+    docIndex: -1,
+    terminalOpen: false,
+    ratio: DEFAULT_RATIO,
+    zoom: null,
+    activity: 'idle',
+    finished: false,
+    project: null,
+    runCommand: null,
+    webUrl: null,
+    rightMode: 'doc',
+    rightRatio: DEFAULT_RATIO,
+    webManual: false,
+    awaitingServer: false
+  }
+  tabs.push(tab)
+  return tab
+}
+
+/**
+ * Files land in the tab you are in: a tab is a place, and everything you open while
+ * working there belongs to it. A new place is something you ask for.
+ *
+ * A file already open anywhere brings you to it rather than opening a second copy -
+ * two views of one file would mean two drafts of it, and one of them losing.
+ */
+async function openFiles(paths: string[], activate = true, into?: Tab): Promise<void> {
+  let tab = into ?? tabs[activeIndex]
   for (const path of paths) {
-    const existing = indexOfPath(path)
-    if (existing >= 0) {
-      target = existing
+    const found = findDoc(path)
+    if (found) {
+      if (activate) {
+        activeIndex = found.tabIndex
+        found.tab.docIndex = found.docIndex
+      }
+      tab = found.tab
       continue
     }
-    const tab: Tab = {
-      id: 'tab-' + nextTabId++,
-      path,
-      dir: '',
-      html: '',
-      error: null,
-      scrollTop: 0,
-      updatedAt: null,
-      source: null,
-      mtimeMs: 0,
-      raw: !isMarkdown(path),
-      draft: null,
-      truncated: false,
-      staleOnDisk: false,
-      forceSave: false,
-      pendingFlash: false,
-      terminalOpen: false,
-      ratio: DEFAULT_RATIO,
-      zoom: null,
-      activity: 'idle',
-      finished: false,
-      project: null,
-      runCommand: null,
-      webUrl: null,
-      rightMode: 'doc',
-      rightRatio: DEFAULT_RATIO,
-      webManual: false,
-      awaitingServer: false
-    }
-    tabs.push(tab)
-    target = tabs.length - 1
-    await loadTab(tab)
-    void window.api.watch(tab.path)
+    if (!tab) tab = createTab()
+    const doc = createDoc(path, !isMarkdown(path))
+    tab.docs.push(doc)
+    tab.docIndex = tab.docs.length - 1
+    if (activate) activeIndex = tabs.indexOf(tab)
+    await loadDoc(tab, doc)
+    void window.api.watch(doc.path)
   }
-  if (activate && target >= 0) activeIndex = target
-  else if (activeIndex < 0 && tabs.length > 0) activeIndex = 0
+  if (activeIndex < 0 && tabs.length > 0) activeIndex = 0
   render()
   persistSession()
 }
@@ -147,36 +176,49 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
 /**
  * `diff` is off for the first load of a file - every block would count as changed.
  * On a reload it is on, so the blocks the other writer touched can be flashed.
- * `tab.source` survives an unavailable file on purpose: when it reappears, the
+ * `doc.source` survives an unavailable file on purpose: when it reappears, the
  * diff is against what the user last saw, not against nothing.
  */
-async function loadTab(tab: Tab, diff = false): Promise<void> {
-  const result = await window.api.readFile(tab.path)
-  tab.path = result.path
-  tab.dir = result.dir
+async function loadDoc(tab: Tab, doc: Doc, diff = false): Promise<void> {
+  const result = await window.api.readFile(doc.path)
+  doc.path = result.path
+  doc.dir = result.dir
   if (result.ok) {
     const changed =
-      diff && tab.source !== null && tab.source !== result.content
-        ? changedLines(tab.source, result.content)
+      diff && doc.source !== null && doc.source !== result.content
+        ? changedLines(doc.source, result.content)
         : null
-    tab.source = result.content
-    tab.mtimeMs = result.mtimeMs
-    tab.truncated = result.truncated
-    tab.html = isMarkdown(tab.path) ? renderMarkdown(result.content, result.dir, changed) : ''
-    tab.error = null
-    tab.updatedAt = Date.now()
+    doc.source = result.content
+    doc.mtimeMs = result.mtimeMs
+    doc.truncated = result.truncated
+    doc.html = isMarkdown(doc.path) ? renderMarkdown(result.content, result.dir, changed) : ''
+    doc.error = null
+    doc.updatedAt = Date.now()
+    // The project belongs to the place, so the first file to name one settles it.
     if (!tab.project) tab.project = await window.api.detectProject(result.dir)
-    if (changed && changed.size > 0) tab.pendingFlash = true
+    if (changed && changed.size > 0) doc.pendingFlash = true
   } else {
-    tab.html = ''
-    tab.error = result.error
+    doc.html = ''
+    doc.error = result.error
   }
+}
+
+/**
+ * Anything unsaved has to be asked about before it is thrown away. There is no visible
+ * list of what a tab holds, so closing one blind could take several files with it.
+ */
+function confirmDiscard(docs: Doc[]): boolean {
+  const dirty = docs.filter(isDirty)
+  if (dirty.length === 0) return true
+  const names = dirty.map((doc) => baseName(doc.path)).join(', ')
+  return window.confirm(`Unsaved changes in ${names}. Close and lose them?`)
 }
 
 function closeTab(index: number): void {
   const tab = tabs[index]
   if (!tab) return
-  void window.api.unwatch(tab.path)
+  if (!confirmDiscard(tab.docs)) return
+  for (const doc of tab.docs) void window.api.unwatch(doc.path)
   shells.get(tab.id)?.dispose()
   shells.delete(tab.id)
   signalReaders.delete(tab.id)
@@ -192,14 +234,44 @@ function closeTab(index: number): void {
   persistSession()
 }
 
+/**
+ * Closes the file on screen. The tab itself goes only when its last file does, which is
+ * what makes Ctrl+W safe to press without checking what else the place holds.
+ */
+function closeDoc(): void {
+  const tab = tabs[activeIndex]
+  const doc = shownDoc(tab)
+  if (!tab || !doc) return
+  if (tab.docs.length === 1) {
+    closeTab(activeIndex)
+    return
+  }
+  if (!confirmDiscard([doc])) return
+  void window.api.unwatch(doc.path)
+  const next = indexAfterClose(tab.docs.length, tab.docIndex, tab.docIndex)
+  tab.docs.splice(tab.docIndex, 1)
+  tab.docIndex = next
+  render()
+  persistSession()
+}
+
+/** The next file in this place, wrapping round. */
+function cycleDoc(step: number): void {
+  const tab = tabs[activeIndex]
+  if (!tab || tab.docs.length < 2) return
+  tab.docIndex = nextDocIndex(tab.docs.length, tab.docIndex, step)
+  render()
+  persistSession()
+}
+
 function selectTab(index: number): void {
   if (index < 0 || index >= tabs.length || index === activeIndex) return
   activeIndex = index
   render()
   persistSession()
   // Opening a tab marked unavailable is as good a moment as any to look again.
-  const tab = tabs[index]
-  if (tab.error) void reloadPath(tab.path)
+  const doc = shownDoc(tabs[index])
+  if (doc?.error) void reloadPath(doc.path)
 }
 
 function cycleTab(step: number): void {
@@ -214,7 +286,8 @@ function render(): void {
   renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
 
   const tab = tabs[activeIndex]
-  if (!tab) {
+  const doc = shownDoc(tab)
+  if (!tab || !doc) {
     content.hidden = true
     content.textContent = ''
     raw.hidden = true
@@ -228,39 +301,39 @@ function render(): void {
   }
 
   empty.hidden = true
-  const showRaw = tab.raw && !tab.error
+  const showRaw = doc.raw && !doc.error
   raw.hidden = !showRaw
   content.hidden = showRaw
   viewer.classList.toggle('showing-raw', showRaw)
 
-  if (tab.error) {
-    renderError(tab)
+  if (doc.error) {
+    renderError(doc)
   } else if (showRaw) {
     // Nothing rendered is left behind: hidden or not, a stale document is still there
     // to be found by Ctrl+F.
     content.textContent = ''
     // The draft wins over the file: the point is that a reload cannot take it away.
-    const text = tab.draft ?? toEditorText(tab.source ?? '')
+    const text = doc.draft ?? toEditorText(doc.source ?? '')
     if (raw.value !== text) raw.value = text
-    raw.readOnly = tab.truncated
+    raw.readOnly = doc.truncated
   } else {
     // The class has to be in place before the markup is inserted, otherwise the
     // fade animation does not start. Clearing it when nothing is pending is what
     // keeps a plain tab switch from replaying an old flash.
-    content.classList.toggle('flash-changes', tab.pendingFlash)
-    tab.pendingFlash = false
-    content.innerHTML = tab.html
+    content.classList.toggle('flash-changes', doc.pendingFlash)
+    doc.pendingFlash = false
+    content.innerHTML = doc.html
   }
 
-  viewer.scrollTop = tab.scrollTop
+  viewer.scrollTop = doc.scrollTop
   if (!findBar.hidden) refreshFind(false)
-  document.title = baseName(tab.path) + ' - Project Console'
-  renderStatus(tab)
+  document.title = baseName(doc.path) + ' - Project Console'
+  renderStatus(tab, doc)
   applyLayout()
   ensureShell()
 }
 
-function renderError(tab: Tab): void {
+function renderError(doc: Doc): void {
   content.textContent = ''
   const box = document.createElement('div')
   box.className = 'file-error'
@@ -268,9 +341,9 @@ function renderError(tab: Tab): void {
   const title = document.createElement('strong')
   title.textContent = 'File unavailable'
   const path = document.createElement('code')
-  path.textContent = tab.path
+  path.textContent = doc.path
   const message = document.createElement('p')
-  message.textContent = tab.error ?? ''
+  message.textContent = doc.error ?? ''
   const hint = document.createElement('p')
   hint.className = 'muted'
   hint.textContent = 'Still watching - the document loads automatically if the file reappears.'
@@ -284,39 +357,48 @@ function renderError(tab: Tab): void {
  * bar of its own: unsaved work, a file that moved underneath it, and a truncated read
  * are all things you must be able to see without a new row of chrome.
  */
-function renderStatus(tab: Tab): void {
-  if (tab.error) {
-    status.textContent = tab.path + '  ·  unavailable'
+function renderStatus(tab: Tab, doc: Doc): void {
+  if (doc.error) {
+    status.textContent = doc.path + '  ·  unavailable'
     return
   }
-  const parts = [tab.path]
-  if (tab.raw) parts.push(tab.truncated ? 'first 2 MB only, read-only' : 'raw')
-  if (tab.draft !== null) parts.push('unsaved - Ctrl+S')
-  if (tab.staleOnDisk) parts.push('changed on disk while you were editing')
-  if (tab.draft === null && !tab.staleOnDisk) {
-    parts.push('updated ' + (tab.updatedAt ? new Date(tab.updatedAt).toLocaleTimeString() : '-'))
+  const parts = [doc.path]
+  /*
+   * With no strip of open files anywhere, this is the only place that says how many a
+   * tab holds and which one you are on. Shown from two upwards; with one there is
+   * nothing to count.
+   */
+  if (tab.docs.length > 1) {
+    parts.push(`${tab.docIndex + 1}/${tab.docs.length} open here - Ctrl+PageUp/PageDown`)
+  }
+  if (doc.raw) parts.push(doc.truncated ? 'first 2 MB only, read-only' : 'raw')
+  if (doc.draft !== null) parts.push('unsaved - Ctrl+S')
+  if (doc.staleOnDisk) parts.push('changed on disk while you were editing')
+  if (doc.draft === null && !doc.staleOnDisk) {
+    parts.push('updated ' + (doc.updatedAt ? new Date(doc.updatedAt).toLocaleTimeString() : '-'))
     parts.push('watching')
   }
   status.textContent = parts.join('  ·  ')
 }
 
 function persistSession(): void {
-  const panesState: Record<string, PaneState> = {}
-  for (const tab of tabs) {
-    panesState[tab.path] = {
-      terminal: tab.terminalOpen,
-      ratio: tab.ratio,
-      run: tab.runCommand,
-      web: tab.webUrl,
-      rightMode: tab.rightMode,
-      rightRatio: tab.rightRatio,
-      webManual: tab.webManual
-    }
-  }
   window.api.saveSession({
-    files: tabs.map((t) => t.path),
-    active: tabs[activeIndex]?.path ?? null,
-    panes: panesState
+    tabs: tabs
+      .filter((tab) => tab.docs.length > 0)
+      .map((tab) => ({
+        files: tab.docs.map((doc) => doc.path),
+        active: shownDoc(tab)?.path ?? null,
+        pane: {
+          terminal: tab.terminalOpen,
+          ratio: tab.ratio,
+          run: tab.runCommand,
+          web: tab.webUrl,
+          rightMode: tab.rightMode,
+          rightRatio: tab.rightRatio,
+          webManual: tab.webManual
+        }
+      })),
+    activeTab: Math.max(activeIndex, 0)
   })
 }
 
@@ -334,39 +416,43 @@ function scheduleReload(path: string): void {
   )
 }
 
+/** Whether this file is the one on screen, and so whether repainting is needed. */
+function isShowing(found: { tabIndex: number; docIndex: number }): boolean {
+  return found.tabIndex === activeIndex && found.docIndex === tabs[activeIndex]?.docIndex
+}
+
 async function reloadPath(path: string): Promise<void> {
-  const index = indexOfPath(path)
-  if (index < 0) return
-  const tab = tabs[index]
+  const found = findDoc(path)
+  if (!found) return
+  const { tab, doc } = found
   /*
    * The one rule this pane lives or dies by. Somebody else wrote the file while there
    * are unsaved edits here, so nothing is reloaded and nothing is thrown away; the
    * status bar says so and the choice is the user's. Saving now is refused once, which
    * is what makes overwriting a deliberate act rather than an accident.
    */
-  if (tab.draft !== null) {
-    tab.staleOnDisk = true
-    if (index === activeIndex) renderStatus(tab)
+  if (doc.draft !== null) {
+    doc.staleOnDisk = true
+    if (isShowing(found)) renderStatus(tab, doc)
     renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
     return
   }
-  await loadTab(tab, true)
+  await loadDoc(tab, doc, true)
   // Only the visible document needs repainting; the rest refresh on switch.
-  if (index === activeIndex) render()
+  if (isShowing(found)) render()
   else renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
 }
 
 window.api.onFileEvent(({ path, type }) => {
-  const index = indexOfPath(path)
-  if (index < 0) return
+  const found = findDoc(path)
+  if (!found) return
   if (type !== 'unlink') {
     scheduleReload(path)
     return
   }
-  const tab = tabs[index]
-  tab.error = 'The file no longer exists on disk.'
-  tab.html = ''
-  if (index === activeIndex) render()
+  found.doc.error = 'The file no longer exists on disk.'
+  found.doc.html = ''
+  if (isShowing(found)) render()
   else renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
 })
 
@@ -382,12 +468,17 @@ function showContextMenu(index: number, x: number, y: number): void {
   if (!tab) return
   ctxmenu.textContent = ''
 
+  const doc = shownDoc(tab)
   const items: Array<[string, () => void]> = [
-    ['Reload', () => void reloadPath(tab.path)],
-    ['Close', () => closeTab(index)],
-    ['Close others', () => closeOthers(index)],
-    ['Copy path', () => void navigator.clipboard.writeText(tab.path).catch(() => undefined)],
-    ['Reveal in Explorer', () => void window.api.reveal(tab.path)]
+    ['Reload', () => void (doc && reloadPath(doc.path))],
+    ['Close file', closeDoc],
+    ['Close tab', () => closeTab(index)],
+    ['Close other tabs', () => closeOthers(index)],
+    [
+      'Copy path',
+      () => void (doc && navigator.clipboard.writeText(doc.path).catch(() => undefined))
+    ],
+    ['Reveal in Explorer', () => void (doc && window.api.reveal(doc.path))]
   ]
 
   for (const [label, action] of items) {
@@ -414,7 +505,13 @@ function hideContextMenu(): void {
 function closeOthers(keep: number): void {
   const kept = tabs[keep]
   if (!kept) return
-  for (const tab of tabs) if (tab !== kept) void window.api.unwatch(tab.path)
+  const others = tabs.filter((tab) => tab !== kept)
+  if (!confirmDiscard(others.flatMap((tab) => tab.docs))) return
+  for (const tab of others) {
+    for (const doc of tab.docs) void window.api.unwatch(doc.path)
+    shells.get(tab.id)?.dispose()
+    shells.delete(tab.id)
+  }
   tabs.splice(0, tabs.length, kept)
   activeIndex = 0
   render()
@@ -453,8 +550,8 @@ content.addEventListener('click', (event) => {
 })
 
 viewer.addEventListener('scroll', () => {
-  const tab = tabs[activeIndex]
-  if (tab) tab.scrollTop = viewer.scrollTop
+  const doc = shownDoc(tabs[activeIndex])
+  if (doc) doc.scrollTop = viewer.scrollTop
 })
 
 /* ---------- find in document ---------- */
@@ -759,7 +856,8 @@ function ensureShell(): void {
 async function openShell(tab: Tab): Promise<void> {
   let pane = shells.get(tab.id)
   if (!pane) {
-    pane = new TerminalPane(tab.id, tab.project?.root ?? tab.dir, darkQuery.matches, terminalFont)
+    const cwd = tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
+    pane = new TerminalPane(tab.id, cwd, darkQuery.matches, terminalFont)
     // Registered before the await so a second call cannot spawn a second shell.
     shells.set(tab.id, pane)
     applyLayout()
@@ -1001,50 +1099,57 @@ darkQuery.addEventListener('change', () => {
 
 raw.addEventListener('input', () => {
   const tab = tabs[activeIndex]
-  if (!tab) return
-  const onDisk = toEditorText(tab.source ?? '')
+  const doc = shownDoc(tab)
+  if (!tab || !doc) return
+  const onDisk = toEditorText(doc.source ?? '')
   // Back to what the file says counts as clean, so undoing an edit clears the mark.
-  tab.draft = raw.value === onDisk ? null : raw.value
-  if (tab.draft === null) {
-    tab.staleOnDisk = false
-    tab.forceSave = false
+  doc.draft = raw.value === onDisk ? null : raw.value
+  if (doc.draft === null) {
+    doc.staleOnDisk = false
+    doc.forceSave = false
   }
-  renderStatus(tab)
+  renderStatus(tab, doc)
 })
 
 /**
  * Rendered or as written. Only Markdown has two ways to show it; anything else has
- * only the one, and the key then does nothing rather than showing an empty preview.
+ * only the one, and saying so is better than a key that appears not to work.
  */
 function toggleRaw(): void {
   const tab = tabs[activeIndex]
-  if (!tab || !isMarkdown(tab.path)) return
-  if (tab.draft !== null && tab.raw) {
+  const doc = shownDoc(tab)
+  if (!tab || !doc) return
+  if (!isMarkdown(doc.path)) {
+    status.textContent = 'Nothing to render here - this file is shown as it is written'
+    return
+  }
+  if (doc.draft !== null && doc.raw) {
     status.textContent = 'Unsaved edits here - save with Ctrl+S first, or undo them'
     return
   }
-  tab.raw = !tab.raw
+  doc.raw = !doc.raw
   render()
-  if (tab.raw) raw.focus()
+  if (doc.raw) raw.focus()
 }
 
 async function saveDraft(): Promise<void> {
   const tab = tabs[activeIndex]
-  if (!tab || tab.draft === null) return
-  if (tab.truncated) {
+  const doc = shownDoc(tab)
+  if (!tab || !doc || doc.draft === null) return
+  if (doc.truncated) {
     status.textContent = 'Only the first 2 MB of this file was read, so it cannot be saved'
     return
   }
 
-  const eol = detectEol(tab.source ?? '')
-  const text = toFileText(tab.draft, eol)
+  const eol = detectEol(doc.source ?? '')
+  const text = toFileText(doc.draft, eol)
   // A negative time is the deliberate override; anything else is checked in main.
-  const result = await window.api.writeFile(tab.path, text, tab.forceSave ? -1 : tab.mtimeMs)
+  const result = await window.api.writeFile(doc.path, text, doc.forceSave ? -1 : doc.mtimeMs)
 
   if (!result.ok) {
     if (result.reason === 'stale') {
-      tab.staleOnDisk = true
-      tab.forceSave = true
+      doc.staleOnDisk = true
+      doc.forceSave = true
       status.textContent = 'Changed on disk since you opened it - Ctrl+S again to overwrite'
     } else {
       status.textContent = 'Could not save: ' + result.error
@@ -1052,17 +1157,31 @@ async function saveDraft(): Promise<void> {
     return
   }
 
-  tab.source = text
-  tab.mtimeMs = result.mtimeMs
-  tab.draft = null
-  tab.staleOnDisk = false
-  tab.forceSave = false
+  doc.source = text
+  doc.mtimeMs = result.mtimeMs
+  doc.draft = null
+  doc.staleOnDisk = false
+  doc.forceSave = false
   // The preview has to catch up with what was just written, without a change flash:
   // this is your own edit, and highlighting it back at you says nothing.
-  if (isMarkdown(tab.path)) tab.html = renderMarkdown(text, tab.dir, null)
-  tab.updatedAt = Date.now()
+  if (isMarkdown(doc.path)) doc.html = renderMarkdown(text, doc.dir, null)
+  doc.updatedAt = Date.now()
   render()
 }
+
+/**
+ * The window closing is the one way to lose unsaved work that nothing else catches:
+ * a tab close asks, but Alt+F4 and the cross ask nobody. Electron cancels the close
+ * when this returns anything at all and shows no dialog of its own, so the refusal has
+ * to explain itself where the rest of the state already is.
+ */
+window.addEventListener('beforeunload', (event) => {
+  const dirty = tabs.flatMap((tab) => tab.docs).filter(isDirty)
+  if (dirty.length === 0) return
+  const names = dirty.map((doc) => baseName(doc.path)).join(', ')
+  status.textContent = `Unsaved changes in ${names} - save with Ctrl+S or undo them, then close again`
+  event.returnValue = false
+})
 
 /* ---------- theme ---------- */
 
@@ -1139,6 +1258,12 @@ window.addEventListener('keydown', (event) => {
    * PowerShell nor the TUIs in it use these two. Read from the physical key, because
    * on a Czech layout the characters printed on them are not the US ones.
    */
+  if (event.code === 'PageDown' || event.code === 'PageUp') {
+    event.preventDefault()
+    cycleDoc(event.code === 'PageDown' ? 1 : -1)
+    return
+  }
+
   if (event.code === 'Equal' || event.code === 'NumpadAdd') {
     event.preventDefault()
     stepFontSize(1)
@@ -1161,7 +1286,13 @@ window.addEventListener('keydown', (event) => {
   // Read digits from the physical key: Ctrl+Shift+1 arrives as '!' on many layouts.
   const digit = event.code.startsWith('Digit') ? Number(event.code.slice(5)) : 0
 
-  if (key === 'e') {
+  if (key === 't') {
+    event.preventDefault()
+    // A new place, empty: the next file you open lands in it.
+    activeIndex = tabs.indexOf(createTab())
+    render()
+    persistSession()
+  } else if (key === 'e') {
     event.preventDefault()
     toggleRaw()
   } else if (key === 's') {
@@ -1172,14 +1303,14 @@ window.addEventListener('keydown', (event) => {
     void pickFiles()
   } else if (key === 'w') {
     event.preventDefault()
-    closeTab(activeIndex)
+    closeDoc()
   } else if (event.key === 'Tab') {
     event.preventDefault()
     cycleTab(event.shiftKey ? -1 : 1)
   } else if (key === 'r') {
     event.preventDefault()
-    const tab = tabs[activeIndex]
-    if (tab) void reloadPath(tab.path)
+    const doc = shownDoc(tabs[activeIndex])
+    if (doc) void reloadPath(doc.path)
   } else if (key === 'f') {
     event.preventDefault()
     openFind()
@@ -1221,21 +1352,25 @@ async function start(): Promise<void> {
   const startup = await window.api.getStartupFiles()
   setTheme(startup.theme, false)
   terminalFont = startup.font
-  if (startup.files.length === 0) return
-  await openFiles(startup.files, false)
-  for (const tab of tabs) {
-    const pane = startup.panes[tab.path]
-    if (!pane) continue
-    tab.terminalOpen = pane.terminal
-    tab.ratio = clampRatio(pane.ratio)
-    tab.runCommand = pane.run ?? null
-    tab.webUrl = pane.web ?? null
-    tab.rightMode = tab.webUrl === null ? 'doc' : (pane.rightMode ?? 'doc')
-    tab.rightRatio = clampRatio(pane.rightRatio ?? DEFAULT_RATIO)
-    tab.webManual = pane.webManual === true
+
+  // One place at a time, each with the files it held and the file that was on screen.
+  for (const saved of startup.tabs) {
+    const tab = createTab()
+    await openFiles(saved.files, false, tab)
+    const shown = saved.active ? tab.docs.findIndex((doc) => samePath(doc.path, saved.active!)) : -1
+    tab.docIndex = shown >= 0 ? shown : 0
+    tab.terminalOpen = saved.pane.terminal
+    tab.ratio = clampRatio(saved.pane.ratio)
+    tab.runCommand = saved.pane.run ?? null
+    tab.webUrl = saved.pane.web ?? null
+    tab.rightMode = tab.webUrl === null ? 'doc' : saved.pane.rightMode
+    tab.rightRatio = clampRatio(saved.pane.rightRatio)
+    tab.webManual = saved.pane.webManual
   }
-  const wanted = startup.active ? indexOfPath(startup.active) : -1
-  activeIndex = wanted >= 0 ? wanted : 0
+
+  // A place whose every file has vanished is not worth restoring as an empty one.
+  for (let i = tabs.length - 1; i >= 0; i--) if (tabs[i].docs.length === 0) tabs.splice(i, 1)
+  activeIndex = tabs.length === 0 ? -1 : Math.min(startup.activeTab, tabs.length - 1)
   render()
   persistSession()
 }

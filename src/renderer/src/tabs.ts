@@ -1,4 +1,5 @@
 import type { ActivityState } from './activity'
+import type { Doc } from './docs'
 import type { ProjectInfo } from '../../shared/types'
 import type { RightMode } from './web'
 
@@ -21,28 +22,14 @@ export type Tab = {
    * remembered layout, which is per document on purpose.
    */
   id: string
-  path: string
-  dir: string
-  html: string
-  error: string | null
-  scrollTop: number
-  updatedAt: number | null
-  /** Last content seen on disk; kept so the next reload can be diffed against it. */
-  source: string | null
-  /** Modification time of that content, which decides whether a save is safe. */
-  mtimeMs: number
-  /** Showing the file as written rather than rendered. Always true for non-Markdown. */
-  raw: boolean
-  /** Unsaved edits. Null means the buffer is the file; anything else is yours. */
-  draft: string | null
-  /** Only the head of the file was read, so it must not be written back. */
-  truncated: boolean
-  /** The file moved on while you were editing, so a save would overwrite that. */
-  staleOnDisk: boolean
-  /** A refused save arms the next one, which is the way to overwrite deliberately. */
-  forceSave: boolean
-  /** A reload produced changed blocks that have not been shown to the user yet. */
-  pendingFlash: boolean
+  /**
+   * The files open in this place, one of them on screen. A tab is not a document: the
+   * shell, the project and the layout below belong to the tab and do not move when the
+   * shown file changes.
+   */
+  docs: Doc[]
+  /** Which of them is on screen. */
+  docIndex: number
   /** Whether this tab shows a shell next to the document. */
   terminalOpen: boolean
   /** Width of the shell pane as a fraction of the tab. */
@@ -106,14 +93,26 @@ export function renderTabBar(
   handlers: TabHandlers
 ): void {
   container.textContent = ''
-  const labels = computeLabels(tabs.map((t) => t.path))
+  // A tab is named after the file it is showing, disambiguated against the others.
+  const shown = tabs.map((tab) => tab.docs[tab.docIndex])
+  const labels = computeLabels(shown.map((doc) => doc?.path ?? ''))
 
   tabs.forEach((tab, index) => {
+    const doc = shown[index]
     const el = document.createElement('div')
     el.className = 'tab'
     if (index === activeIndex) el.classList.add('active')
-    if (tab.error) el.classList.add('unavailable')
-    el.title = tab.error ? `${tab.path}\n${tab.error}` : tab.path
+    if (doc?.error) el.classList.add('unavailable')
+
+    /*
+     * Everything the place holds, in the tooltip. There is deliberately no strip of
+     * open files anywhere - a tooltip costs no pixels and is the one place the whole
+     * list can be seen without adding a row of chrome for it.
+     */
+    const listed = tab.docs
+      .map((entry, i) => (i === tab.docIndex ? '> ' : '  ') + entry.path)
+      .join('\n')
+    el.title = doc?.error ? `${listed}\n\n${doc.error}` : listed
 
     if (tab.activity !== 'idle') {
       const dot = document.createElement('span')

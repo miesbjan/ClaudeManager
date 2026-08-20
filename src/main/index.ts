@@ -11,14 +11,16 @@ import {
   protocol,
   shell
 } from 'electron'
+import { statSync } from 'node:fs'
 import { readFile, stat, writeFile } from 'node:fs/promises'
-import { dirname, join, normalize } from 'node:path'
+import { dirname, join, normalize, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { FileWatcher } from './fileWatcher'
 import { detectProject } from './project'
 import { TerminalManager } from './terminal'
 import { loadState, saveState, terminalFont, type AppState } from './store'
 import { clampSize } from '../shared/font'
+import { sanitisePane, sanitiseSession } from '../shared/session'
 import { paneCommand } from '../shared/shortcuts'
 import type {
   FileReadResult,
@@ -78,7 +80,7 @@ let watcher: FileWatcher | null = null
 let terminals: TerminalManager | null = null
 
 const state: AppState = loadState()
-let session: SessionState = { files: state.files, active: state.active, panes: state.panes }
+let session: SessionState = { tabs: state.tabs, activeTab: state.activeTab }
 const cliFiles = collectFileArgs(process.argv)
 let saveTimer: NodeJS.Timeout | null = null
 
@@ -87,11 +89,30 @@ let saveTimer: NodeJS.Timeout | null = null
  * not what the file association sends. Explorer only ever hands over the extensions
  * the installer registered; a person at a prompt may well want a log.
  *
- * A development run has the entry script at argv[1], where a packaged run already has
- * the first file.
+ * A development run is passed this very script as an argument, and its position is not
+ * something to rely on - so it is recognised by name rather than by index. Getting that
+ * wrong opens the app's own bundle as a document.
  */
 function collectFileArgs(argv: string[]): string[] {
-  return argv.slice(app.isPackaged ? 1 : 2).filter((arg) => !arg.startsWith('-'))
+  const entry = __filename.toLowerCase()
+  return argv.slice(1).filter((arg) => {
+    if (arg.startsWith('-')) return false
+    // Absolute from here on: a relative argument would be stored as typed.
+    const full = resolve(arg)
+    if (full.toLowerCase() === entry) return false
+    // Only something that is actually a file: a development launch also passes the
+    // project directory, and a path that does not exist could not be opened anyway.
+    try {
+      return statSync(full).isFile()
+    } catch {
+      return false
+    }
+  }).map((arg) => resolve(arg))
+}
+
+/** Every file the window has open, across all tabs: what a write may touch. */
+function openPaths(): string[] {
+  return session.tabs.flatMap((tab) => tab.files)
 }
 
 function persistSoon(): void {
@@ -109,9 +130,8 @@ function persistNow(): void {
     state.maximized = win.isMaximized()
     if (!state.maximized) state.bounds = win.getBounds()
   }
-  state.files = session.files
-  state.active = session.active
-  state.panes = session.panes
+  state.tabs = session.tabs
+  state.activeTab = session.activeTab
   saveState(state)
 }
 
@@ -290,7 +310,7 @@ function registerIpc(): void {
     'file:write',
     async (_event, path: string, content: string, seenMtimeMs: number): Promise<FileWriteResult> => {
       const full = normalize(path)
-      if (!session.files.some((file) => file.toLowerCase() === full.toLowerCase())) {
+      if (!openPaths().some((file) => file.toLowerCase() === full.toLowerCase())) {
         return { ok: false, reason: 'denied', error: 'That file is not open in this window' }
       }
       try {
@@ -322,10 +342,30 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('startup:files', (): StartupPayload => {
-    const files = [...session.files]
-    for (const file of cliFiles) if (!files.includes(file)) files.push(file)
-    const active = cliFiles[cliFiles.length - 1] ?? session.active
-    return { files, active, theme: state.theme, panes: state.panes, font: terminalFont(state) }
+    const tabs = session.tabs.map((tab) => ({ ...tab, files: [...tab.files] }))
+
+    /*
+     * Files named on the command line join the tab that was on screen, which is the
+     * same rule the window follows while it runs. With no tabs at all they make one.
+     */
+    if (cliFiles.length > 0) {
+      const index = tabs.length > 0 ? Math.min(Math.max(session.activeTab, 0), tabs.length - 1) : -1
+      if (index < 0) {
+        tabs.push({
+          files: [...cliFiles],
+          active: cliFiles[cliFiles.length - 1],
+          pane: sanitisePane(null)
+        })
+      } else {
+        for (const file of cliFiles) {
+          if (!tabs[index].files.includes(file)) tabs[index].files.push(file)
+        }
+        tabs[index].active = cliFiles[cliFiles.length - 1]
+      }
+    }
+
+    const activeTab = tabs.length > 0 ? Math.min(Math.max(session.activeTab, 0), tabs.length - 1) : 0
+    return { tabs, activeTab, theme: state.theme, font: terminalFont(state) }
   })
 
   // Size is app state, like the theme. The family stays a hand-edited preference.
@@ -340,11 +380,7 @@ function registerIpc(): void {
   })
 
   ipcMain.on('session:save', (_event, next: SessionState) => {
-    session = {
-      files: Array.isArray(next?.files) ? next.files : [],
-      active: typeof next?.active === 'string' ? next.active : null,
-      panes: next?.panes && typeof next.panes === 'object' ? next.panes : {}
-    }
+    session = sanitiseSession(next)
     persistSoon()
   })
 

@@ -87,10 +87,18 @@ tabu ano. Zkratky aplikace se při fokusu v terminálu stahují na `Ctrl+Shift+�
 Zbývá k modelu „tab = adresář“: tab je pořád dokument a adresář se z něj odvozuje.
 Otevřít tab nad adresářem samotným, bez dokumentu, zatím nejde.
 
-**Vyměnit dokument v tabu** (čeká na poptávku). Dnes každé otevřené `.md` zakládá nový
-tab, takže když sleduješ konkrétní session Claudea a chceš si na chvíli vpravo otevřít
-jiný dokument, shell ti zmizí z očí — přepnul ses jinam. Chtělo by to „otevři sem“:
-dokument se vymění a shell běží dál na očích.
+**Víc souborů v jednom tabu** (hotovo). Tab je místo a drží seznam souborů, jeden je
+vidět. Otevřený soubor padne do tabu, ve kterém jsi; nový tab si vyžádáš přes `Ctrl+T`.
+`Ctrl+W` zavírá soubor a teprve poslední zavře tab, `Ctrl+PageUp` a `Ctrl+PageDown`
+přepínají mezi soubory. Projekt a shell patří tabu, takže přepnutí souboru shell
+nepřestěhuje - to je celý smysl toho, že tab je místo.
+
+Seznam otevřených souborů záměrně nemá vlastní řádek v UI: kolikátý z kolika je vidět
+ve status baru a celý výčet v tooltipu tabu. Vybírat ze seznamu půjde až paletou z L3d.
+
+Rozepsané úpravy se nedají ztratit tichem. Zavření souboru, tabu i celého okna se ptá,
+a u okna to musí odmítnout renderer, protože nativní dialog nad zavírajícím se oknem
+se ukázal jako nespolehlivý.
 
 **Stabilní identita tabu** (hotovo). Shelly byly klíčované cestou k dokumentu, takže
 výměna dokumentu by klíč rozpadla. Tab má teď vlastní id a podle něj se drží všechno,

@@ -2,57 +2,28 @@ import { app } from 'electron'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { clampSize, DEFAULT_SIZE, sanitiseFamily, type TerminalFont } from '../shared/font'
-import type { PaneState, Theme } from '../shared/types'
+import { sanitiseSession } from '../shared/session'
+import type { SessionTab, Theme } from '../shared/types'
 
 export type WindowBounds = { x?: number; y?: number; width: number; height: number }
 
 export type AppState = {
-  files: string[]
-  active: string | null
+  /** One entry per tab: the files it held, which was shown, and the layout. */
+  tabs: SessionTab[]
+  activeTab: number
   bounds?: WindowBounds
   maximized?: boolean
   theme: Theme
-  /** Pane layout per document path; processes are never restored, only geometry. */
-  panes: Record<string, PaneState>
   /** Terminal font size. The family is a preference and lives in settings.json. */
   fontSize: number
 }
 
 const THEMES: Theme[] = ['system', 'light', 'dark']
 const DEFAULT_STATE: AppState = {
-  files: [],
-  active: null,
+  tabs: [],
+  activeTab: 0,
   theme: 'system',
-  panes: {},
   fontSize: DEFAULT_SIZE
-}
-
-/** State written by an older build has no pane section; missing entries default. */
-function sanitisePanes(raw: unknown): Record<string, PaneState> {
-  const out: Record<string, PaneState> = {}
-  if (!raw || typeof raw !== 'object') return out
-  for (const [path, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (!value || typeof value !== 'object') continue
-    const { terminal, ratio, run, web, rightMode, rightRatio, showWeb, webManual } =
-      value as Partial<PaneState>
-    out[path] = {
-      terminal: terminal === true,
-      ratio: typeof ratio === 'number' && ratio > 0 && ratio < 1 ? ratio : 0.5,
-      run: typeof run === 'string' ? run : null,
-      web: typeof web === 'string' ? web : null,
-      // State from before the split right side knew only "the server is showing".
-      rightMode:
-        rightMode === 'web' || rightMode === 'both' || rightMode === 'doc'
-          ? rightMode
-          : showWeb === true
-            ? 'web'
-            : 'doc',
-      rightRatio:
-        typeof rightRatio === 'number' && rightRatio > 0 && rightRatio < 1 ? rightRatio : 0.5,
-      webManual: webManual === true
-    }
-  }
-  return out
 }
 
 function stateFile(): string {
@@ -68,25 +39,24 @@ function legacyStateFile(): string {
   return join(app.getPath('appData'), 'md-viewer', 'state.json')
 }
 
-function readState(path: string): Partial<AppState> {
-  return JSON.parse(readFileSync(path, 'utf8')) as Partial<AppState>
+/** Whatever is in the file, which is not necessarily what this build writes. */
+function readState(path: string): Record<string, unknown> {
+  return JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
 }
 
 export function loadState(): AppState {
   try {
-    let raw: Partial<AppState>
+    let raw: Record<string, unknown>
     try {
       raw = readState(stateFile())
     } catch {
       raw = readState(legacyStateFile())
     }
     return {
-      files: Array.isArray(raw.files) ? raw.files.filter((f) => typeof f === 'string') : [],
-      active: typeof raw.active === 'string' ? raw.active : null,
-      bounds: raw.bounds,
+      ...sanitiseSession(raw),
+      bounds: raw.bounds as WindowBounds | undefined,
       maximized: raw.maximized === true,
       theme: THEMES.includes(raw.theme as Theme) ? (raw.theme as Theme) : 'system',
-      panes: sanitisePanes(raw.panes),
       fontSize: clampSize(raw.fontSize)
     }
   } catch {
