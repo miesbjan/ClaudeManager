@@ -145,6 +145,11 @@ export interface ViewerApi {
   /** Files under a directory, for the palette. Build output and dot-dirs are skipped. */
   listFiles(root: string): Promise<FileListing>
   /**
+   * Which of these are files that exist, resolved against `root` when relative. One
+   * answer per candidate, in the same order, null for the ones that are not files.
+   */
+  resolveFiles(root: string, candidates: string[]): Promise<Array<string | null>>
+  /**
    * Put the state of the busiest tab on the taskbar button, so it can be read without
    * finding the window first. The renderer decides what the aggregate is; the main
    * process only knows how to show it.

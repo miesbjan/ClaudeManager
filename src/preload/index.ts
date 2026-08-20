@@ -36,6 +36,8 @@ const api: ViewerApi = {
   getPathForFile: (file) => webUtils.getPathForFile(file),
   detectProject: (dir) => ipcRenderer.invoke('project:detect', dir) as Promise<ProjectInfo | null>,
   listFiles: (root) => ipcRenderer.invoke('files:list', root) as Promise<FileListing>,
+  resolveFiles: (root, candidates) =>
+    ipcRenderer.invoke('files:resolve', root, candidates) as Promise<Array<string | null>>,
   setTaskbarState: (state) => ipcRenderer.send('taskbar:set', state),
   readClipboard: () => ipcRenderer.invoke('clipboard:read') as Promise<string>,
   terminal: {
