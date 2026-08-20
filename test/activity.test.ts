@@ -3,13 +3,22 @@ import { describe, it } from 'node:test'
 import {
   createSignalReader,
   nextActivity,
-  type ActivityState
+  type ActivityState,
+  type OutputSignals
 } from '../src/renderer/src/activity.ts'
 
 const ESC = '\x1b'
 const BEL = '\x07'
 const progress = (state: string, value = '0') => `${ESC}]9;4;${state};${value}${BEL}`
 const title = (text: string) => `${ESC}]0;${text}${BEL}`
+
+/** Plain output, unless a test says otherwise. */
+const out = (over: Partial<OutputSignals> = {}): OutputSignals => ({
+  bell: false,
+  progress: null,
+  dialog: false,
+  ...over
+})
 
 describe('reading signals from terminal output', () => {
   it('sees the dialog Claude opens to ask for permission', () => {
@@ -20,47 +29,46 @@ describe('reading signals from terminal output', () => {
       ' 2. Yes, allow all',
       ' 3. No, and tell Claude what to do differently'
     ].join(String.fromCharCode(13, 10))
-    assert.equal(read(dialog).permission, true)
+    assert.equal(read(dialog).dialog, true)
   })
 
   it('is not fooled by the agent writing about permissions', () => {
     const read = createSignalReader()
-    assert.equal(read('Do you want to keep the old behaviour? I would suggest not.').permission, false)
+    assert.equal(read('Do you want to keep the old behaviour? I would suggest not.').dialog, false)
   })
 
   it('sees a marker split across two chunks', () => {
     const read = createSignalReader()
-    assert.equal(read(' 2. Yes, allo').permission, false)
-    assert.equal(read('w all').permission, true)
+    assert.equal(read(' 2. Yes, allo').dialog, false)
+    assert.equal(read('w all').dialog, true)
   })
 
   /*
-   * The marker stays inside the reader's window for a while after the dialog has been
-   * answered. Reported for as long as it was visible, it kept overruling the
-   * program's own word that it had carried on - see the state test below.
+   * A level, not an arrival: the way out of "being asked" is that the dialog is gone,
+   * and only something that keeps saying "still here" can also say "no longer".
+   * The cost is that the marker lingers in the window for a few hundred characters
+   * after the answer, which the state machine handles by believing a reported `busy`.
    */
-  it('reports the dialog arriving, not that it is still in view', () => {
+  it('keeps saying so while the marker is still in view', () => {
     const read = createSignalReader()
-    assert.equal(read(' 2. Yes, allow all').permission, true)
-    assert.equal(read('thinking').permission, false)
-    assert.equal(read(' about it').permission, false)
+    assert.equal(read(' 2. Yes, allow all').dialog, true)
+    assert.equal(read('thinking').dialog, true)
   })
 
-  it('reports a dialog that comes back after the first scrolled away', () => {
+  it('stops once the marker has scrolled out of the window', () => {
     const read = createSignalReader()
-    assert.equal(read(' 2. Yes, allow all').permission, true)
-    assert.equal(read('x'.repeat(300)).permission, false)
-    assert.equal(read(' 2. Yes, allow all').permission, true)
+    assert.equal(read(' 2. Yes, allow all').dialog, true)
+    assert.equal(read('x'.repeat(300)).dialog, false)
   })
 
   it('sees the spinner a program reports while it works', () => {
     const read = createSignalReader()
-    assert.deepEqual(read(progress('3')), { bell: false, progress: 'busy', permission: false })
+    assert.deepEqual(read(progress('3')), { bell: false, progress: 'busy', dialog: false })
   })
 
   it('sees progress being cleared as finished', () => {
     const read = createSignalReader()
-    assert.deepEqual(read(progress('0')), { bell: false, progress: 'done', permission: false })
+    assert.deepEqual(read(progress('0')), { bell: false, progress: 'done', dialog: false })
   })
 
   it('treats failure and warning as something to look at', () => {
@@ -108,16 +116,13 @@ describe('deciding what a tab shows', () => {
     events.reduce(nextActivity, state)
 
   it('marks plain output as working and silence as settled', () => {
-    const working = step('idle', { type: 'output', signals: { bell: false, progress: null, permission: false } })
+    const working = step('idle', { type: 'output', signals: out() })
     assert.equal(working, 'working')
     assert.equal(step(working, { type: 'silence' }), 'waiting')
   })
 
   it('believes a program that says it has finished, without waiting for silence', () => {
-    assert.equal(
-      step('working', { type: 'output', signals: { bell: false, progress: 'done', permission: false } }),
-      'done'
-    )
+    assert.equal(step('working', { type: 'output', signals: out({ progress: 'done' }) }), 'done')
   })
 
   /*
@@ -125,14 +130,14 @@ describe('deciding what a tab shows', () => {
    * tail as fresh work would flip the tab back to busy the moment it went green.
    */
   it('keeps a reported finish while the result is still being printed', () => {
-    const done = step('working', { type: 'output', signals: { bell: false, progress: 'done', permission: false } })
-    assert.equal(step(done, { type: 'output', signals: { bell: false, progress: null, permission: false } }), 'done')
+    const done = step('working', { type: 'output', signals: out({ progress: 'done' }) })
+    assert.equal(step(done, { type: 'output', signals: out() }), 'done')
     assert.equal(step(done, { type: 'silence' }), 'done')
   })
 
   it('goes back to busy when the program says it is working again', () => {
-    const done = step('working', { type: 'output', signals: { bell: false, progress: 'done', permission: false } })
-    assert.equal(step(done, { type: 'output', signals: { bell: false, progress: 'busy', permission: false } }), 'busy')
+    const done = step('working', { type: 'output', signals: out({ progress: 'done' }) })
+    assert.equal(step(done, { type: 'output', signals: out({ progress: 'busy' }) }), 'busy')
   })
 
   /*
@@ -140,14 +145,11 @@ describe('deciding what a tab shows', () => {
    * silence rule settle it would turn the dot green while the work is still running.
    */
   it('does not settle a program that reported it is busy', () => {
-    const busy = step('idle', { type: 'output', signals: { bell: false, progress: 'busy', permission: false } })
+    const busy = step('idle', { type: 'output', signals: out({ progress: 'busy' }) })
     assert.equal(busy, 'busy')
     assert.equal(step(busy, { type: 'silence' }), 'busy')
-    assert.equal(step(busy, { type: 'output', signals: { bell: false, progress: null, permission: false } }), 'busy')
-    assert.equal(
-      step(busy, { type: 'output', signals: { bell: false, progress: 'done', permission: false } }),
-      'done'
-    )
+    assert.equal(step(busy, { type: 'output', signals: out() }), 'busy')
+    assert.equal(step(busy, { type: 'output', signals: out({ progress: 'done' }) }), 'done')
   })
 
   it('does not settle a tab that never worked', () => {
@@ -155,9 +157,9 @@ describe('deciding what a tab shows', () => {
   })
 
   it('keeps an alert until the tab is actually looked at', () => {
-    const alert = step('working', { type: 'output', signals: { bell: true, progress: null, permission: false } })
+    const alert = step('working', { type: 'output', signals: out({ bell: true }) })
     assert.equal(alert, 'alert')
-    assert.equal(step(alert, { type: 'output', signals: { bell: false, progress: 'busy', permission: false } }), 'alert')
+    assert.equal(step(alert, { type: 'output', signals: out({ progress: 'busy' }) }), 'alert')
     assert.equal(step(alert, { type: 'silence' }), 'alert')
     assert.equal(step(alert, { type: 'seen' }), 'idle')
   })
@@ -167,65 +169,89 @@ describe('deciding what a tab shows', () => {
   })
 
   /*
-   * Claude asking for permission is the one state where nothing moves and nothing
-   * will until you answer, so it outranks working and finishing and stays put.
+   * The dot is a status light: looking at a tab does not change what its shell is
+   * doing, so only an alert - an event rather than a state - is settled by being seen.
+   * This is what makes the dot work at all on the tab you have open, which is the
+   * whole of the main workflow.
    */
-  it('holds the state while the agent is asking for permission', () => {
-    const asking = step('working', {
-      type: 'output',
-      signals: { bell: false, progress: null, permission: true }
-    })
-    assert.equal(asking, 'permission')
-    assert.equal(
-      step(asking, { type: 'output', signals: { bell: false, progress: null, permission: false } }),
-      'permission'
-    )
-    assert.equal(step(asking, { type: 'silence' }), 'permission')
-    assert.equal(step(asking, { type: 'document' }), 'permission')
-    assert.equal(step(asking, { type: 'seen' }), 'idle')
+  it('does not erase a status just because you looked at it', () => {
+    for (const state of ['working', 'busy', 'waiting', 'done', 'permission'] as ActivityState[]) {
+      assert.equal(step(state, { type: 'seen' }), state, `seen wrongly cleared ${state}`)
+    }
   })
 
-  it('lets the agent carry on once it reports it is working again', () => {
-    const asking = step('idle', {
-      type: 'output',
-      signals: { bell: false, progress: null, permission: true }
-    })
-    assert.equal(
-      step(asking, { type: 'output', signals: { bell: false, progress: 'busy', permission: false } }),
-      'busy'
-    )
+  it('holds the state while the agent is asking for permission', () => {
+    const asking = step('working', { type: 'output', signals: out({ dialog: true }) })
+    assert.equal(asking, 'permission')
+    assert.equal(step(asking, { type: 'output', signals: out({ dialog: true }) }), 'permission')
+    assert.equal(step(asking, { type: 'silence' }), 'permission')
   })
 
   /*
-   * The same thing over the real reader rather than hand-written signals: the answer
-   * is given, the agent reports it is busy again, and the marker is still sitting in
-   * the reader's window. The dot has to follow the agent, not the leftover text.
+   * Two ways out, because the answer may leave no trace of its own. Either the program
+   * says it is busy again, or the dialog simply stops being on screen.
    */
-  it('follows the agent out of a dialog whose text is still in the window', () => {
-    const read = createSignalReader()
-    let state: ActivityState = 'idle'
-    state = nextActivity(state, { type: 'output', signals: read(' 2. Yes, allow all') })
-    assert.equal(state, 'permission')
-    state = nextActivity(state, { type: 'output', signals: read(progress('3')) })
-    assert.equal(state, 'busy')
+  it('lets the agent carry on once it reports it is working again', () => {
+    const asking = step('idle', { type: 'output', signals: out({ dialog: true }) })
+    assert.equal(step(asking, { type: 'output', signals: out({ progress: 'busy' }) }), 'busy')
+  })
+
+  it('believes a reported state over a dialog still sitting in the window', () => {
+    const asking = step('idle', { type: 'output', signals: out({ dialog: true }) })
+    assert.equal(
+      step(asking, { type: 'output', signals: out({ dialog: true, progress: 'busy' }) }),
+      'busy'
+    )
+    assert.equal(
+      step(asking, { type: 'output', signals: out({ dialog: true, progress: 'done' }) }),
+      'done'
+    )
+  })
+
+  it('leaves the wait behind when the dialog is gone and output moves again', () => {
+    const asking = step('idle', { type: 'output', signals: out({ dialog: true }) })
+    assert.equal(step(asking, { type: 'output', signals: out() }), 'working')
   })
 
   it('keeps a dead shell above a question', () => {
-    const asking = step('idle', {
-      type: 'output',
-      signals: { bell: false, progress: null, permission: true }
-    })
+    const asking = step('idle', { type: 'output', signals: out({ dialog: true }) })
     assert.equal(step(asking, { type: 'exit' }), 'alert')
   })
 
-  it('reports a document rewritten in the background', () => {
-    assert.equal(step('idle', { type: 'document' }), 'waiting')
+  it('keeps a bell above a question', () => {
+    const asking = step('idle', { type: 'output', signals: out({ dialog: true }) })
+    assert.equal(step(asking, { type: 'output', signals: out({ bell: true, dialog: true }) }), 'alert')
+  })
+})
+
+/* The reader and the state machine together, over what a session actually prints. */
+describe('a run from start to finish', () => {
+  it('works, asks, is answered, carries on and settles', () => {
+    const read = createSignalReader()
+    let state: ActivityState = 'idle'
+    const feed = (chunk: string): ActivityState => {
+      state = nextActivity(state, { type: 'output', signals: read(chunk) })
+      return state
+    }
+
+    assert.equal(feed('reading the file'), 'working')
+    assert.equal(feed(progress('3')), 'busy')
+    assert.equal(feed(' 2. Yes, allow all'), 'permission')
+    // Answered. The marker is still in the window, but the agent reports work again.
+    assert.equal(feed(progress('3')), 'busy')
+    assert.equal(feed(progress('0')), 'done')
   })
 
-  it('lets the shell keep the tab busy after a document change', () => {
-    assert.equal(
-      step('idle', { type: 'document' }, { type: 'output', signals: { bell: false, progress: null, permission: false } }),
-      'working'
-    )
+  it('leaves a question even when the agent reports nothing at all', () => {
+    const read = createSignalReader()
+    let state: ActivityState = 'idle'
+    const feed = (chunk: string): ActivityState => {
+      state = nextActivity(state, { type: 'output', signals: read(chunk) })
+      return state
+    }
+
+    assert.equal(feed(' 2. Yes, allow all'), 'permission')
+    // No progress reporting anywhere: the dialog scrolling away is the only signal.
+    assert.equal(feed('y'.repeat(300)), 'working')
   })
 })

@@ -33,6 +33,8 @@ export type Tab = {
   rightRatio: number
   /** What happened here while you were looking elsewhere. */
   activity: ActivityState
+  /** Finished since you last had the window in front of you; drives the taskbar. */
+  finished: boolean
   /** The project this document belongs to, if one was recognised. */
   project: ProjectInfo | null
   /** Which of the project's run commands was chosen here. */

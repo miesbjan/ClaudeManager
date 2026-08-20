@@ -13,6 +13,13 @@ export type FileEvent = {
 /** 'system' follows Windows; the other two force the palette. */
 export type Theme = 'system' | 'light' | 'dark'
 
+/**
+ * What the taskbar button shows for the whole window: the most urgent thing any tab
+ * has to say. Crosses the IPC boundary, hence here rather than next to the renderer
+ * logic that computes it.
+ */
+export type TaskbarState = 'none' | 'working' | 'done' | 'permission' | 'alert'
+
 export type StartupPayload = {
   files: string[]
   active: string | null
@@ -93,6 +100,12 @@ export interface ViewerApi {
   getPathForFile(file: File): string
   /** Find the project a document belongs to; null when nothing is recognised. */
   detectProject(dir: string): Promise<ProjectInfo | null>
+  /**
+   * Put the state of the busiest tab on the taskbar button, so it can be read without
+   * finding the window first. The renderer decides what the aggregate is; the main
+   * process only knows how to show it.
+   */
+  setTaskbarState(state: TaskbarState): void
   /** Read the system clipboard, for pasting into a shell. */
   readClipboard(): Promise<string>
   /**

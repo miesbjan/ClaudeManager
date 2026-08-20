@@ -13,10 +13,13 @@ export type OutputSignals = {
   bell: boolean
   progress: ProgressSignal | null
   /**
-   * A permission dialog just appeared. This is the arrival, not the state: holding
-   * the state is `nextActivity`'s job, which latches it until the tab is looked at.
+   * A permission dialog is on screen right now, as far as the last few hundred
+   * characters of output can tell. Deliberately a level and not an arrival: the way
+   * out of "being asked" is that the dialog is gone, and only a level can say so.
+   * A program reporting that it is busy is believed over it, because a program that
+   * is working is not holding a dialog open.
    */
-  permission: boolean
+  dialog: boolean
 }
 
 /**
@@ -41,7 +44,6 @@ export type ActivityState =
 export type ActivityEvent =
   | { type: 'output'; signals: OutputSignals }
   | { type: 'silence' }
-  | { type: 'document' }
   | { type: 'exit' }
   | { type: 'seen' }
 
@@ -95,22 +97,13 @@ export function createSignalReader(): (chunk: string) => OutputSignals {
   let pending = ''
   // The dialog is drawn in pieces, so a marker can straddle two chunks.
   let text = ''
-  let asking = false
 
   return (chunk: string): OutputSignals => {
     const data = pending + chunk
     pending = ''
 
     text = (text + stripAnsi(chunk)).slice(-MAX_PENDING)
-    /*
-     * Reported on arrival rather than for as long as the marker is in view. The
-     * window holds it for a while after the dialog is answered, and a signal that
-     * stayed true would keep overruling the program's own report that it has carried
-     * on - the dot would sit on "asking" while the agent was already working again.
-     */
-    const marker = PERMISSION_MARKERS.some((needle) => text.includes(needle))
-    const permission = marker && !asking
-    asking = marker
+    const dialog = PERMISSION_MARKERS.some((needle) => text.includes(needle))
 
     let progress: ProgressSignal | null = null
     for (const match of data.matchAll(PROGRESS)) {
@@ -125,22 +118,24 @@ export function createSignalReader(): (chunk: string) => OutputSignals {
     const tail = UNTERMINATED_OSC.exec(stripped)
     if (tail && tail[0].length <= MAX_PENDING) pending = tail[0]
 
-    return { bell, progress, permission }
+    return { bell, progress, dialog }
   }
 }
 
 /**
- * `alert` outranks everything and stays until the tab is looked at: a bell or a
- * dead shell must not be erased by the next line of output.
+ * This is a status light, not an unread badge: it says what the shell is doing, and
+ * looking at the tab does not change that. Only `alert` is an event rather than a
+ * state, so only `alert` is cleared by being seen.
+ *
+ * `alert` also outranks everything while it lasts - a bell or a dead shell must not
+ * be erased by the next line of output.
  */
 export function nextActivity(state: ActivityState, event: ActivityEvent): ActivityState {
   switch (event.type) {
     case 'seen':
-      return 'idle'
+      return state === 'alert' ? 'idle' : state
     case 'exit':
       return 'alert'
-    case 'document':
-      return state === 'alert' || state === 'permission' ? state : 'waiting'
 
     case 'silence':
       // Only the inferred state settles; a reported one waits for the program.
@@ -149,14 +144,17 @@ export function nextActivity(state: ActivityState, event: ActivityEvent): Activi
       if (event.signals.bell || event.signals.progress === 'error') return 'alert'
       if (state === 'alert') return 'alert'
       /*
-       * Being asked outranks working and finishing, and stays until the tab is
-       * looked at - except when the program reports it is busy again, which can
-       * only mean the dialog is gone and it carried on.
+       * Order matters, and the program's own word comes first. Any progress statement
+       * beats the dialog, which is text scraped off the screen and lingers in the
+       * reader's window for a few hundred characters after the answer was given.
+       * A program that reports anything about its run is not holding a dialog open,
+       * so this is also the way out of "being asked" when the answer left no trace.
        */
-      if (event.signals.permission) return 'permission'
-      if (state === 'permission') return event.signals.progress === 'busy' ? 'busy' : 'permission'
-      if (event.signals.progress === 'done') return 'done'
       if (event.signals.progress === 'busy') return 'busy'
+      if (event.signals.progress === 'done') return 'done'
+      if (event.signals.dialog) return 'permission'
+      // The dialog is gone and output is moving again, so the wait is over.
+      if (state === 'permission') return 'working'
       // Plain output neither starts nor ends a run the program is reporting on.
       if (state === 'done' || state === 'busy') return state
       return 'working'

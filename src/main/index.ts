@@ -19,10 +19,33 @@ import { detectProject } from './project'
 import { TerminalManager } from './terminal'
 import { loadState, saveState, type AppState } from './store'
 import { paneCommand } from '../shared/shortcuts'
-import type { FileReadResult, SessionState, StartupPayload, Theme } from '../shared/types'
+import type {
+  FileReadResult,
+  SessionState,
+  StartupPayload,
+  TaskbarState,
+  Theme
+} from '../shared/types'
 
 const MD_PATTERN = /\.(md|markdown|mdown|mkd|mdx)$/i
 const DEV_URL = process.env['ELECTRON_RENDERER_URL']
+
+/**
+ * How each aggregate state looks on the taskbar button. Windows tints the progress bar
+ * per mode, which happens to be exactly this set of meanings: a moving bar for work in
+ * progress, full green for finished, yellow for stopped and waiting, red for broken.
+ * `wantsYou` marks the ones worth flashing the button for.
+ */
+const TASKBAR: Record<
+  TaskbarState,
+  { progress: number; mode: 'none' | 'normal' | 'indeterminate' | 'error' | 'paused'; wantsYou: boolean }
+> = {
+  none: { progress: -1, mode: 'none', wantsYou: false },
+  working: { progress: 0.5, mode: 'indeterminate', wantsYou: false },
+  done: { progress: 1, mode: 'normal', wantsYou: true },
+  permission: { progress: 1, mode: 'paused', wantsYou: true },
+  alert: { progress: 1, mode: 'error', wantsYou: true }
+}
 
 /**
  * Images referenced from Markdown live next to the document, anywhere on disk.
@@ -33,8 +56,14 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'mdasset', privileges: { standard: true, secure: true, supportFetchAPI: true } }
 ])
 
-// Keeps the session file at %APPDATA%/project-console/state.json in dev and packaged runs.
-app.setName('project-console')
+/**
+ * Names the folder Electron hands out for state, which is also where the
+ * single-instance lock lives. A development run takes a name of its own, so it gets
+ * its own session and its own lock: the installed app keeps the tabs you were working
+ * in, and both can run side by side - which matters when the app being built is also
+ * the app being used.
+ */
+app.setName(app.isPackaged ? 'project-console' : 'project-console-dev')
 
 let win: BrowserWindow | null = null
 let watcher: FileWatcher | null = null
@@ -146,6 +175,8 @@ function createWindow(): void {
    * window has focus is the one mechanism that reaches over that boundary.
    */
   win.on('focus', () => {
+    // Being here is the answer to whatever the button was flashing about.
+    win?.flashFrame(false)
     try {
       globalShortcut.register('Alt+W', () => win?.webContents.send('pane:command', { type: 'web' }))
     } catch {
@@ -231,6 +262,19 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('project:detect', (_event, dir: string) => detectProject(normalize(dir)))
+
+  /*
+   * The taskbar button is the only place a state can be read without finding the
+   * window first. Windows colours the button from the progress bar, which fits these
+   * states exactly and needs no icon of its own - the app does not have one yet.
+   */
+  ipcMain.on('taskbar:set', (_event, state: TaskbarState) => {
+    if (!win || win.isDestroyed()) return
+    const shown = TASKBAR[state] ?? TASKBAR.none
+    win.setProgressBar(shown.progress, { mode: shown.mode })
+    // Flashing is for the states that want you back, and only while you are away.
+    win.flashFrame(shown.wantsYou && !win.isFocused())
+  })
 
   ipcMain.handle('clipboard:read', () => clipboard.readText())
 

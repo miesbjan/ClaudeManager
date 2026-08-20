@@ -9,6 +9,7 @@ import {
   type ActivityEvent,
   type OutputSignals
 } from './activity'
+import { aggregateActivity, justFinished } from './taskbar'
 import {
   clearMatches,
   findInElement,
@@ -22,7 +23,7 @@ import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { paneCommand, type PaneCommand } from '../../shared/shortcuts'
 import { TerminalPane } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
-import type { PaneState, Theme } from '../../shared/types'
+import type { PaneState, TaskbarState, Theme } from '../../shared/types'
 
 const MD_PATTERN = /\.(md|markdown|mdown|mkd|mdx)$/i
 const THEMES: Theme[] = ['system', 'light', 'dark']
@@ -63,6 +64,7 @@ const tabs: Tab[] = []
 let activeIndex = -1
 let theme: Theme = 'system'
 const reloadTimers = new Map<string, number>()
+let reportedTaskbar: TaskbarState = 'none'
 /** One shell per tab, kept alive while the tab exists - keyed by document path. */
 const shells = new Map<string, TerminalPane>()
 /** Per tab: the escape-sequence reader and the timer that notices silence. */
@@ -102,6 +104,7 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       ratio: DEFAULT_RATIO,
       zoom: null,
       activity: 'idle',
+      finished: false,
       project: null,
       runCommand: null,
       webUrl: null,
@@ -184,7 +187,7 @@ function cycleTab(step: number): void {
 
 function render(): void {
   const current = tabs[activeIndex]
-  if (current && isSeen(current)) current.activity = 'idle'
+  if (current && isSeen(current)) applyActivity(current, { type: 'seen' })
 
   renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
 
@@ -287,8 +290,6 @@ async function reloadPath(path: string): Promise<void> {
   const index = indexOfPath(path)
   if (index < 0) return
   await loadTab(tabs[index], true)
-  // A rewrite you cannot see is the same news as output in a hidden shell.
-  if (tabs[index].pendingFlash) applyActivity(tabs[index], { type: 'document' })
   // Only the visible document needs repainting; the rest refresh on switch.
   if (index === activeIndex) render()
   else renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
@@ -465,13 +466,39 @@ function isSeen(tab: Tab): boolean {
   return tab.zoom !== 'document'
 }
 
+/**
+ * The dot is a status light, so every event counts, including on the tab you are
+ * looking at. Being seen only settles an alert - see `nextActivity`.
+ */
 function applyActivity(tab: Tab, event: ActivityEvent): void {
-  if (event.type !== 'seen' && isSeen(tab)) return
   const next = nextActivity(tab.activity, event)
   if (next === tab.activity) return
+  if (justFinished(tab.activity, next)) tab.finished = true
+  if (next === 'working' || next === 'busy') tab.finished = false
   tab.activity = next
   renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
+  reportTaskbar()
 }
+
+/**
+ * The window's own signal, for when it is behind something. Nothing is reported while
+ * the window has focus: whatever the tabs are saying is already on screen.
+ */
+function reportTaskbar(): void {
+  const next = document.hasFocus()
+    ? 'none'
+    : aggregateActivity(tabs.map((tab) => ({ state: tab.activity, finished: tab.finished })))
+  if (next === reportedTaskbar) return
+  reportedTaskbar = next
+  window.api.setTaskbarState(next)
+}
+
+window.addEventListener('focus', () => {
+  // Coming back is the acknowledgement; what finished while you were away is old news.
+  for (const tab of tabs) tab.finished = false
+  reportTaskbar()
+})
+window.addEventListener('blur', reportTaskbar)
 
 function scheduleSilence(tab: Tab): void {
   const pending = silenceTimers.get(tab.path)
