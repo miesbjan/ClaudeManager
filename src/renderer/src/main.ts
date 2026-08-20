@@ -368,7 +368,8 @@ function render(): void {
     content.innerHTML = doc.html
   }
 
-  viewer.scrollTop = doc.scrollTop
+  if (showRaw) raw.scrollTop = doc.rawScrollTop
+  else viewer.scrollTop = doc.scrollTop
   if (!findBar.hidden) refreshFind(false)
   document.title = baseName(doc.path) + ' - Project Console'
   renderStatus(tab, doc)
@@ -597,6 +598,11 @@ content.addEventListener('click', (event) => {
 viewer.addEventListener('scroll', () => {
   const doc = shownDoc(tabs[activeIndex])
   if (doc) doc.scrollTop = viewer.scrollTop
+})
+
+raw.addEventListener('scroll', () => {
+  const doc = shownDoc(tabs[activeIndex])
+  if (doc) doc.rawScrollTop = raw.scrollTop
 })
 
 /* ---------- find in document ---------- */

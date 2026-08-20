@@ -13,7 +13,14 @@ export type Doc = {
   /** Rendered Markdown, empty for anything shown as written. */
   html: string
   error: string | null
+  /** Where the reader was, kept per document so a tab switch returns to it. */
   scrollTop: number
+  /**
+   * The same, for the plain-text pane. Two numbers because they measure different
+   * things: one is a place in the rendered layout, the other a place in the text, and
+   * putting one into the other lands somewhere random.
+   */
+  rawScrollTop: number
   updatedAt: number | null
   /** Last content seen on disk; the next reload is diffed against it. */
   source: string | null
@@ -40,6 +47,7 @@ export function createDoc(path: string, raw: boolean): Doc {
     html: '',
     error: null,
     scrollTop: 0,
+    rawScrollTop: 0,
     updatedAt: null,
     source: null,
     mtimeMs: 0,
