@@ -93,6 +93,7 @@ anywhere else closes it.
 | Input                     | Action                                    |
 | ------------------------- | ----------------------------------------- |
 | `Ctrl+O`                  | open Markdown file(s)                     |
+| `Ctrl+P`                  | go to a file: open here, or in the project |
 | `Ctrl+W`                  | close the current tab                     |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | next / previous tab                   |
 | `Ctrl+1` … `Ctrl+9`       | jump to tab by position                   |
@@ -212,6 +213,15 @@ Files passed on the command line are opened too, so the app works as a handler f
   `Ctrl+PageDown` move between them, the status bar says which of how many, and the
   tab's tooltip lists them all - there is deliberately no second row of chrome for it.
   Switching the file moves neither the shell nor the project: those belong to the place.
+- **Go to file.** `Ctrl+P` offers what is open in this tab, and once you type
+  anything, every file in the project. An empty query is therefore also the answer to
+  "what do I have open here", which is why the tab bar has no second row listing them.
+  A file open in another tab still shows up - it is a file of the project - but its row
+  says so and `Enter` goes there instead of opening a second copy of it. Matching is a
+  substring of the file name, or of the path once the query contains a `/`, which is how
+  five files called `index.ts` are told apart. Deliberately not fuzzy: scoring guesses
+  and then needs tuning, and this is not that feature. While the shell has focus the key
+  is `Ctrl+Shift+P`, because plain `Ctrl+P` there belongs to the shell.
 - **Naming a tab.** Double-click its label, or right-click it, and give the place a
   name of its own - what you are doing there usually describes it better than whichever
   file is on screen. A named tab is shown in italics, an empty name goes back to being

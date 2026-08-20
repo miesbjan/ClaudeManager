@@ -131,7 +131,7 @@ Shell navíc dostává `BROWSER=none`, aby si projekt neotevřel systémový pro
 Tím vznikla ta smyčka, o kterou šlo: vlevo běží aplikace, vpravo se na ni koukáš,
 dokument je na jedno kliknutí zpátky.
 
-### L3c - Prostý text a malé úpravy
+### L3c - Prostý text a malé úpravy (hotovo)
 
 Panel umí zobrazit i soubor, který není Markdown, a udělat v něm malou úpravu.
 Vložit API klíč do `.env`, přepnout jednu hodnotu v konfiguraci, opravit překlep.
@@ -164,18 +164,46 @@ po editoru, a prohlédneš si `.log`, který agent napsal.
 ### L3d - Navigace v adresáři
 
 Dvě věci, které z „jsem v adresáři" udělají pravdu.
+První je hotová, druhá zbývá.
 
-`Ctrl+P` a jméno souboru, hledané v kořeni projektu, který už `detectProject` umí
-najít. Dnes se soubor otevírá dialogem nebo přetažením, což je u konzole projektu
-rozpor v základu.
+**`Ctrl+P` - jdi na soubor. Hotovo.**
+Pole nad dokumentem, které nabízí dvě skupiny v jedné: soubory otevřené v tomhle tabu
+a soubory projektu.
+Prázdný dotaz ukáže jen ty otevřené, takže `Ctrl+P` je zároveň odpověď na „co tu mám
+otevřeno" - tab bar žádný druhý řádek s nimi záměrně nemá.
+Cokoli napsaného hledání rozšíří na celý projekt, jehož kořen umí najít `detectProject`.
+Doteď se soubor otevíral jen dialogem nebo přetažením, což je u konzole projektu rozpor
+v základu.
 
-A kliknutelné cesty ve výstupu terminálu: agent napíše `src/main/index.ts:224`
-a kliknutí to otevře v pravém panelu, ne v systémovém editoru.
-xterm na to má link provider. Z výpisu agenta se tím stane navigace, a je to ta
-nejčastější věc, kterou v něm člověk hledá.
+Rozhodnutí, která za tím stojí:
 
-*Hotovo, když:* soubor, na který agent odkazuje, otevřeš kliknutím, a jakýkoli soubor
-v projektu najdeš bez dialogu.
+- Skupina „otevřené v jiných tabech" tam není jako skupina.
+  Soubor otevřený jinde se objeví, protože je to soubor projektu, ale svůj řádek
+  označí `open in <tab>` a Enter tam skočí místo otevírání druhé kopie.
+  Dvě rozpracované verze téhož souboru jsou horší než skok do jiného tabu.
+- Hledá se podstrunou ve jménu souboru, dokud dotaz neobsahuje `/`; pak v cestě.
+  Bez toho se pět souborů jménem `index.ts` od sebe nedá odlišit.
+  Fuzzy hledání ne: `mn/idx` sice najde `main/index`, ale s ním patnáct dalších věcí,
+  a řadit je podle skóre je celá další vrstva, kterou tahle věc nepotřebuje.
+- Řadí se: otevřené tady, pak kratší cesta, pak abecedně.
+  Soubor blíž ke kořeni je skoro vždycky ten hledaný.
+- Chůze po disku vynechává `.` adresáře, `node_modules` a co po sobě nechá build,
+  jde do šířky a zastaví se na 2000 souborech.
+  Strop se hlásí v poli, ne mlčí: soubor chybějící v paletě by jinak vypadal jako
+  soubor chybějící v projektu.
+- Rozložení panelů se tím nemění. Otevřít soubor není totéž co přeskládat okno.
+- Za fokusem v terminálu platí `Ctrl+Shift+P`, jako u ostatních appových kláves.
+  Samotné `Ctrl+P` v shellu patří shellu.
+
+**Kliknutelné cesty ve výstupu. Zbývá.**
+Agent napíše `src/main/index.ts:224` a kliknutí to otevře v pravém panelu, ne
+v systémovém editoru.
+xterm na to má link provider.
+Z výpisu agenta se tím stane navigace, a je to ta nejčastější věc, kterou v něm
+člověk hledá.
+
+*Hotovo, když:* soubor, na který agent odkazuje, otevřeš kliknutím.
+Jakýkoli soubor v projektu už bez dialogu najdeš.
 
 ### Mimo vrstvy
 
@@ -521,3 +549,10 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   hrozilo, že se odpracují L1 až L3 a zbyde horší VS Code bez toho, proč se to staví.
   Tahle jde postavit bez nových závislostí a bez terminálu, tak jde první.
   Zbývají tečka aktivity na tabu a prompt buffer; ten druhý potřebuje L2.
+- **20. 8. 2026** - `Ctrl+P` nabízí otevřené soubory tabu a soubory projektu, ne
+  soubory otevřené v jiných tabech.
+  Vyplynulo z rozhodnutí, co je vlastně otázka za tou klávesou: „kam chci jít v tomhle
+  místě", ne „co je otevřené v celé aplikaci" - na to jsou taby vidět.
+  Soubor otevřený jinde se přesto objeví jako soubor projektu a řádek to řekne,
+  takže skok do jiného tabu je ohlášený, ne překvapení.
+  Hledá se podstrunou, ne fuzzy: skóre a jeho ladění je větší věc než sama paleta.
