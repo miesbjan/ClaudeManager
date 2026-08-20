@@ -17,6 +17,7 @@ import { dirname, join, normalize, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { FileWatcher } from './fileWatcher'
 import { detectProject } from './project'
+import { listFiles } from './listFiles'
 import { TerminalManager } from './terminal'
 import { loadState, saveState, terminalFont, type AppState } from './store'
 import { clampSize } from '../shared/font'
@@ -385,6 +386,8 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('project:detect', (_event, dir: string) => detectProject(normalize(dir)))
+
+  ipcMain.handle('files:list', (_event, root: string) => listFiles(normalize(root)))
 
   /*
    * The taskbar button is the only place a state can be read without finding the

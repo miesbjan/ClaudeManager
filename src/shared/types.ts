@@ -85,6 +85,12 @@ export type SessionTab = {
   name?: string | null
 }
 
+/** Every file of a project worth opening, and whether the cap cut the answer short. */
+export type FileListing = {
+  files: string[]
+  truncated: boolean
+}
+
 export type SessionState = {
   tabs: SessionTab[]
   activeTab: number
@@ -136,6 +142,8 @@ export interface ViewerApi {
   getPathForFile(file: File): string
   /** Find the project a document belongs to; null when nothing is recognised. */
   detectProject(dir: string): Promise<ProjectInfo | null>
+  /** Files under a directory, for the palette. Build output and dot-dirs are skipped. */
+  listFiles(root: string): Promise<FileListing>
   /**
    * Put the state of the busiest tab on the taskbar button, so it can be read without
    * finding the window first. The renderer decides what the aggregate is; the main

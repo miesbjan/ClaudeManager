@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { PaneCommand } from '../shared/shortcuts'
 import type {
   FileEvent,
+  FileListing,
   FileReadResult,
   FileWriteResult,
   ProjectInfo,
@@ -34,6 +35,7 @@ const api: ViewerApi = {
   reveal: (path) => ipcRenderer.invoke('shell:reveal', path) as Promise<void>,
   getPathForFile: (file) => webUtils.getPathForFile(file),
   detectProject: (dir) => ipcRenderer.invoke('project:detect', dir) as Promise<ProjectInfo | null>,
+  listFiles: (root) => ipcRenderer.invoke('files:list', root) as Promise<FileListing>,
   setTaskbarState: (state) => ipcRenderer.send('taskbar:set', state),
   readClipboard: () => ipcRenderer.invoke('clipboard:read') as Promise<string>,
   terminal: {
