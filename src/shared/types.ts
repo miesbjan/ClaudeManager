@@ -3,8 +3,24 @@ import type { TerminalFont } from './font'
 import type { PaneCommand } from './shortcuts'
 
 export type FileReadResult =
-  | { ok: true; path: string; dir: string; content: string; mtimeMs: number }
+  | {
+      ok: true
+      path: string
+      dir: string
+      content: string
+      mtimeMs: number
+      /** Only the head of the file is here, so it must not be written back. */
+      truncated: boolean
+    }
   | { ok: false; path: string; dir: string; error: string }
+
+/**
+ * The answer to a save. `stale` means the file changed since it was read, which is
+ * the one case the caller is expected to do something about rather than retry.
+ */
+export type FileWriteResult =
+  | { ok: true; mtimeMs: number }
+  | { ok: false; reason: 'stale' | 'denied' | 'failed'; error: string }
 
 export type FileEvent = {
   path: string
@@ -96,6 +112,12 @@ export interface ViewerApi {
   setTheme(theme: Theme): Promise<void>
   /** Remember the terminal font size, the way the theme is remembered. */
   setTerminalFontSize(size: number): void
+  /**
+   * Write a file the user has open. `seenMtimeMs` is the modification time the
+   * renderer last read: if the file has moved on since, the write is refused rather
+   * than quietly winning over whoever else wrote it.
+   */
+  writeFile(path: string, content: string, seenMtimeMs: number): Promise<FileWriteResult>
   /** Open http/https/mailto links in the default browser. */
   openExternal(url: string): Promise<void>
   /** Show the file in Windows Explorer. */

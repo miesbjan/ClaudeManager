@@ -3,6 +3,7 @@ import type { PaneCommand } from '../shared/shortcuts'
 import type {
   FileEvent,
   FileReadResult,
+  FileWriteResult,
   ProjectInfo,
   SessionState,
   StartupPayload,
@@ -27,6 +28,8 @@ const api: ViewerApi = {
   saveSession: (state: SessionState) => ipcRenderer.send('session:save', state),
   setTheme: (theme: Theme) => ipcRenderer.invoke('theme:set', theme) as Promise<void>,
   setTerminalFontSize: (size) => ipcRenderer.send('font:size', size),
+  writeFile: (path, content, seenMtimeMs) =>
+    ipcRenderer.invoke('file:write', path, content, seenMtimeMs) as Promise<FileWriteResult>,
   openExternal: (url) => ipcRenderer.invoke('shell:external', url) as Promise<void>,
   reveal: (path) => ipcRenderer.invoke('shell:reveal', path) as Promise<void>,
   getPathForFile: (file) => webUtils.getPathForFile(file),

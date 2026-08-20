@@ -11,7 +11,7 @@ import {
   protocol,
   shell
 } from 'electron'
-import { readFile, stat } from 'node:fs/promises'
+import { readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, normalize } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { FileWatcher } from './fileWatcher'
@@ -22,14 +22,21 @@ import { clampSize } from '../shared/font'
 import { paneCommand } from '../shared/shortcuts'
 import type {
   FileReadResult,
+  FileWriteResult,
   SessionState,
   StartupPayload,
   TaskbarState,
   Theme
 } from '../shared/types'
 
-const MD_PATTERN = /\.(md|markdown|mdown|mkd|mdx)$/i
 const DEV_URL = process.env['ELECTRON_RENDERER_URL']
+
+/**
+ * How much of a file is read at all. A console shows logs, and a log has no upper
+ * size; past this the head is shown and the pane says so, because the beginning of a
+ * log is still worth more than nothing. What is truncated can never be saved.
+ */
+const MAX_TEXT_BYTES = 2 * 1024 * 1024
 
 /**
  * How each aggregate state looks on the taskbar button. Windows tints the progress bar
@@ -72,11 +79,19 @@ let terminals: TerminalManager | null = null
 
 const state: AppState = loadState()
 let session: SessionState = { files: state.files, active: state.active, panes: state.panes }
-const cliFiles = collectMarkdownArgs(process.argv)
+const cliFiles = collectFileArgs(process.argv)
 let saveTimer: NodeJS.Timeout | null = null
 
-function collectMarkdownArgs(argv: string[]): string[] {
-  return argv.slice(1).filter((arg) => !arg.startsWith('-') && MD_PATTERN.test(arg))
+/**
+ * Files named on the command line, of any kind: what the user asks for by typing it is
+ * not what the file association sends. Explorer only ever hands over the extensions
+ * the installer registered; a person at a prompt may well want a log.
+ *
+ * A development run has the entry script at argv[1], where a packaged run already has
+ * the first file.
+ */
+function collectFileArgs(argv: string[]): string[] {
+  return argv.slice(app.isPackaged ? 1 : 2).filter((arg) => !arg.startsWith('-'))
 }
 
 function persistSoon(): void {
@@ -209,10 +224,12 @@ function registerIpc(): void {
   ipcMain.handle('dialog:open', async (): Promise<string[]> => {
     if (!win) return []
     const result = await dialog.showOpenDialog(win, {
-      title: 'Open Markdown file',
+      title: 'Open file',
       properties: ['openFile', 'multiSelections'],
+      // Markdown first because it is the common case, but any text file is fair game.
       filters: [
         { name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'mdx'] },
+        { name: 'Text', extensions: ['txt', 'json', 'log', 'yml', 'yaml', 'env', 'ini', 'csv'] },
         { name: 'All files', extensions: ['*'] }
       ]
     })
@@ -230,8 +247,27 @@ function registerIpc(): void {
       try {
         const info = await stat(full)
         if (!info.isFile()) return { ok: false, path: full, dir, error: 'Not a file' }
-        const content = await readFile(full, 'utf8')
-        return { ok: true, path: full, dir, content, mtimeMs: info.mtimeMs }
+
+        /*
+         * Read bytes rather than text, for two reasons. A NUL byte is the one reliable
+         * sign that this is not a text file - an extension proves nothing, a `.log`
+         * can be binary and a file with no extension can be perfectly readable. And a
+         * cap has to apply to what is read, not to what is decoded: a 200 MB log would
+         * otherwise be pulled into memory before anyone could object.
+         */
+        const bytes = await readFile(full)
+        const head = bytes.subarray(0, MAX_TEXT_BYTES)
+        if (head.includes(0)) {
+          return { ok: false, path: full, dir, error: 'Not a text file' }
+        }
+        return {
+          ok: true,
+          path: full,
+          dir,
+          content: head.toString('utf8'),
+          mtimeMs: info.mtimeMs,
+          truncated: bytes.byteLength > head.byteLength
+        }
       } catch (error) {
         const code = (error as NodeJS.ErrnoException).code
         if (attempt > 0 || code === 'ENOENT') {
@@ -242,6 +278,40 @@ function registerIpc(): void {
       }
     }
   })
+
+  /**
+   * The third rule of the security section, enforced here rather than merely written
+   * down: a write goes only to a file the window has open. The session is the list of
+   * those, so the renderer cannot name a path of its own even if something in it went
+   * wrong. The modification time the renderer last saw decides the rest - if the file
+   * has moved on, the write is refused and whoever else wrote it keeps their work.
+   */
+  ipcMain.handle(
+    'file:write',
+    async (_event, path: string, content: string, seenMtimeMs: number): Promise<FileWriteResult> => {
+      const full = normalize(path)
+      if (!session.files.some((file) => file.toLowerCase() === full.toLowerCase())) {
+        return { ok: false, reason: 'denied', error: 'That file is not open in this window' }
+      }
+      try {
+        const before = await stat(full)
+        /*
+         * A negative time is the deliberate override: the renderer sends it only after
+         * a refusal has been shown and the same key pressed again, which is what makes
+         * overwriting somebody else's write an act rather than an accident.
+         */
+        if (seenMtimeMs >= 0 && Math.abs(before.mtimeMs - seenMtimeMs) > 1) {
+          return { ok: false, reason: 'stale', error: 'The file changed on disk' }
+        }
+        await writeFile(full, content, 'utf8')
+        const after = await stat(full)
+        return { ok: true, mtimeMs: after.mtimeMs }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        return { ok: false, reason: 'failed', error: message }
+      }
+    }
+  )
 
   ipcMain.handle('watch:add', (_event, path: string) => {
     watcher?.add(normalize(path))
@@ -318,7 +388,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', (_event, argv) => {
-    const files = collectMarkdownArgs(argv)
+    const files = collectFileArgs(argv)
     if (win) {
       if (win.isMinimized()) win.restore()
       win.focus()
