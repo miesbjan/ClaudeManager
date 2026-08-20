@@ -20,6 +20,7 @@ import {
 } from './find'
 import { createDoc, indexAfterClose, isDirty, nextDocIndex, type Doc } from './docs'
 import { renderShortcuts } from './help'
+import { stepSelection, visibleEntries, type PaletteEntry } from './palette'
 import { detectEol, isMarkdown, toEditorText, toFileText } from './plaintext'
 import { createUrlReader, nextRightMode, normalizeUrl } from './web'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
@@ -62,6 +63,10 @@ const findInput = document.getElementById('find-input') as HTMLInputElement
 const findCount = document.getElementById('find-count') as HTMLElement
 const helpButton = document.getElementById('help-btn') as HTMLButtonElement
 const help = document.getElementById('help') as HTMLElement
+const palette = document.getElementById('palette') as HTMLElement
+const paletteInput = document.getElementById('palette-input') as HTMLInputElement
+const paletteList = document.getElementById('palette-list') as HTMLUListElement
+const paletteNote = document.getElementById('palette-note') as HTMLElement
 
 const tabs: Tab[] = []
 let activeIndex = -1
@@ -758,6 +763,7 @@ helpButton.addEventListener('click', toggleHelp)
 window.addEventListener('mousedown', (event) => {
   const target = event.target as Node
   if (!help.hidden && !help.contains(target) && target !== helpButton) toggleHelp()
+  if (!palette.hidden && !palette.contains(target)) closePalette()
 })
 
 /* ---------- shell pane ---------- */
@@ -1135,6 +1141,163 @@ darkQuery.addEventListener('change', () => {
   for (const pane of shells.values()) pane.setTheme(darkQuery.matches)
 })
 
+/* ---------- go to file ---------- */
+
+/** What the palette is offering, rebuilt each time it opens. */
+let paletteEntries: PaletteEntry[] = []
+let paletteIndex = 0
+
+/** The place a palette search happens in: the project, or where the file sits. */
+function paletteRoot(tab: Tab): string {
+  return tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
+}
+
+const forwardSlashes = (path: string): string => path.split('\\').join('/')
+
+/** Shown relative to the root, or in full when it lives outside it. */
+function relativeTo(root: string, path: string): string {
+  let a = forwardSlashes(root)
+  while (a.endsWith('/')) a = a.slice(0, -1)
+  const b = forwardSlashes(path)
+  return b.toLowerCase().startsWith(a.toLowerCase() + '/') ? b.slice(a.length + 1) : b
+}
+
+/** How a place is named when a row has to say a file is open in another one. */
+function tabLabel(tab: Tab): string {
+  return tab.name ?? baseName(shownDoc(tab)?.path ?? '')
+}
+
+/** Where focus was when the palette took it, so closing it puts it back. */
+let paletteReturn: HTMLElement | null = null
+
+async function openPalette(): Promise<void> {
+  const tab = tabs[activeIndex]
+  if (!tab) return
+  const root = paletteRoot(tab)
+  paletteReturn = document.activeElement as HTMLElement | null
+
+  // What is open here is known already, so the list is never empty while the disk is
+  // still being walked.
+  const here = new Map<string, PaletteEntry>()
+  for (const doc of tab.docs) {
+    here.set(doc.path.toLowerCase(), {
+      path: doc.path,
+      rel: relativeTo(root, doc.path),
+      here: true,
+      elsewhere: null
+    })
+  }
+  paletteEntries = [...here.values()]
+  paletteIndex = 0
+  paletteInput.value = ''
+  palette.hidden = false
+  paletteNote.textContent = root
+  renderPalette()
+  paletteInput.focus()
+
+  if (root === '') return
+  const listing = await window.api.listFiles(root)
+  // Still the same palette? Opening and closing quickly must not repopulate it.
+  if (palette.hidden) return
+
+  const elsewhere = new Map<string, string>()
+  for (const other of tabs) {
+    if (other === tab) continue
+    for (const doc of other.docs) elsewhere.set(doc.path.toLowerCase(), tabLabel(other))
+  }
+
+  for (const file of listing.files) {
+    const key = file.toLowerCase()
+    if (here.has(key)) continue
+    paletteEntries.push({
+      path: file,
+      rel: relativeTo(root, file),
+      here: false,
+      elsewhere: elsewhere.get(key) ?? null
+    })
+  }
+  paletteNote.textContent = listing.truncated
+    ? root + '  ·  first ' + listing.files.length + ' files only'
+    : root
+  renderPalette()
+}
+
+function closePalette(): void {
+  palette.hidden = true
+  paletteList.textContent = ''
+  paletteEntries = []
+  /*
+   * Hiding the field only blurs it, which would leave the keyboard talking to nothing -
+   * and being sent back to the shell you opened this from is what you expect anyway.
+   */
+  if (paletteReturn?.isConnected) paletteReturn.focus()
+  paletteReturn = null
+}
+
+function renderPalette(): void {
+  const shown = visibleEntries(paletteEntries, paletteInput.value)
+  paletteIndex = Math.min(paletteIndex, Math.max(shown.length - 1, 0))
+  paletteList.textContent = ''
+
+  if (shown.length === 0) {
+    const empty = document.createElement('li')
+    empty.className = 'palette-empty'
+    empty.textContent = paletteInput.value.trim() === '' ? 'Nothing open here' : 'No match'
+    paletteList.append(empty)
+    return
+  }
+
+  shown.forEach((entry, index) => {
+    const row = document.createElement('li')
+    row.className = 'palette-row'
+    if (index === paletteIndex) row.classList.add('selected')
+
+    const name = document.createElement('span')
+    name.className = 'palette-name'
+    name.textContent = entry.rel
+    row.append(name)
+
+    if (entry.here || entry.elsewhere) {
+      const where = document.createElement('span')
+      where.className = 'palette-where'
+      where.textContent = entry.here ? 'open here' : 'open in ' + entry.elsewhere
+      row.append(where)
+    }
+
+    row.addEventListener('mousedown', (event) => {
+      event.preventDefault()
+      void choosePalette(entry)
+    })
+    paletteList.append(row)
+  })
+}
+
+async function choosePalette(entry: PaletteEntry): Promise<void> {
+  closePalette()
+  await openFiles([entry.path])
+}
+
+paletteInput.addEventListener('input', () => {
+  paletteIndex = 0
+  renderPalette()
+})
+
+paletteInput.addEventListener('keydown', (event) => {
+  const shown = visibleEntries(paletteEntries, paletteInput.value)
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault()
+    paletteIndex = stepSelection(shown.length, paletteIndex, event.key === 'ArrowDown' ? 1 : -1)
+    renderPalette()
+  } else if (event.key === 'Enter') {
+    event.preventDefault()
+    const chosen = shown[paletteIndex]
+    if (chosen) void choosePalette(chosen)
+  } else if (event.key === 'Escape') {
+    event.preventDefault()
+    closePalette()
+  }
+})
+
 /* ---------- the raw view and saving ---------- */
 
 raw.addEventListener('input', () => {
@@ -1265,6 +1428,12 @@ async function pickFiles(): Promise<void> {
 openButton.addEventListener('click', () => void pickFiles())
 
 window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !palette.hidden) {
+    event.preventDefault()
+    closePalette()
+    return
+  }
+
   if (event.key === 'Escape' && !help.hidden) {
     event.preventDefault()
     toggleHelp()
@@ -1292,18 +1461,18 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
-  /*
-   * Claimed even while the shell has focus, like Ctrl+` - the moment you want the
-   * terminal font changed is the moment you are typing in the terminal, and neither
-   * PowerShell nor the TUIs in it use these two. Read from the physical key, because
-   * on a Czech layout the characters printed on them are not the US ones.
-   */
   if (event.code === 'PageDown' || event.code === 'PageUp') {
     event.preventDefault()
     cycleDoc(event.code === 'PageDown' ? 1 : -1)
     return
   }
 
+  /*
+   * Claimed even while the shell has focus, like Ctrl+` - the moment you want the
+   * terminal font changed is the moment you are typing in the terminal, and neither
+   * PowerShell nor the TUIs in it use these two. Read from the physical key, because
+   * on a Czech layout the characters printed on them are not the US ones.
+   */
   if (event.code === 'Equal' || event.code === 'NumpadAdd') {
     event.preventDefault()
     stepFontSize(1)
@@ -1341,6 +1510,10 @@ window.addEventListener('keydown', (event) => {
   } else if (key === 'o') {
     event.preventDefault()
     void pickFiles()
+  } else if (event.code === 'KeyP') {
+    event.preventDefault()
+    if (palette.hidden) void openPalette()
+    else closePalette()
   } else if (key === 'w') {
     event.preventDefault()
     closeDoc()

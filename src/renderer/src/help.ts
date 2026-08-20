@@ -10,7 +10,7 @@ export const SHORTCUTS: HelpSection[] = [
   {
     title: 'Documents and tabs',
     rows: [
-      { keys: 'Ctrl+O', action: 'open a file, into this tab' },
+      { keys: 'Ctrl+P / Ctrl+O', action: 'go to a file: in the project / anywhere' },
       { keys: 'Ctrl+T', action: 'new tab, for another place' },
       { keys: 'Ctrl+W', action: 'close the file; the last one closes the tab' },
       { keys: 'Ctrl+PageUp / PageDown', action: 'the other files open in this tab' },
@@ -38,7 +38,7 @@ export const SHORTCUTS: HelpSection[] = [
     title: 'While the shell has focus',
     rows: [
       { keys: 'Ctrl+Shift+C / V', action: 'copy / paste' },
-      { keys: 'Ctrl+Shift+O, W, R, D, 1…9', action: 'the app shortcuts above' },
+      { keys: 'Ctrl+Shift+O, P, W, R, D, 1…9', action: 'the app shortcuts above' },
       { keys: 'everything else', action: 'goes to the shell untouched' }
     ]
   },
