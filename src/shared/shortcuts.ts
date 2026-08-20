@@ -12,6 +12,7 @@ export type PaneCommand =
   | { type: 'zoom' }
   | { type: 'resize'; delta: number }
   | { type: 'web' }
+  | { type: 'prompt' }
 
 /** One keyboard step of the divider. */
 export const RESIZE_STEP = 0.05
@@ -48,6 +49,8 @@ export function paneCommand(event: KeyLike): PaneCommand | null {
   if (letter === 'z') return { type: 'zoom' }
   // Alt, not Ctrl+Shift+W: that already means "close the tab" from inside the shell.
   if (letter === 'w') return { type: 'web' }
+  // The prompt buffer is a pane of the shell, so it is an Alt key like the rest.
+  if (letter === 'p') return { type: 'prompt' }
 
   return null
 }

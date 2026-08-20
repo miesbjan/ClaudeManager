@@ -15,6 +15,9 @@ export type Session = {
 
 const DEFAULT_RATIO = 0.5
 
+/** Long enough for any prompt worth composing, short enough not to bloat the session. */
+export const MAX_PROMPT = 8000
+
 function ratio(value: unknown): number {
   return typeof value === 'number' && value > 0 && value < 1 ? value : DEFAULT_RATIO
 }
@@ -35,7 +38,14 @@ export function sanitisePane(raw: unknown): PaneState {
           ? 'web'
           : 'doc',
     rightRatio: ratio(value.rightRatio),
-    webManual: value.webManual === true
+    webManual: value.webManual === true,
+    /*
+     * A half-written prompt is work, so it outlives a restart the way a draft of a file
+     * does. Capped, because this is a prompt and not a document, and a session file that
+     * grew without limit would be a surprise nobody asked for.
+     */
+    prompt: typeof value.prompt === 'string' ? value.prompt.slice(0, MAX_PROMPT) : '',
+    promptOpen: value.promptOpen === true
   }
 }
 

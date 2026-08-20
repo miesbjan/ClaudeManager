@@ -59,6 +59,9 @@ export type PaneState = {
   rightRatio: number
   /** The address was typed by hand rather than read from the output. */
   webManual: boolean
+  /** The prompt being composed for this shell, and whether its drawer is open. */
+  prompt: string
+  promptOpen: boolean
   /**
    * Older state knew only "the server is showing". Read on the way in and never
    * written, which is why it is the one optional field here.

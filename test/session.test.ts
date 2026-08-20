@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { sanitisePane, sanitiseSession } from '../src/shared/session.ts'
+import { MAX_PROMPT, sanitisePane, sanitiseSession } from '../src/shared/session.ts'
 
 describe('sanitisePane', () => {
   it('keeps what it is given', () => {
@@ -11,7 +11,9 @@ describe('sanitisePane', () => {
       web: 'http://localhost:3000',
       rightMode: 'both',
       rightRatio: 0.7,
-      webManual: true
+      webManual: true,
+      prompt: 'rewrite the reader',
+      promptOpen: true
     })
     assert.deepEqual(pane, {
       terminal: true,
@@ -20,8 +22,25 @@ describe('sanitisePane', () => {
       web: 'http://localhost:3000',
       rightMode: 'both',
       rightRatio: 0.7,
-      webManual: true
+      webManual: true,
+      prompt: 'rewrite the reader',
+      promptOpen: true
     })
+  })
+
+  /*
+   * A prompt is work in progress and outlives a restart, but it is a prompt and not a
+   * document: an unbounded one in the session file would be a surprise.
+   */
+  it('keeps a prompt within a size a session file can carry', () => {
+    const long = sanitisePane({ prompt: 'x'.repeat(MAX_PROMPT + 500) })
+    assert.equal(long.prompt.length, MAX_PROMPT)
+  })
+
+  it('has an empty buffer, closed, for a place that never had one', () => {
+    const pane = sanitisePane({})
+    assert.equal(pane.prompt, '')
+    assert.equal(pane.promptOpen, false)
   })
 
   it('replaces a ratio that would leave a pane invisible', () => {

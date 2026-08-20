@@ -7,6 +7,15 @@ function press(overrides: Partial<KeyLike>): KeyLike {
 }
 
 describe('paneCommand', () => {
+  /*
+   * The buffer sends into the shell, so the key has to work while the shell has focus -
+   * which is what Alt buys: PowerShell and the TUIs in it leave Alt alone.
+   */
+  it('opens the prompt buffer with Alt+P', () => {
+    assert.deepEqual(paneCommand(press({ key: 'p' })), { type: 'prompt' })
+    assert.equal(paneCommand(press({ key: 'p', altKey: false, ctrlKey: true })), null)
+  })
+
   it('moves focus with Alt and the arrows', () => {
     assert.deepEqual(paneCommand(press({ code: 'ArrowLeft' })), {
       type: 'focus',
