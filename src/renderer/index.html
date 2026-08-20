@@ -10,7 +10,7 @@
   </head>
   <body>
     <header id="toolbar">
-      <button id="open-btn" class="toolbar-btn" type="button">+ Open Markdown</button>
+      <button id="open-btn" class="toolbar-btn" type="button">+ Open</button>
       <button id="shell-btn" class="toolbar-btn" type="button" title="Toggle shell pane (Ctrl+`)">
         Shell
       </button>
@@ -40,9 +40,10 @@
       <div id="right-area">
         <section id="viewer" tabindex="-1">
           <article id="content" class="markdown-body" hidden></article>
+          <textarea id="raw" hidden spellcheck="false" wrap="off"></textarea>
           <div id="empty">
             <p><strong>No document open.</strong></p>
-            <p>Press <kbd>Ctrl</kbd>+<kbd>O</kbd>, use <em>+ Open Markdown</em>, or drop a <code>.md</code> file into this window.</p>
+            <p>Press <kbd>Ctrl</kbd>+<kbd>O</kbd>, use <em>+ Open</em>, or drop a file into this window.</p>
           </div>
         </section>
         <div id="right-splitter" hidden></div>

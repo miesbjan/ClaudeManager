@@ -29,6 +29,18 @@ export type Tab = {
   updatedAt: number | null
   /** Last content seen on disk; kept so the next reload can be diffed against it. */
   source: string | null
+  /** Modification time of that content, which decides whether a save is safe. */
+  mtimeMs: number
+  /** Showing the file as written rather than rendered. Always true for non-Markdown. */
+  raw: boolean
+  /** Unsaved edits. Null means the buffer is the file; anything else is yours. */
+  draft: string | null
+  /** Only the head of the file was read, so it must not be written back. */
+  truncated: boolean
+  /** The file moved on while you were editing, so a save would overwrite that. */
+  staleOnDisk: boolean
+  /** A refused save arms the next one, which is the way to overwrite deliberately. */
+  forceSave: boolean
   /** A reload produced changed blocks that have not been shown to the user yet. */
   pendingFlash: boolean
   /** Whether this tab shows a shell next to the document. */

@@ -16,6 +16,8 @@ export const SHORTCUTS: HelpSection[] = [
       { keys: 'Ctrl+1 … Ctrl+9', action: 'jump to tab by position' },
       { keys: 'Ctrl+F', action: 'find in the document' },
       { keys: 'Ctrl+R', action: 'reload the document' },
+      { keys: 'Ctrl+E', action: 'Markdown: rendered or as written' },
+      { keys: 'Ctrl+S', action: 'save the file you edited' },
       { keys: 'Ctrl+D', action: 'theme: Auto / Light / Dark' },
       { keys: 'Ctrl+`', action: 'show or hide the shell' },
       { keys: 'Ctrl+= / Ctrl+-', action: 'terminal font bigger / smaller' }

@@ -19,6 +19,7 @@ import {
   stepIndex
 } from './find'
 import { renderShortcuts } from './help'
+import { detectEol, isMarkdown, toEditorText, toFileText } from './plaintext'
 import { createUrlReader, nextRightMode, normalizeUrl } from './web'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { paneCommand, type PaneCommand } from '../../shared/shortcuts'
@@ -26,7 +27,6 @@ import { TerminalPane } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
 import type { PaneState, TaskbarState, Theme } from '../../shared/types'
 
-const MD_PATTERN = /\.(md|markdown|mdown|mkd|mdx)$/i
 const THEMES: Theme[] = ['system', 'light', 'dark']
 const THEME_LABELS: Record<Theme, string> = {
   system: 'Theme: Auto',
@@ -52,6 +52,7 @@ const splitter = document.getElementById('splitter') as HTMLElement
 const tabbar = document.getElementById('tabbar') as HTMLElement
 const viewer = document.getElementById('viewer') as HTMLElement
 const content = document.getElementById('content') as HTMLElement
+const raw = document.getElementById('raw') as HTMLTextAreaElement
 const empty = document.getElementById('empty') as HTMLElement
 const status = document.getElementById('statusbar') as HTMLElement
 const ctxmenu = document.getElementById('ctxmenu') as HTMLElement
@@ -112,6 +113,12 @@ async function openFiles(paths: string[], activate = true): Promise<void> {
       scrollTop: 0,
       updatedAt: null,
       source: null,
+      mtimeMs: 0,
+      raw: !isMarkdown(path),
+      draft: null,
+      truncated: false,
+      staleOnDisk: false,
+      forceSave: false,
       pendingFlash: false,
       terminalOpen: false,
       ratio: DEFAULT_RATIO,
@@ -153,7 +160,9 @@ async function loadTab(tab: Tab, diff = false): Promise<void> {
         ? changedLines(tab.source, result.content)
         : null
     tab.source = result.content
-    tab.html = renderMarkdown(result.content, result.dir, changed)
+    tab.mtimeMs = result.mtimeMs
+    tab.truncated = result.truncated
+    tab.html = isMarkdown(tab.path) ? renderMarkdown(result.content, result.dir, changed) : ''
     tab.error = null
     tab.updatedAt = Date.now()
     if (!tab.project) tab.project = await window.api.detectProject(result.dir)
@@ -208,6 +217,9 @@ function render(): void {
   if (!tab) {
     content.hidden = true
     content.textContent = ''
+    raw.hidden = true
+    raw.value = ''
+    viewer.classList.remove('showing-raw')
     empty.hidden = false
     status.textContent = 'No file open'
     document.title = 'Project Console'
@@ -216,10 +228,21 @@ function render(): void {
   }
 
   empty.hidden = true
-  content.hidden = false
+  const showRaw = tab.raw && !tab.error
+  raw.hidden = !showRaw
+  content.hidden = showRaw
+  viewer.classList.toggle('showing-raw', showRaw)
 
   if (tab.error) {
     renderError(tab)
+  } else if (showRaw) {
+    // Nothing rendered is left behind: hidden or not, a stale document is still there
+    // to be found by Ctrl+F.
+    content.textContent = ''
+    // The draft wins over the file: the point is that a reload cannot take it away.
+    const text = tab.draft ?? toEditorText(tab.source ?? '')
+    if (raw.value !== text) raw.value = text
+    raw.readOnly = tab.truncated
   } else {
     // The class has to be in place before the markup is inserted, otherwise the
     // fade animation does not start. Clearing it when nothing is pending is what
@@ -256,13 +279,25 @@ function renderError(tab: Tab): void {
   content.append(box)
 }
 
+/**
+ * The status bar carries the state of the buffer, which is why the raw view needs no
+ * bar of its own: unsaved work, a file that moved underneath it, and a truncated read
+ * are all things you must be able to see without a new row of chrome.
+ */
 function renderStatus(tab: Tab): void {
   if (tab.error) {
     status.textContent = tab.path + '  ·  unavailable'
     return
   }
-  const updated = tab.updatedAt ? new Date(tab.updatedAt).toLocaleTimeString() : '-'
-  status.textContent = tab.path + '  ·  updated ' + updated + '  ·  watching'
+  const parts = [tab.path]
+  if (tab.raw) parts.push(tab.truncated ? 'first 2 MB only, read-only' : 'raw')
+  if (tab.draft !== null) parts.push('unsaved - Ctrl+S')
+  if (tab.staleOnDisk) parts.push('changed on disk while you were editing')
+  if (tab.draft === null && !tab.staleOnDisk) {
+    parts.push('updated ' + (tab.updatedAt ? new Date(tab.updatedAt).toLocaleTimeString() : '-'))
+    parts.push('watching')
+  }
+  status.textContent = parts.join('  ·  ')
 }
 
 function persistSession(): void {
@@ -302,7 +337,20 @@ function scheduleReload(path: string): void {
 async function reloadPath(path: string): Promise<void> {
   const index = indexOfPath(path)
   if (index < 0) return
-  await loadTab(tabs[index], true)
+  const tab = tabs[index]
+  /*
+   * The one rule this pane lives or dies by. Somebody else wrote the file while there
+   * are unsaved edits here, so nothing is reloaded and nothing is thrown away; the
+   * status bar says so and the choice is the user's. Saving now is refused once, which
+   * is what makes overwriting a deliberate act rather than an accident.
+   */
+  if (tab.draft !== null) {
+    tab.staleOnDisk = true
+    if (index === activeIndex) renderStatus(tab)
+    renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
+    return
+  }
+  await loadTab(tab, true)
   // Only the visible document needs repainting; the rest refresh on switch.
   if (index === activeIndex) render()
   else renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
@@ -322,7 +370,7 @@ window.api.onFileEvent(({ path, type }) => {
   else renderTabBar(tabbar, tabs, activeIndex, tabHandlers)
 })
 
-window.api.onOpenFiles((paths) => void openFiles(paths.filter((p) => MD_PATTERN.test(p))))
+window.api.onOpenFiles((paths) => void openFiles(paths))
 
 // Claimed in the main process, so they arrive even from inside the web pane.
 window.api.onPaneCommand((command) => runPaneCommand(command))
@@ -393,7 +441,7 @@ content.addEventListener('click', (event) => {
 
   const local = anchor.getAttribute('data-local')
   if (local) {
-    if (MD_PATTERN.test(local)) void openFiles([local])
+    if (isMarkdown(local)) void openFiles([local])
     return
   }
 
@@ -949,6 +997,73 @@ darkQuery.addEventListener('change', () => {
   for (const pane of shells.values()) pane.setTheme(darkQuery.matches)
 })
 
+/* ---------- the raw view and saving ---------- */
+
+raw.addEventListener('input', () => {
+  const tab = tabs[activeIndex]
+  if (!tab) return
+  const onDisk = toEditorText(tab.source ?? '')
+  // Back to what the file says counts as clean, so undoing an edit clears the mark.
+  tab.draft = raw.value === onDisk ? null : raw.value
+  if (tab.draft === null) {
+    tab.staleOnDisk = false
+    tab.forceSave = false
+  }
+  renderStatus(tab)
+})
+
+/**
+ * Rendered or as written. Only Markdown has two ways to show it; anything else has
+ * only the one, and the key then does nothing rather than showing an empty preview.
+ */
+function toggleRaw(): void {
+  const tab = tabs[activeIndex]
+  if (!tab || !isMarkdown(tab.path)) return
+  if (tab.draft !== null && tab.raw) {
+    status.textContent = 'Unsaved edits here - save with Ctrl+S first, or undo them'
+    return
+  }
+  tab.raw = !tab.raw
+  render()
+  if (tab.raw) raw.focus()
+}
+
+async function saveDraft(): Promise<void> {
+  const tab = tabs[activeIndex]
+  if (!tab || tab.draft === null) return
+  if (tab.truncated) {
+    status.textContent = 'Only the first 2 MB of this file was read, so it cannot be saved'
+    return
+  }
+
+  const eol = detectEol(tab.source ?? '')
+  const text = toFileText(tab.draft, eol)
+  // A negative time is the deliberate override; anything else is checked in main.
+  const result = await window.api.writeFile(tab.path, text, tab.forceSave ? -1 : tab.mtimeMs)
+
+  if (!result.ok) {
+    if (result.reason === 'stale') {
+      tab.staleOnDisk = true
+      tab.forceSave = true
+      status.textContent = 'Changed on disk since you opened it - Ctrl+S again to overwrite'
+    } else {
+      status.textContent = 'Could not save: ' + result.error
+    }
+    return
+  }
+
+  tab.source = text
+  tab.mtimeMs = result.mtimeMs
+  tab.draft = null
+  tab.staleOnDisk = false
+  tab.forceSave = false
+  // The preview has to catch up with what was just written, without a change flash:
+  // this is your own edit, and highlighting it back at you says nothing.
+  if (isMarkdown(tab.path)) tab.html = renderMarkdown(text, tab.dir, null)
+  tab.updatedAt = Date.now()
+  render()
+}
+
 /* ---------- theme ---------- */
 
 /**
@@ -1046,7 +1161,13 @@ window.addEventListener('keydown', (event) => {
   // Read digits from the physical key: Ctrl+Shift+1 arrives as '!' on many layouts.
   const digit = event.code.startsWith('Digit') ? Number(event.code.slice(5)) : 0
 
-  if (key === 'o') {
+  if (key === 'e') {
+    event.preventDefault()
+    toggleRaw()
+  } else if (key === 's') {
+    event.preventDefault()
+    void saveDraft()
+  } else if (key === 'o') {
     event.preventDefault()
     void pickFiles()
   } else if (key === 'w') {
@@ -1084,9 +1205,12 @@ window.addEventListener('drop', (event) => {
   event.preventDefault()
   document.body.classList.remove('dragging')
   const dropped = [...(event.dataTransfer?.files ?? [])]
-  const paths = dropped
-    .map((file) => window.api.getPathForFile(file))
-    .filter((path) => path && MD_PATTERN.test(path))
+  /*
+   * Anything dropped is opened, not only Markdown: what cannot be rendered is shown as
+   * it is written. A file the user drags in is a file the user chose - unlike a link
+   * inside a document, which stays limited to Markdown on purpose.
+   */
+  const paths = dropped.map((file) => window.api.getPathForFile(file)).filter(Boolean)
   if (paths.length > 0) void openFiles(paths)
 })
 
