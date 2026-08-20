@@ -24,6 +24,19 @@ export function matchRanges(text: string, query: string): TextRange[] {
   }
 }
 
+/**
+ * Which line an offset falls on, 1-based, and what that line says. For reporting a
+ * match in text that cannot be highlighted where it sits.
+ */
+export function lineAt(text: string, offset: number): { line: number; content: string } {
+  const start = text.lastIndexOf('\n', Math.max(offset - 1, 0)) + 1
+  const end = text.indexOf('\n', offset)
+  return {
+    line: text.slice(0, start).split('\n').length,
+    content: text.slice(start, end < 0 ? text.length : end)
+  }
+}
+
 /** Next or previous match, wrapping around; -1 when there is nothing to step to. */
 export function stepIndex(current: number, total: number, delta: number): number {
   if (total <= 0) return -1

@@ -14,9 +14,12 @@ import { DEFAULT_FAMILY, DEFAULT_SIZE, stepSize, type TerminalFont } from '../..
 import {
   clearMatches,
   findInElement,
+  lineAt,
+  matchRanges,
   paintMatches,
   scrollToMatch,
-  stepIndex
+  stepIndex,
+  type TextRange
 } from './find'
 import { createDoc, indexAfterClose, isDirty, nextDocIndex, type Doc } from './docs'
 import { renderShortcuts } from './help'
@@ -608,11 +611,38 @@ raw.addEventListener('scroll', () => {
 /* ---------- find in document ---------- */
 
 let matches: Range[] = []
+/**
+ * The plain-text pane cannot be searched the same way: the custom highlight API paints
+ * text nodes, and the text inside a textarea is not one. Offsets into its value and its
+ * own selection do the job instead - which is also what you want when the next thing
+ * you do is edit the line you were looking for.
+ */
+let rawMatches: TextRange[] = []
 let matchIndex = -1
 
+const searchingRaw = (): boolean => !raw.hidden
+
 function showMatch(): void {
+  const total = searchingRaw() ? rawMatches.length : matches.length
+  findCount.textContent = total === 0 ? '0/0' : matchIndex + 1 + '/' + total
+
+  if (searchingRaw()) {
+    const found = rawMatches[matchIndex]
+    if (!found) return
+    /*
+     * The selection is set so that leaving the search puts the caret on the match, but
+     * Chromium paints no selection in a field that does not have focus - and focus has
+     * to stay in the search box, or Enter would type into the file instead of stepping.
+     * So the match is reported in words instead: which line, and what it says.
+     */
+    raw.setSelectionRange(found.start, found.end)
+    revealRaw(found.start)
+    const at = lineAt(raw.value, found.start)
+    status.textContent = at.line + ': ' + at.content.trim().slice(0, 120)
+    return
+  }
+
   paintMatches(matches, matchIndex)
-  findCount.textContent = matches.length === 0 ? '0/0' : matchIndex + 1 + '/' + matches.length
   const current = matches[matchIndex]
   if (current) scrollToMatch(viewer, current)
 }
@@ -624,16 +654,19 @@ function showMatch(): void {
  */
 function refreshFind(fromStart: boolean): void {
   const query = findInput.value
-  matches = query ? findInElement(content, query) : []
-  if (matches.length === 0) matchIndex = -1
+  matches = query && !searchingRaw() ? findInElement(content, query) : []
+  rawMatches = query && searchingRaw() ? matchRanges(raw.value, query) : []
+  const total = searchingRaw() ? rawMatches.length : matches.length
+  if (total === 0) matchIndex = -1
   else if (fromStart || matchIndex < 0) matchIndex = 0
-  else matchIndex = Math.min(matchIndex, matches.length - 1)
+  else matchIndex = Math.min(matchIndex, total - 1)
   showMatch()
 }
 
 function stepFind(delta: number): void {
-  if (matches.length === 0) return
-  matchIndex = stepIndex(matchIndex, matches.length, delta)
+  const total = searchingRaw() ? rawMatches.length : matches.length
+  if (total === 0) return
+  matchIndex = stepIndex(matchIndex, total, delta)
   showMatch()
 }
 
@@ -648,8 +681,11 @@ function closeFind(): void {
   findBar.hidden = true
   clearMatches()
   matches = []
+  rawMatches = []
   matchIndex = -1
-  viewer.focus()
+  // Back to what was being searched, so the caret is where the last match left it.
+  if (searchingRaw()) raw.focus()
+  else viewer.focus()
 }
 
 findInput.addEventListener('input', () => refreshFind(true))
@@ -1159,8 +1195,21 @@ async function openFromTerminal(path: string, line: number | null): Promise<void
   await openFiles([path])
   const doc = shownDoc(tabs[activeIndex])
   if (!doc || doc.error) return
-  if (line !== null) goToLine(line)
-  status.textContent = baseName(path) + (line === null ? '' : ':' + line)
+  if (line === null) return
+  goToLine(line)
+  status.textContent = baseName(path) + ':' + line
+}
+
+/**
+ * A textarea does not scroll to its selection on its own, and there is no way to ask it
+ * to, so the row is measured and the line put a third of the way down - near the top,
+ * but with enough above it to see where you landed.
+ */
+function revealRaw(offset: number): void {
+  const line = raw.value.slice(0, offset).split('\n').length - 1
+  const height = Number.parseFloat(getComputedStyle(raw).lineHeight)
+  if (!Number.isFinite(height)) return
+  raw.scrollTop = Math.max(line * height - raw.clientHeight / 3, 0)
 }
 
 /**
@@ -1177,15 +1226,7 @@ function goToLine(line: number): void {
     for (let i = 0; i < target && i < lines.length; i++) start += lines[i].length + 1
     raw.focus()
     raw.setSelectionRange(start, start + (lines[target]?.length ?? 0))
-    /*
-     * A textarea does not scroll to its selection on its own, and there is no way to
-     * ask it to, so the row is measured and the line put a third of the way down -
-     * near the top, but with enough above it to see where you landed.
-     */
-    const height = Number.parseFloat(getComputedStyle(raw).lineHeight)
-    if (Number.isFinite(height)) {
-      raw.scrollTop = Math.max(target * height - raw.clientHeight / 3, 0)
-    }
+    revealRaw(start)
     return
   }
 

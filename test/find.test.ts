@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { matchRanges, stepIndex } from '../src/renderer/src/find.ts'
+import { lineAt, matchRanges, stepIndex } from '../src/renderer/src/find.ts'
 
 describe('matchRanges', () => {
   it('finds every occurrence in reading order', () => {
@@ -31,6 +31,31 @@ describe('matchRanges', () => {
 
   it('handles a query that is not there', () => {
     assert.deepEqual(matchRanges('abc', 'zzz'), [])
+  })
+})
+
+/*
+ * What a match in the plain-text pane is reported by: the selection cannot be seen while
+ * the search box has focus, so the line and its text are what the status bar says.
+ */
+describe('lineAt', () => {
+  const text = 'first\nsecond\nthird'
+
+  it('counts lines from one', () => {
+    assert.deepEqual(lineAt(text, 0), { line: 1, content: 'first' })
+    assert.deepEqual(lineAt(text, 6), { line: 2, content: 'second' })
+  })
+
+  it('finds the line an offset inside it belongs to', () => {
+    assert.deepEqual(lineAt(text, 9), { line: 2, content: 'second' })
+  })
+
+  it('handles the last line, which has no newline after it', () => {
+    assert.deepEqual(lineAt(text, 14), { line: 3, content: 'third' })
+  })
+
+  it('handles an empty line', () => {
+    assert.deepEqual(lineAt('a\n\nb', 2), { line: 2, content: '' })
   })
 })
 
