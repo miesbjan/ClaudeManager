@@ -35,6 +35,17 @@
           <span id="shell-project"></span>
         </div>
         <div id="term-hosts"></div>
+        <section id="prompt-pane" hidden>
+          <textarea
+            id="prompt-input"
+            spellcheck="false"
+            placeholder="Compose a prompt here. Ctrl+Enter sends it to the shell."
+          ></textarea>
+          <div id="prompt-bar">
+            <span id="prompt-hint">Ctrl+Enter sends · Esc back to the shell</span>
+            <button id="prompt-send" class="run-btn" type="button">Send ⏎</button>
+          </div>
+        </section>
       </section>
       <div id="splitter" hidden></div>
       <div id="right-area">

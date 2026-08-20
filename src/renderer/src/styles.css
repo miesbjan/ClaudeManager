@@ -837,6 +837,56 @@ body.resizing {
 }
 
 /*
+ * The prompt buffer: a drawer at the bottom of the shell pane, because that is where
+ * what you write in it ends up. Closed by default and given a fixed share of the
+ * height, so opening it never leaves the terminal too small to read.
+ */
+#prompt-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  height: 30%;
+  min-height: 84px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-tab-active);
+}
+
+#prompt-pane[hidden] {
+  display: none;
+}
+
+#prompt-input {
+  flex: 1 1 auto;
+  width: 100%;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+#prompt-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px 6px;
+}
+
+#prompt-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
  * Go to file. The same overlay idea as the shortcut panel: out of the flow, so opening
  * it never moves what is being read, and gone the moment it is not needed.
  */

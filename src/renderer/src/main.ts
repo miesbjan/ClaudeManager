@@ -25,8 +25,10 @@ import { createDoc, indexAfterClose, isDirty, nextDocIndex, type Doc } from './d
 import { renderShortcuts } from './help'
 import { stepSelection, visibleEntries, type PaletteEntry } from './palette'
 import { detectEol, isMarkdown, toEditorText, toFileText } from './plaintext'
+import { sendable } from './prompt'
 import { createUrlReader, nextRightMode, normalizeUrl } from './web'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
+import { MAX_PROMPT } from '../../shared/session'
 import { paneCommand, type PaneCommand } from '../../shared/shortcuts'
 import { TerminalPane } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
@@ -66,6 +68,9 @@ const findInput = document.getElementById('find-input') as HTMLInputElement
 const findCount = document.getElementById('find-count') as HTMLElement
 const helpButton = document.getElementById('help-btn') as HTMLButtonElement
 const help = document.getElementById('help') as HTMLElement
+const promptPane = document.getElementById('prompt-pane') as HTMLElement
+const promptInput = document.getElementById('prompt-input') as HTMLTextAreaElement
+const promptSend = document.getElementById('prompt-send') as HTMLButtonElement
 const palette = document.getElementById('palette') as HTMLElement
 const paletteInput = document.getElementById('palette-input') as HTMLInputElement
 const paletteList = document.getElementById('palette-list') as HTMLUListElement
@@ -178,6 +183,8 @@ function createTab(): Tab {
     project: null,
     runCommand: null,
     webUrl: null,
+    prompt: '',
+    promptOpen: false,
     rightMode: 'doc',
     rightRatio: DEFAULT_RATIO,
     webManual: false,
@@ -371,6 +378,7 @@ function render(): void {
     content.innerHTML = doc.html
   }
 
+  if (promptInput.value !== tab.prompt) promptInput.value = tab.prompt
   if (showRaw) raw.scrollTop = doc.rawScrollTop
   else viewer.scrollTop = doc.scrollTop
   if (!findBar.hidden) refreshFind(false)
@@ -443,7 +451,9 @@ function persistSession(): void {
           web: tab.webUrl,
           rightMode: tab.rightMode,
           rightRatio: tab.rightRatio,
-          webManual: tab.webManual
+          webManual: tab.webManual,
+          prompt: tab.prompt,
+          promptOpen: tab.promptOpen
         }
       })),
     activeTab: Math.max(activeIndex, 0)
@@ -826,6 +836,7 @@ function applyLayout(): void {
   const showWeb = zoom === null ? mode !== 'doc' : zoom === 'web'
 
   terminalPane.hidden = !showShell
+  promptPane.hidden = !showShell || tab?.promptOpen !== true
   viewer.hidden = !showDoc
   webPane.hidden = !showWeb
   rightArea.hidden = !showDoc && !showWeb
@@ -1047,6 +1058,10 @@ function runPaneCommand(command: PaneCommand): void {
     cycleRight()
     return
   }
+  if (command.type === 'prompt') {
+    togglePrompt()
+    return
+  }
   if (command.type === 'zoom') {
     if (tab.zoom === null && visiblePanes().length < 2) return
     // Zoom applies to whichever pane the user is looking at, as `prefix + z` does.
@@ -1196,6 +1211,78 @@ makeSplitter(rightSplitter, rightArea, {
 darkQuery.addEventListener('change', () => {
   for (const pane of shells.values()) pane.setTheme(darkQuery.matches)
 })
+
+/* ---------- the prompt buffer ---------- */
+
+/**
+ * A drawer under the shell for composing a longer instruction. It belongs to the shell,
+ * so opening it opens the shell too - there would be nowhere to send anything otherwise -
+ * and what is in it is remembered per tab, like everything else about a place.
+ */
+function togglePrompt(): void {
+  const tab = tabs[activeIndex]
+  if (!tab) return
+  tab.promptOpen = !tab.promptOpen
+  if (tab.promptOpen && !tab.terminalOpen) {
+    tab.terminalOpen = true
+    void openShell(tab)
+  }
+  // A zoomed pane hides the shell, and with it the drawer; the split comes back.
+  if (tab.promptOpen) tab.zoom = null
+  applyLayout()
+  if (tab.promptOpen) promptInput.focus()
+  else shells.get(tab.id)?.focus()
+  persistSession()
+}
+
+/**
+ * Into the shell, and then submitted. A shell that is not running yet is started first,
+ * which is the case for a tab whose drawer was open when the app last closed.
+ */
+async function sendPrompt(): Promise<void> {
+  const tab = tabs[activeIndex]
+  if (!tab) return
+  const text = sendable(promptInput.value)
+  if (text === null) {
+    status.textContent = 'Nothing to send - the prompt buffer is empty'
+    return
+  }
+  if (!tab.terminalOpen) tab.terminalOpen = true
+  if (!shells.has(tab.id)) await openShell(tab)
+  const pane = shells.get(tab.id)
+  if (!pane) return
+  pane.sendPrompt(text)
+  /*
+   * Cleared, because a sent prompt is spent: it is in the shell's own history now, and a
+   * buffer that keeps it would send it twice as easily as once.
+   */
+  promptInput.value = ''
+  tab.prompt = ''
+  persistSession()
+}
+
+promptInput.addEventListener('input', () => {
+  const tab = tabs[activeIndex]
+  if (!tab) return
+  if (promptInput.value.length > MAX_PROMPT) promptInput.value = promptInput.value.slice(0, MAX_PROMPT)
+  tab.prompt = promptInput.value
+  persistSession()
+})
+
+promptInput.addEventListener('keydown', (event) => {
+  // Plain Enter is a newline: composing something multi-line is the whole point.
+  if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+    event.preventDefault()
+    void sendPrompt()
+    return
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    togglePrompt()
+  }
+})
+
+promptSend.addEventListener('click', () => void sendPrompt())
 
 /* ---------- following a path out of the terminal ---------- */
 
@@ -1690,6 +1777,8 @@ async function start(): Promise<void> {
     tab.rightMode = tab.webUrl === null ? 'doc' : saved.pane.rightMode
     tab.rightRatio = clampRatio(saved.pane.rightRatio)
     tab.webManual = saved.pane.webManual
+    tab.prompt = saved.pane.prompt
+    tab.promptOpen = saved.pane.promptOpen
   }
 
   // A place whose every file has vanished is not worth restoring as an empty one.

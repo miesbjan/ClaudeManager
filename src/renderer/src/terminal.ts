@@ -134,6 +134,18 @@ export class TerminalPane {
     this.term.focus()
   }
 
+  /**
+   * A composed prompt, handed to the shell as a paste rather than as typing: inside a
+   * bracketed paste the newlines are text, which is the whole reason a multi-line prompt
+   * cannot simply be typed in. The submitting newline follows once the paste has ended.
+   */
+  sendPrompt(text: string): void {
+    if (this.exited) return
+    this.term.paste(text)
+    window.api.terminal.write(this.id, String.fromCharCode(13))
+    this.term.focus()
+  }
+
   hasFocus(): boolean {
     return this.host.contains(document.activeElement)
   }

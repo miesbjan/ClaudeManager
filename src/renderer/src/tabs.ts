@@ -37,6 +37,9 @@ export type Tab = {
   name: string | null
   /** Whether this tab shows a shell next to the document. */
   terminalOpen: boolean
+  /** The prompt being composed for this shell, and whether its drawer is open. */
+  prompt: string
+  promptOpen: boolean
   /** Width of the shell pane as a fraction of the tab. */
   ratio: number
   /** A pane blown up to the whole tab, as tmux does with `prefix + z`. */
