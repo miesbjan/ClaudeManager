@@ -97,7 +97,7 @@ anywhere else closes it.
 | `Ctrl+W`                  | close the current tab                     |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | next / previous tab                   |
 | `Ctrl+1` … `Ctrl+9`       | jump to tab by position                   |
-| `Ctrl+F`                  | find in the document                      |
+| `Ctrl+F`                  | find in the document or the plain text    |
 | `Ctrl+R`                  | force reload of the current file          |
 | `Ctrl+D`                  | switch theme: Auto → Light → Dark         |
 | ``Ctrl+` ``               | show or hide the shell pane               |
@@ -164,8 +164,12 @@ Files passed on the command line are opened too, so the app works as a handler f
   inside it, it keeps every key you press, and no shortcut of this app reaches it.
   Keyboard navigation therefore stops at the edge of the frame - `Alt+3` focuses the
   pane, not the page - and `Alt+W` is additionally held as a system accelerator while
-  the window has focus, so there is always one key back out. Nothing to configure; an address can
-  also be typed into the pane's bar for a server started elsewhere.
+  the window has focus, so there is always one key back out.
+
+  Nothing to configure, and nothing has to have announced itself: `Alt+W` opens the pane
+  even with no address, with the cursor in its bar, which is the way to show a server
+  started by hand somewhere else. An address typed there is a correction and later output
+  cannot undo it, until the Run button hands control back.
 
   Shells are started with `BROWSER=none`, the convention Vite and Create React App
   follow to mean "do not launch a browser": a project configured with
@@ -182,15 +186,25 @@ Files passed on the command line are opened too, so the app works as a handler f
   alive while the tab is open — hiding the pane or switching tabs does not disturb a
   process running inside it; closing the tab kills it. Whether the pane is open and
   how wide it is are remembered per document.
-- **Find.** `Ctrl+F` searches the rendered document - only the document, never the
-  shell next to it. Matches are painted with the CSS custom highlight API rather than
-  by wrapping text in elements, so the markup markdown-it produced stays untouched and
-  clearing the search leaves nothing behind. `Enter` and `Shift+Enter` step through the
-  matches, wrapping around; `Esc` closes and returns focus to the document. A live
-  reload keeps the search: the matches are recomputed and the position is kept.
+- **Find.** `Ctrl+F` searches whichever pane is showing the file - only the document,
+  never the shell next to it. In a rendered document matches are painted with the CSS
+  custom highlight API rather than by wrapping text in elements, so the markup
+  markdown-it produced stays untouched and clearing the search leaves nothing behind.
+  `Enter` and `Shift+Enter` step through the matches, wrapping around; `Esc` closes and
+  returns focus to the document. A live reload keeps the search: the matches are
+  recomputed and the position is kept.
+
+  The plain-text pane is searched too, and it cannot be painted: the highlight API works
+  on text nodes and the text inside a textarea is not one. Chromium also paints no
+  selection in a field without focus, and focus has to stay in the search box or `Enter`
+  would type into the file instead of stepping. So the match is reported in words - the
+  status bar says which line and what it says - and `Esc` puts the caret on it, where
+  the selection becomes visible and editing carries on from there.
 - **Activity dot.** A tab you are not looking at shows a dot: muted while output is
   flowing, green once it has finished, amber while the agent is asking for permission
-  and can go no further, red when it rang the bell, failed or its shell died. Where a program reports its own state - Claude Code and anything else that
+  and can go no further, red when it rang the bell, failed or its shell fell over.
+  A shell closed on purpose - `exit`, code 0 - leaves no dot at all; a red one there
+  would be crying wolf. Where a program reports its own state - Claude Code and anything else that
   emits the `OSC 9;4` progress sequence, the one that drives the spinner in a Windows
   Terminal tab - the dot follows that report and is exact. Everything else falls back
   to a guess: quiet for two seconds counts as finished. The two are kept apart
@@ -207,6 +221,10 @@ Files passed on the command line are opened too, so the app works as a handler f
   if the file reappears.
 - **Duplicate names.** Tabs show the file name, extended with as many parent
   directories as needed to stay unambiguous.
+- **Where you were.** Each file remembers its scroll position, and remembers it twice:
+  once for the rendered document and once for the plain-text pane. They measure different
+  things - a place in a layout and a place in the text - so keeping one number would land
+  you somewhere random after switching how the file is shown.
 - **Files in a tab.** A tab is a place - a directory, its shell, its dev server - and
   it holds however many files you open while working there, one of them on screen.
   Opening a file puts it in the tab you are in; `Ctrl+T` makes another place. `Ctrl+W`

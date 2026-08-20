@@ -578,3 +578,14 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   nerozeznání, a zpřísnit tvar znamená přijít o `package.json`, což je přesně to, na co
   chce člověk kliknout. Dotaz na disk stojí jedno IPC při přejetí myší a rozhodne to
   bez hádání. Řádek se čte až za koncem cesty, takže `19:38:31` v logu není soubor.
+- **20. 8. 2026** - Čistě zavřený shell (`exit`, kód 0) nezhasne do červené, ale do
+  ničeho. Vyplynulo z používání: `onExit` kód ignoroval, takže napsat `exit` vypadalo
+  stejně jako spadlý shell, a kontrolka tím lhala v jednom případě z deseti.
+  Cokoli jiného než nula zůstává poplach.
+- **20. 8. 2026** - `Ctrl+F` hledá i v panelu s prostým textem, ale zásah se hlásí
+  slovy do stavové lišty, ne podbarvením. Highlight API pracuje s textovými uzly a
+  obsah textarey žádný není; Chromium navíc výběr v polí bez fokusu nekreslí, a fokus
+  musí zůstat v hledacím poli, jinak by `Enter` psal do souboru místo skákání na další
+  zásah. Ověřeno screenshotem, i s vynuceným `::selection`. Kreslit vlastní překryv nad
+  textareou je práce na editor, což je non-goal. `Esc` postaví kurzor na zásah, tam už
+  výběr vidět je.
