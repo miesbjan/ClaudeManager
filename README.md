@@ -104,6 +104,7 @@ anywhere else closes it.
 | `Ctrl+=` / `Ctrl+-`       | terminal font bigger / smaller            |
 | `Ctrl+Shift+C` / `Ctrl+Shift+V` | copy / paste inside the shell       |
 | `F12`                     | toggle DevTools                           |
+| click a path in the shell | open the file it points at, at that line   |
 | middle-click a tab        | close it                                  |
 | right-click a tab         | reload, close, close others, copy path, reveal in Explorer |
 | drag & drop               | drop `.md` files into the window to open them |
@@ -213,6 +214,12 @@ Files passed on the command line are opened too, so the app works as a handler f
   `Ctrl+PageDown` move between them, the status bar says which of how many, and the
   tab's tooltip lists them all - there is deliberately no second row of chrome for it.
   Switching the file moves neither the shell nor the project: those belong to the place.
+- **Paths in the output are clickable.** When the shell prints `src/main/index.ts:224`,
+  clicking it opens the file in this tab and lands on that line - in the plain-text pane
+  on the line itself, in a rendered document on the block it belongs to. Only paths that
+  exist are offered: shape cannot tell `Node.js` from `app.js`, so the disk is asked
+  before anything is underlined, and relative paths are resolved against the directory
+  the shell was started in. A URL is left alone; addresses belong in the web pane.
 - **Go to file.** `Ctrl+P` offers what is open in this tab, and once you type
   anything, every file in the project. An empty query is therefore also the answer to
   "what do I have open here", which is why the tab bar has no second row listing them.

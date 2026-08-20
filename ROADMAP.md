@@ -161,10 +161,9 @@ Pravidla, na kterých to stojí:
 *Hotovo, když:* vložíš klíč do `.env` otevřeného projektu a uložíš ho, aniž bys sáhl
 po editoru, a prohlédneš si `.log`, který agent napsal.
 
-### L3d - Navigace v adresáři
+### L3d - Navigace v adresáři (hotovo)
 
 Dvě věci, které z „jsem v adresáři" udělají pravdu.
-První je hotová, druhá zbývá.
 
 **`Ctrl+P` - jdi na soubor. Hotovo.**
 Pole nad dokumentem, které nabízí dvě skupiny v jedné: soubory otevřené v tomhle tabu
@@ -195,15 +194,33 @@ Rozhodnutí, která za tím stojí:
 - Za fokusem v terminálu platí `Ctrl+Shift+P`, jako u ostatních appových kláves.
   Samotné `Ctrl+P` v shellu patří shellu.
 
-**Kliknutelné cesty ve výstupu. Zbývá.**
-Agent napíše `src/main/index.ts:224` a kliknutí to otevře v pravém panelu, ne
-v systémovém editoru.
-xterm na to má link provider.
+**Kliknutelné cesty ve výstupu. Hotovo.**
+Agent napíše `src/main/index.ts:224`, kliknutí to otevře v pravém panelu a skočí na
+ten řádek.
 Z výpisu agenta se tím stane navigace, a je to ta nejčastější věc, kterou v něm
 člověk hledá.
 
+Rozhodnutí, která za tím stojí:
+
+- Nabízí se jen cesta, která na disku existuje.
+  Tvar to nikdy nerozhodne - `Node.js` vypadá přesně jako `app.js` - takže hádání
+  jen zúží kandidáty a poslední slovo má disk.
+  Jinak by byla podtržená polovina výstupu.
+- Dvojtečka není součástí cesty, aby `19:38:31` nebyl soubor s číslem řádku.
+  Číslo řádku se čte až za koncem cesty, jako `:224` nebo `:224:9`.
+- Kandidát hned za `:` nebo lomítkem se zahodí.
+  Bez toho by `http://localhost:5173/index.html` nabídl `/localhost` jako soubor;
+  adresa patří do webového panelu.
+- Relativní cesta se vztahuje k adresáři, ve kterém shell odstartoval, tedy ke kořeni
+  projektu. Přesně tam ji vztahuje i agent, který ji napsal.
+- Zalomený řádek se poskládá zpátky, protože v úzkém panelu se cesta láme přes dva
+  řádky a jinak by kliknutelná nebyla ani jedna půlka.
+- V dokumentu se skáče na blok, ne na řádek.
+  Renderovaný řádek a řádek zdroje nejsou totéž, a předstírat to by bylo horší než
+  přiznat blok. V panelu s prostým textem se skáče na řádek přesně a označí se.
+
 *Hotovo, když:* soubor, na který agent odkazuje, otevřeš kliknutím.
-Jakýkoli soubor v projektu už bez dialogu najdeš.
+Jakýkoli soubor v projektu najdeš bez dialogu.
 
 ### Mimo vrstvy
 
@@ -556,3 +573,8 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   Soubor otevřený jinde se přesto objeví jako soubor projektu a řádek to řekne,
   takže skok do jiného tabu je ohlášený, ne překvapení.
   Hledá se podstrunou, ne fuzzy: skóre a jeho ladění je větší věc než sama paleta.
+- **20. 8. 2026** - Kliknutelná cesta se nabídne jen tehdy, když ten soubor existuje.
+  Vyplynulo z prvního pokusu poznat cestu podle tvaru: `Node.js` a `app.js` jsou k
+  nerozeznání, a zpřísnit tvar znamená přijít o `package.json`, což je přesně to, na co
+  chce člověk kliknout. Dotaz na disk stojí jedno IPC při přejetí myší a rozhodne to
+  bez hádání. Řádek se čte až za koncem cesty, takže `19:38:31` v logu není soubor.
