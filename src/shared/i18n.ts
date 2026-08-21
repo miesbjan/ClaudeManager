@@ -27,6 +27,7 @@ const en = {
 
   'empty.title': 'No document open.',
   'empty.body': 'Press Ctrl+O, use + Open, or drop a file into this window.',
+  'empty.intro': 'New here? The ? button in the toolbar says what this is for, in a few lines.',
 
   'status.noFile': 'No file open',
   'status.unavailable': 'unavailable',
@@ -125,6 +126,7 @@ const en = {
   'close.busy': 'Something is still running in {name}. Closing the tab stops it. Close anyway?',
   'close.busyMany': 'Something is still running in {count} of these tabs. Closing them stops it. Close anyway?',
 
+  'help.intro': 'What this is',
   'help.heading': 'Keyboard shortcuts',
   'help.notes': 'Without a key',
   'help.close': 'Esc or the ? button closes this.'
@@ -150,6 +152,7 @@ const cs: Record<StringKey, string> = {
 
   'empty.title': 'Nic není otevřené.',
   'empty.body': 'Stiskni Ctrl+O, použij + Otevřít, nebo přetáhni soubor do okna.',
+  'empty.intro': 'Jsi tu poprvé? Tlačítko ? v liště na pár řádcích řekne, k čemu to je.',
 
   'status.noFile': 'Nic není otevřené',
   'status.unavailable': 'nedostupné',
@@ -242,6 +245,7 @@ const cs: Record<StringKey, string> = {
   'close.busy': 'V {name} něco běží. Zavřením tabu se to zastaví. Přesto zavřít?',
   'close.busyMany': 'V {count} z těchto tabů něco běží. Zavřením se to zastaví. Přesto zavřít?',
 
+  'help.intro': 'K čemu to je',
   'help.heading': 'Klávesové zkratky',
   'help.notes': 'Bez zkratky',
   'help.close': 'Zavře se Escapem nebo tlačítkem ?.'

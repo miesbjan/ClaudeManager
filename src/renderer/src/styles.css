@@ -414,6 +414,21 @@ body.dragging::after {
 }
 
 /* What happens without a key: prose, not a key table, so it reads as a paragraph. */
+.help-lead {
+  margin: 0 0 10px;
+  max-width: 70ch;
+}
+
+.help-points {
+  margin: 0 0 18px;
+  padding-left: 18px;
+  max-width: 70ch;
+}
+
+.help-points li {
+  margin-bottom: 6px;
+}
+
 .help-notes {
   margin: 0;
   padding: 0;

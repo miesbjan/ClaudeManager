@@ -1065,6 +1065,7 @@ function toggleHelp(): void {
   if (help.hidden) {
     if (!help.firstChild) {
       renderShortcuts(help, lang, {
+        intro: T('help.intro'),
         heading: T('help.heading'),
         notes: T('help.notes'),
         close: T('help.close')
@@ -1919,6 +1920,9 @@ function applyLanguage(): void {
   if (emptyTitle) emptyTitle.textContent = T('empty.title')
   const emptyBody = empty.querySelectorAll('p')[1]
   if (emptyBody) emptyBody.textContent = T('empty.body')
+  // The first thing a new pair of eyes sees, and the only pointer to the panel.
+  const emptyIntro = document.getElementById('empty-intro')
+  if (emptyIntro) emptyIntro.textContent = T('empty.intro')
 
   const label = (id: string, key: StringKey): void => {
     const node = document.getElementById(id)

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { helpNotes, keyTokens, shortcutSections, SHORTCUTS } from '../src/renderer/src/help.ts'
+import { helpIntro, helpNotes, keyTokens, shortcutSections, SHORTCUTS } from '../src/renderer/src/help.ts'
 import { paneCommand, type KeyLike } from '../src/shared/shortcuts.ts'
 
 const rows = SHORTCUTS.flatMap((section) => section.rows)
@@ -104,6 +104,41 @@ describe('shortcut help', () => {
     for (const subject of ['dot', 'reload', 'run', 'server', 'session']) {
       assert.ok(text.includes(subject), `the panel says nothing about ${subject}`)
     }
+  })
+})
+
+/*
+ * The panel is where somebody who has never seen this finds out what it is for, so an
+ * intro that quietly went missing - or drifted apart between the two languages - would
+ * be worse than none: the ? button would promise an explanation and not give one.
+ */
+describe('helpIntro', () => {
+  it('says what the application is, in both languages', () => {
+    for (const lang of ['en', 'cs'] as const) {
+      const intro = helpIntro(lang)
+      assert.ok(intro.lead.trim().length > 60, lang + ': the lead says too little')
+      assert.equal(intro.points.length, helpIntro('en').points.length, lang + ' has a different number of points')
+      for (const point of intro.points) {
+        assert.ok(point.trim().length > 40, lang + ': a point that says too little')
+      }
+    }
+  })
+
+  /*
+   * The four things a colleague has to be told, because none of them can be guessed
+   * from the window: what a tab is, that there are panes, that it is meant for working
+   * beside an agent, and where editing stops.
+   */
+  it('covers what a tab is, the panes, the agent and the limits of editing', () => {
+    const text = [helpIntro('en').lead, ...helpIntro('en').points].join(' ').toLowerCase()
+    for (const subject of ['tab is a place', 'pane', 'agent', 'editor']) {
+      assert.ok(text.includes(subject), 'the intro says nothing about ' + subject)
+    }
+  })
+
+  it('places it between a terminal and an editor rather than beside either', () => {
+    assert.match(helpIntro('en').lead, /terminal/)
+    assert.match(helpIntro('cs').lead, /terminál/)
   })
 })
 

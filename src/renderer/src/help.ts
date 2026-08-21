@@ -7,10 +7,45 @@
 // free of runtime imports and can be read straight from a test.
 import type { Lang } from '../../shared/i18n'
 
+/**
+ * What the application is for, in the words somebody who has never seen it needs.
+ *
+ * It lives at the top of the same panel as the shortcuts, because that is the one
+ * place a new user already presses: a screen of its own would have to be dismissed,
+ * remembered as dismissed, and would then never be seen again.
+ */
+export type HelpIntro = { lead: string; points: string[] }
+
 export type HelpRow = { keys: string; action: string }
 export type HelpSection = { title: string; rows: HelpRow[] }
 /** Something the app does on its own, with no key to press. */
 export type HelpNote = { title: string; body: string }
+
+const EN_INTRO: HelpIntro = {
+  lead: 'A console for one project at a time: a shell on the left, what you are steering by on the right. Somewhere between a terminal and an editor, and deliberately much closer to the terminal.',
+  points: [
+    'A tab is a place, not a file: a directory, the shell running in it, its dev server, and however many files you have open there. Ctrl+T makes another place.',
+    'A tab holds up to three panes - the shell, the document, and the page of the app you are building. Alt and the arrows move between them, Alt+Z zooms one to the whole tab.',
+    'It is built for working next to an agent. The document reloads itself and marks what changed, the dot on the tab says what the agent is doing, and the taskbar button says it while you are looking elsewhere.',
+    'Editing is deliberately tiny: any text file opens as it is written and Ctrl+S saves it. Enough to paste a key into .env or fix a typo, not enough to be an editor.',
+    'What it is not: no file tree, no LSP, no debugger, no settings screen. For those there is an editor, and it is one Alt+Tab away.'
+  ]
+}
+
+const CS_INTRO: HelpIntro = {
+  lead: 'Konzole pro jeden projekt: vlevo shell, vpravo to, podle čeho se orientuješ. Někde mezi terminálem a editorem, a záměrně mnohem blíž terminálu.',
+  points: [
+    'Tab je místo, ne soubor: adresář, shell, který v něm běží, jeho dev server a kolik chceš otevřených souborů. Ctrl+T udělá další místo.',
+    'V tabu jsou až tři panely - shell, dokument a stránka aplikace, kterou staví. Alt a šipky mezi nimi přepínají, Alt+Z jeden zvětší na celý tab.',
+    'Je to postavené na práci vedle agenta. Dokument se sám načítá znovu a označí, co se změnilo, tečka na tabu říká, co agent dělá, a ikona v hlavním panelu to říká i když se koukáš jinam.',
+    'Editace je záměrně minimální: každý textový soubor se otevře, jak je zapsaný, a Ctrl+S ho uloží. Dost na vložení klíče do .env nebo opravu překlepu, málo na editor.',
+    'Co to není: žádný soubory nalevo, žádné LSP, debugger ani obrazovka s nastavením. Na to je editor a je vzdálený jedno Alt+Tab.'
+  ]
+}
+
+export function helpIntro(lang: Lang): HelpIntro {
+  return lang === 'cs' ? CS_INTRO : EN_INTRO
+}
 
 const EN: HelpSection[] = [
   {
@@ -168,6 +203,14 @@ const EN_NOTES: HelpNote[] = [
     body: 'asks first. The cross is a few pixels from where a tab is dragged, and behind it may be an agent halfway through a job; a tab that has finished still closes at once.'
   },
   {
+    title: 'Closing the window',
+    body: 'leaves the application running behind the tray icon whenever an agent is in one of the tabs, because the click that tidies the desktop should not kill a job halfway through. A shell nobody recognised as an agent is asked about; with nothing running the window simply closes.'
+  },
+  {
+    title: 'Unsaved edits',
+    body: 'refuse to be closed over. A file, a tab or the window asks first, and the status bar says which file is holding it up.'
+  },
+  {
     title: 'The icon in the taskbar',
     body: 'carries the number of tabs waiting for you while you are looking elsewhere - green finished, amber asking for permission, red broken.'
   },
@@ -197,6 +240,14 @@ const CS_NOTES: HelpNote[] = [
   {
     title: 'Zavření tabu, ve kterém se pracuje',
     body: 'se nejdřív zeptá. Křížek je pár pixelů od místa, kde se tab tahá, a za ním může být agent v půlce práce; hotový tab se zavře rovnou.'
+  },
+  {
+    title: 'Zavření okna',
+    body: 'nechá aplikaci běžet za ikonou v traye vždycky, když je v některém tabu agent - klik, kterým si uklízíš plochu, nemá zabít rozdělanou práci. Na běžící shell, který nikdo nerozpoznal jako agenta, se zeptá; když neběží nic, okno se prostě zavře.'
+  },
+  {
+    title: 'Neuložené úpravy',
+    body: 'se nedají zavřít mlčky. Soubor, tab i okno se zeptají a stavová lišta řekne, který soubor to drží.'
   },
   {
     title: 'Ikona v hlavním panelu',
@@ -249,9 +300,28 @@ export function keyTokens(keys: string): KeyToken[] {
 export function renderShortcuts(
   host: HTMLElement,
   lang: Lang,
-  labels: { heading: string; notes: string; close: string }
+  labels: { intro: string; heading: string; notes: string; close: string }
 ): void {
   host.textContent = ''
+
+  const introTitle = document.createElement('h2')
+  introTitle.textContent = labels.intro
+  host.append(introTitle)
+
+  const intro = helpIntro(lang)
+  const lead = document.createElement('p')
+  lead.className = 'help-lead'
+  lead.textContent = intro.lead
+  host.append(lead)
+
+  const points = document.createElement('ul')
+  points.className = 'help-points'
+  for (const point of intro.points) {
+    const item = document.createElement('li')
+    item.textContent = point
+    points.append(item)
+  }
+  host.append(points)
 
   const heading = document.createElement('h2')
   heading.textContent = labels.heading
