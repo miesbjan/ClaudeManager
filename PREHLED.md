@@ -94,8 +94,8 @@ tab a zpět. Jakmile má fokus shell, ostatní klávesy jdou nedotčené jemu.
 - **Účet**: pětihodinové okno a sedmidenní limit jako ukazatele od 0 do 100, stejná
   čísla jako `/usage`. Barva se čte jako palivoměr — do poloviny zelená, od poloviny
   oranžová, od čtyř pětin červená. Tooltip řekne, kdy se okno obnoví.
-  Poslední odečtenou hodnotu si aplikace nechá i hodinu a napíše do tooltipu, kdy ji
-  četla — zmizet by bylo horší než ukázat trochu starší číslo. Když se nepodaří zjistit
+  Poslední odečtenou hodnotu si aplikace nechá i hodinu — a přežije i restart, protože
+  je uložená na disku — a napíše do tooltipu, kdy ji četla — zmizet by bylo horší než ukázat trochu starší číslo. Když se nepodaří zjistit
   nic, nezobrazí se nic — nikdy chyba.
 
 ## Vzhled, jazyk, paměť

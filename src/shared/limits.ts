@@ -44,6 +44,29 @@ export function parsePlanUsage(body: unknown): PlanUsage | null {
   return usage.windowPercent === null && usage.weekPercent === null ? null : usage
 }
 
+/**
+ * Reads back a reading this application wrote itself - a cache on disk, not the
+ * endpoint's answer. `parsePlanUsage` cannot do it: that one takes the shape the
+ * server sends, and by the time it is stored it has already been through it.
+ */
+export function asPlanUsage(value: unknown): PlanUsage | null {
+  if (!value || typeof value !== 'object') return null
+  const record = value as Record<string, unknown>
+
+  const percent = (key: string): number | null =>
+    typeof record[key] === 'number' && Number.isFinite(record[key]) ? (record[key] as number) : null
+  const iso = (key: string): string | null =>
+    typeof record[key] === 'string' && record[key] !== '' ? (record[key] as string) : null
+
+  const usage: PlanUsage = {
+    windowPercent: percent('windowPercent'),
+    windowResetsAt: iso('windowResetsAt'),
+    weekPercent: percent('weekPercent'),
+    weekResetsAt: iso('weekResetsAt')
+  }
+  return usage.windowPercent === null && usage.weekPercent === null ? null : usage
+}
+
 /** How long until a window resets, said the way a person would: "2 h 14 min". */
 export function timeUntil(iso: string | null, now: number): string | null {
   if (!iso) return null

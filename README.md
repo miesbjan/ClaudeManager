@@ -241,9 +241,10 @@ Files passed on the command line are opened too, so the app works as a handler f
   glance. The tooltips give the reset times.
 
   Asked once a minute the endpoint starts answering 429, so a reading counts as
-  current for five minutes, a rate limit is met with a quarter of an hour of silence,
+  current for ten minutes, a rate limit is met with a quarter of an hour of silence,
   and the last good reading stays on screen for up to an hour rather than the gauges
-  vanishing - with the time it was taken added to the tooltip once it is no longer
+  vanishing. It is also kept beside `state.json`, because otherwise a restart begins
+  blind - and a restart during a refusal means an empty status bar until it relents - with the time it was taken added to the tooltip once it is no longer
   current. The reset times inside a kept reading stay right on their own, which is
   what makes a stale gauge worth more than an empty one.
 

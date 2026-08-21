@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { limitLevel, parsePlanUsage, timeUntil } from '../src/shared/limits.ts'
+import { asPlanUsage, limitLevel, parsePlanUsage, timeUntil } from '../src/shared/limits.ts'
 
 describe('parsePlanUsage', () => {
   it('reads both windows out of the answer', () => {
@@ -79,5 +79,40 @@ describe('limitLevel', () => {
   /* Nothing to show is not the same as something to worry about. */
   it('treats a number it never got as room to spare', () => {
     assert.equal(limitLevel(null), 'calm')
+  })
+})
+
+describe('asPlanUsage', () => {
+  const usage = {
+    windowPercent: 54,
+    windowResetsAt: '2026-08-21T14:00:00Z',
+    weekPercent: 34,
+    weekResetsAt: '2026-08-25T09:00:00Z'
+  }
+
+  /*
+   * This reads back what the application itself wrote. `parsePlanUsage` takes the
+   * shape the server sends and would reject it - which is exactly the mistake this
+   * test exists to catch, since a cache that never loads fails silently.
+   */
+  it('reads back a reading it stored', () => {
+    assert.deepEqual(asPlanUsage(usage), usage)
+    assert.equal(parsePlanUsage(usage), null)
+  })
+
+  it('takes a half-filled reading, since one window is worth showing', () => {
+    assert.deepEqual(asPlanUsage({ windowPercent: 12 }), {
+      windowPercent: 12,
+      windowResetsAt: null,
+      weekPercent: null,
+      weekResetsAt: null
+    })
+  })
+
+  it('treats anything else as no cache at all', () => {
+    assert.equal(asPlanUsage(null), null)
+    assert.equal(asPlanUsage('54%'), null)
+    assert.equal(asPlanUsage({}), null)
+    assert.equal(asPlanUsage({ windowPercent: 'a lot' }), null)
   })
 })

@@ -740,3 +740,12 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   poslední známá hodnota zůstává na obrazovce až hodinu. Zmizet je horší než ukázat
   trochu starší číslo — časy obnovy uvnitř něj zůstávají správné samy od sebe — ale
   jakmile čtení není aktuální, tooltip řekne, kdy vzniklo.
+- **21. 8. 2026** - Poslední čtení limitů leží na disku vedle `state.json`. Vyšlo
+  z prvního ostrého zásahu do rate limitu: aplikace se restartovala, paměť byla
+  prázdná, endpoint odmítal a lišta zůstala prázdná, i když číslo z doby před půl
+  hodinou by bylo lepší než nic. Je to jen cache: nečitelná, poškozená i stará
+  znamenají to samé co žádná. Čtení navíc platí deset minut místo pěti — rate limit
+  se podělí s CLI, takže méně dotazů je lepší než přesnější číslo.
+  Uložený tvar čte vlastní funkce, ne `parsePlanUsage`: ta bere odpověď serveru, ne
+  to, co už přes ni prošlo. Chyba, která by se tím zavřela potichu — cache, která se
+  nikdy nenačte — je teď pokrytá testem.

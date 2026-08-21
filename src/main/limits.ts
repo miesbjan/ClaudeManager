@@ -1,7 +1,8 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { parsePlanUsage, type PlanUsage } from '../shared/limits'
+import { app } from 'electron'
+import { asPlanUsage, parsePlanUsage, type PlanUsage } from '../shared/limits'
 
 /**
  * Subscription usage, from the endpoint Claude Code itself calls for `/usage`.
@@ -24,7 +25,7 @@ const ENDPOINT = 'https://api.anthropic.com/api/oauth/usage'
  * Percentages do not move by the second, and the endpoint says so itself: asked once
  * a minute it starts answering 429. Five minutes is still current enough to steer by.
  */
-const FRESH_MS = 5 * 60_000
+const FRESH_MS = 10 * 60_000
 
 /** After a plain failure - offline, a hiccup - it is worth another try soon. */
 const RETRY_MS = 60_000
@@ -39,8 +40,39 @@ const COOLDOWN_MS = 15 * 60_000
  */
 const KEEP_MS = 60 * 60_000
 
-let lastGood: { at: number; usage: PlanUsage } | null = null
+type Reading = { at: number; usage: PlanUsage }
+
+let lastGood: Reading | null = null
 let nextTry = 0
+
+/**
+ * The last reading also lives on disk, because otherwise a restart begins blind - and
+ * a restart while the endpoint is refusing means an empty status bar until it relents.
+ * It is a cache and nothing else: unreadable, unparsable or ancient all mean the same
+ * as absent.
+ */
+function cacheFile(): string {
+  return join(app.getPath('userData'), 'limits.json')
+}
+
+function loadCache(): void {
+  if (lastGood) return
+  try {
+    const parsed = JSON.parse(readFileSync(cacheFile(), 'utf8')) as Partial<Reading>
+    const usage = asPlanUsage((parsed as { usage?: unknown }).usage)
+    if (usage && typeof parsed.at === 'number') lastGood = { at: parsed.at, usage }
+  } catch {
+    // No cache yet, or one written by a version that shaped it differently.
+  }
+}
+
+function saveCache(reading: Reading): void {
+  try {
+    writeFileSync(cacheFile(), JSON.stringify(reading))
+  } catch {
+    // A cache that cannot be written is not worth a word to anyone.
+  }
+}
 
 function accessToken(): string | null {
   try {
@@ -63,6 +95,7 @@ function lastKnown(now: number): PlanUsage | null {
 
 export async function readPlanUsage(): Promise<PlanUsage | null> {
   const now = Date.now()
+  loadCache()
   if (lastGood && now - lastGood.at < FRESH_MS) return { ...lastGood.usage, readAt: lastGood.at }
   if (now < nextTry) return lastKnown(now)
 
@@ -84,6 +117,7 @@ export async function readPlanUsage(): Promise<PlanUsage | null> {
       const usage = parsePlanUsage(await response.json())
       if (usage) {
         lastGood = { at: now, usage }
+        saveCache(lastGood)
         nextTry = now + FRESH_MS
         return { ...usage, readAt: now }
       }
