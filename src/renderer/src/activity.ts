@@ -97,9 +97,15 @@ const PERMISSION_MARKERS = ['Yes, allow all', 'No, and tell Claude what to do di
 
 /*
  * How a pane is known to be running Claude Code rather than an ordinary shell: its
- * own interface says so. The banner is printed once when a session starts and the
- * hint sits under the input box, redrawn constantly, so one of the two shows up
- * within the first moments either way.
+ * own interface says so. The banner is printed once when a session starts; the rest
+ * live in the frame around the input box, which is redrawn constantly, so one of them
+ * shows up within moments however the session was started.
+ *
+ * More than one, because the first pair proved not to be enough: a session started in
+ * a directory it already trusts goes straight to the input box without a banner, and
+ * the hint under it gives way to the mode line as soon as anything is typed. Watched
+ * live, a real session showed only „auto mode on (shift+tab to cycle)“ - so the mode
+ * line is here too, by its wording and by the glyph it opens with.
  *
  * The obvious signal would have been the `OSC 9;4` progress sequence, which is what
  * makes a Windows Terminal tab spin - but Claude Code does not emit it. The string
@@ -107,7 +113,12 @@ const PERMISSION_MARKERS = ['Yes, allow all', 'No, and tell Claude what to do di
  * was checked rather than assumed. It is fragile in the same way they are: a change
  * of wording turns the light off rather than making it lie.
  */
-const AGENT_MARKERS = ['Welcome to Claude Code', '? for shortcuts']
+const AGENT_MARKERS = [
+  'Welcome to Claude Code', // printed once, when a session starts
+  '? for shortcuts', // under the input box
+  'shift+tab to cycle', // the mode line, whichever mode it is in
+  '⏵⏵' // the glyph that mode line starts with
+]
 
 /** Colour and cursor codes sit between the words on screen; drop them first. */
 function stripAnsi(text: string): string {

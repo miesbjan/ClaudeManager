@@ -345,3 +345,31 @@ describe('shownActivity', () => {
     assert.equal(shownActivity('alert', true), 'alert')
   })
 })
+
+describe('recognising the interface a real session draws', () => {
+  /*
+   * Taken from a session watched in the app rather than imagined: started in a
+   * directory it already trusted, it printed no banner at all and its input box
+   * carried the mode line. The first version of this looked for the banner and the
+   * shortcut hint alone, and the dot stayed dark through the whole session.
+   */
+  const FOOTER = '\u23f5\u23f5 auto mode on (shift+tab to cycle)'
+
+  it('knows the mode line under the input box', () => {
+    assert.equal(createSignalReader()(FOOTER).agent, true)
+  })
+
+  it('knows the other modes it cycles through', () => {
+    for (const mode of ['accept edits on', 'plan mode on', 'auto mode on']) {
+      const line = `\u23f5\u23f5 ${mode} (shift+tab to cycle)`
+      assert.equal(createSignalReader()(line).agent, true, mode)
+    }
+  })
+
+  it('is not fooled by an ordinary shell printing ordinary things', () => {
+    const read = createSignalReader()
+    for (const line of ['npm run build', 'PS C:\Users\me> git status', 'cycle through the list']) {
+      assert.equal(read(line + '\r\n').agent, false, line)
+    }
+  })
+})

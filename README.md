@@ -293,7 +293,11 @@ Files passed on the command line are opened too, so the app works as a handler f
   Claude Code is recognised by its interface text, not by that sequence: it does not
   emit one. That was checked rather than assumed - the string does not occur anywhere
   in its binary, while the labels of its permission dialog do. It is fragile in the
-  same way they are, and fails the same way: the light stays off rather than lying.
+  same way they are, and fails the same way: the light stays off rather than lying -
+  which it duly did the first time, when only the welcome banner and the shortcut hint
+  were looked for. A session started in a directory it already trusts prints no banner,
+  and the hint gives way to the mode line as soon as anything is typed, so the mode
+  line is watched for as well, by its wording and by the glyph it opens with.
 
   Where a program does report progress the dot follows that report and is exact.
   Everything else falls back to a guess: quiet for two seconds counts as finished. The two are kept apart

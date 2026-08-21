@@ -781,3 +781,11 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   nemožnost odejít z panelu, ve kterém právě píšeš, je cítit pokaždé. Klávesa se
   odmítne uvnitř xtermu a tím doputuje do okna; do shellu se neposílá nic — ověřeno
   tím, že `Ctrl+5` bez pátého tabu nezmění v terminálu ani znak.
+- **21. 8. 2026** - Znaky, podle kterých se pozná běžící Claude, jsou širší, než byl
+  první odhad — a opět to rozhodlo pozorování, ne úvaha. Původní dvojice „Welcome to
+  Claude Code" a „? for shortcuts" v praxi nestačila: session spuštěná v adresáři,
+  kterému už věří, žádný banner nevypíše a nápověda pod vstupním polem se hned
+  vymění za řádek režimu. Puštěno naostro v aplikaci: Claude běžel, panel kreslil
+  „⏵⏵ auto mode on (shift+tab to cycle)" a tečka zůstávala tmavá celých pět minut.
+  Sledovaných řetězců je teď víc, včetně řádku režimu a glyfu, kterým začíná; test na
+  ně používá text odečtený z opravdové session, ne vymyšlený.
