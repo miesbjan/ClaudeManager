@@ -1895,6 +1895,9 @@ themeButton.addEventListener('click', cycleTheme)
  * follows from a normal render.
  */
 function applyLanguage(): void {
+  // What the page says it is written in, for whatever reads it rather than looks at it:
+  // the spellchecker in the prompt buffer, for one.
+  document.documentElement.lang = lang
   langButton.textContent = nextLang(lang).toUpperCase()
   langButton.title = T('toolbar.lang.title')
 
