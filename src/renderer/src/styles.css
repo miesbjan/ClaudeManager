@@ -181,7 +181,14 @@ body.dragging::after {
   transition: width 0.4s ease-out;
 }
 
-/* Colour arrives only when the number starts to matter. */
+/*
+ * A fuel gauge rather than a warning light: green while there is room, amber from
+ * half, red from four fifths. The track stays quiet so the fill is what is read.
+ */
+.meter.calm .meter-fill {
+  background: var(--activity-done);
+}
+
 .meter.warn .meter-fill {
   background: var(--change);
 }

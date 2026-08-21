@@ -218,8 +218,8 @@ Files passed on the command line are opened too, so the app works as a handler f
   the selection becomes visible and editing carries on from there.
 - **Subscription usage.** The far right of the status bar carries a small gauge for
   the five-hour window and one for the seven-day limit - the same numbers `/usage`
-  shows in Claude Code - each filling as the window is spent, turning amber past three
-  quarters and red past nine tenths. They sit next to what the session has used, with
+  shows in Claude Code - each filling as the window is spent and read like a fuel
+  gauge: green below half, amber from half, red from four fifths. They sit next to what the session has used, with
   a rule between: the same question from two sides, session and account, read in one
   glance. The tooltips give the reset times.
 

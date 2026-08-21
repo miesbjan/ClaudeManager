@@ -51,9 +51,15 @@ export function timeUntil(iso: string | null, now: number): string | null {
   return hours >= 24 ? `${Math.floor(hours / 24)} d ${hours % 24} h` : `${hours} h ${minutes % 60} min`
 }
 
-/** Their own thresholds: below three quarters it is just a number. */
-export function limitLevel(percent: number | null): 'quiet' | 'warn' | 'critical' {
-  if (percent === null) return 'quiet'
-  if (percent >= 90) return 'critical'
-  return percent >= 75 ? 'warn' : 'quiet'
+export type LimitLevel = 'calm' | 'warn' | 'critical'
+
+/**
+ * Three bands, read like a fuel gauge: green below half, amber from half, red from
+ * four fifths. A window nobody could read the number of is green, because saying
+ * nothing is not a warning.
+ */
+export function limitLevel(percent: number | null): LimitLevel {
+  if (percent === null) return 'calm'
+  if (percent >= 80) return 'critical'
+  return percent >= 50 ? 'warn' : 'calm'
 }

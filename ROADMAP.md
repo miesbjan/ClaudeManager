@@ -686,3 +686,10 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   kvůli `.ts` a jednou v Electronu kvůli kreslení: Electron má starší Node, který `.ts`
   neumí, a v ESM se v něm `app.whenReady()` nedočká nikdy — proto je kreslící půlka
   CommonJS.
+- **21. 8. 2026** - Ukazatele limitů mají barvu pořád, ne až když je zle: do 50 %
+  zelená, do 80 % oranžová, výš červená. Je to vědomý ústup od pravidla „barva
+  přichází, až když na čísle začne záležet", které tu platí jinde a platí dál —
+  důvod je, že tohle není výstraha, ale palivoměr: čte se z něj, kolik zbývá, ne
+  jestli hoří. Šedá výplň tu otázku nezodpovídá bez čtení čísla vedle ní.
+  Číslo zůstává šedé, dokud je klid, a barví se až od oranžové — důraz má stále
+  stupně.

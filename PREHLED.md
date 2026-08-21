@@ -85,7 +85,8 @@ tab a zpět. Jakmile má fokus shell, ostatní klávesy jdou nedotčené jemu.
   session napsal. Čte se z transcriptu, který Claude Code píše tak jako tak — session
   se na nic neptá a nic ji to nestojí.
 - **Účet**: pětihodinové okno a sedmidenní limit jako ukazatele od 0 do 100, stejná
-  čísla jako `/usage`. Barva přijde až od tří čtvrtin, tooltip řekne, kdy se obnoví.
+  čísla jako `/usage`. Barva se čte jako palivoměr — do poloviny zelená, od poloviny
+  oranžová, od čtyř pětin červená. Tooltip řekne, kdy se okno obnoví.
   Když se je nepodaří zjistit, nezobrazí se nic — nikdy chyba.
 
 ## Vzhled, jazyk, paměť

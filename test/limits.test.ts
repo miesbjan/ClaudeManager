@@ -64,16 +64,20 @@ describe('timeUntil', () => {
 })
 
 describe('limitLevel', () => {
-  it('stays quiet while there is room', () => {
-    assert.equal(limitLevel(0), 'quiet')
-    assert.equal(limitLevel(74.9), 'quiet')
-    assert.equal(limitLevel(null), 'quiet')
+  it('is green while there is half the window left', () => {
+    assert.equal(limitLevel(0), 'calm')
+    assert.equal(limitLevel(49.9), 'calm')
   })
 
-  it('warns from three quarters and shouts from nine tenths', () => {
-    assert.equal(limitLevel(75), 'warn')
-    assert.equal(limitLevel(89), 'warn')
-    assert.equal(limitLevel(90), 'critical')
+  it('turns amber at half and red at four fifths', () => {
+    assert.equal(limitLevel(50), 'warn')
+    assert.equal(limitLevel(79.9), 'warn')
+    assert.equal(limitLevel(80), 'critical')
     assert.equal(limitLevel(100), 'critical')
+  })
+
+  /* Nothing to show is not the same as something to worry about. */
+  it('treats a number it never got as room to spare', () => {
+    assert.equal(limitLevel(null), 'calm')
   })
 })
