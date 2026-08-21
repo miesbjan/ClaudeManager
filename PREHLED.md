@@ -89,7 +89,8 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
 
 Ctrl patří tabům, Alt panelům, jako v tmuxu: `Alt+←` / `Alt+→` fokus, `Alt+1/2/3`
 shell / dokument / server, `Alt+Shift+šipky` posun děliče, `Alt+Z` zvětšení na celý
-tab a zpět. Jakmile má fokus shell, ostatní klávesy jdou nedotčené jemu.
+tab a zpět. Jakmile má fokus shell, ostatní klávesy jdou nedotčené jemu — kromě
+``Ctrl+` ``, `Ctrl+Tab`, `Ctrl+=`/`Ctrl+-` a `Ctrl+1`…`Ctrl+9`, které platí i tam.
 
 ## Čísla vpravo dole
 

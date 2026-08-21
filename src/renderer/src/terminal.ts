@@ -2,7 +2,7 @@ import { Terminal, type IDisposable, type ILink } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { DEFAULT_FAMILY, DEFAULT_SIZE, type TerminalFont } from '../../shared/font'
 import { cellRange, findPaths, rowOf } from './paths'
-import { paneCommand, terminalAction } from '../../shared/shortcuts'
+import { paneCommand, tabDigit, terminalAction } from '../../shared/shortcuts'
 import '@xterm/xterm/css/xterm.css'
 
 /** Kept in step with the palette in styles.css. */
@@ -232,6 +232,11 @@ export class TerminalPane {
 
     // Pane keys are the one thing taken from the shell, the way tmux takes a prefix.
     if (paneCommand(event)) return false
+    /*
+     * Not handled here: refusing it in xterm is enough, since the key then reaches
+     * the window and the tab switch happens there.
+     */
+    if (tabDigit(event)) return false
 
     const action = terminalAction(event)
     if (action === 'paste') {

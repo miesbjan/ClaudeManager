@@ -37,6 +37,21 @@ export type KeyLike = {
  * Ctrl+V pastes, and Ctrl+Shift+V stays alongside it for fingers that learned the
  * other terminals. Everything else belongs to the shell.
  */
+/**
+ * Ctrl and a digit: which tab to go to. Claimed even while the shell has focus, the
+ * way Ctrl+` and the font keys are - what a terminal makes of these is a handful of
+ * control characters nobody types on purpose (Ctrl+2 is NUL, Ctrl+3 is escape), while
+ * being unable to leave the pane you are typing in is felt every time.
+ *
+ * Read from the physical key: on a Czech layout Ctrl+Shift+1 arrives as '!'.
+ */
+export function tabDigit(event: KeyLike): number | null {
+  if (!event.ctrlKey || event.altKey || event.metaKey) return null
+  if (!event.code.startsWith('Digit')) return null
+  const digit = Number(event.code.slice(5))
+  return digit >= 1 && digit <= 9 ? digit : null
+}
+
 export function terminalAction(event: KeyLike): 'paste' | 'copy' | null {
   if (!event.ctrlKey || event.altKey || event.metaKey) return null
   const key = event.key.toLowerCase()

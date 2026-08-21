@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 import {
   paneCommand,
   RESIZE_STEP,
+  tabDigit,
   terminalAction,
   type KeyLike
 } from '../src/shared/shortcuts.ts'
@@ -108,5 +109,42 @@ describe('terminalAction', () => {
     for (const letter of ['a', 'z', 'x', 'enter']) {
       assert.equal(terminalAction(key({ key: letter, ctrlKey: true })), null)
     }
+  })
+})
+
+describe('tabDigit', () => {
+  const press = (overrides: Partial<KeyLike>): KeyLike => ({
+    key: '',
+    code: '',
+    altKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    ...overrides
+  })
+
+  it('reads the tab from the physical key', () => {
+    assert.equal(tabDigit(press({ code: 'Digit1', ctrlKey: true })), 1)
+    assert.equal(tabDigit(press({ code: 'Digit9', ctrlKey: true })), 9)
+  })
+
+  /* On a Czech layout Ctrl+Shift+1 arrives as '!', so the character is no guide. */
+  it('works shifted, whatever character that produces', () => {
+    assert.equal(tabDigit(press({ key: '!', code: 'Digit1', ctrlKey: true, shiftKey: true })), 1)
+  })
+
+  it('claims nothing without Ctrl, and nothing with Alt', () => {
+    assert.equal(tabDigit(press({ code: 'Digit1' })), null)
+    assert.equal(tabDigit(press({ code: 'Digit1', altKey: true, ctrlKey: true })), null)
+  })
+
+  /* Alt and a digit is a pane, not a tab - Ctrl acts on tabs, Alt on panes. */
+  it('leaves Alt+digit to the panes', () => {
+    assert.equal(tabDigit(press({ code: 'Digit2', altKey: true })), null)
+    assert.ok(paneCommand(press({ code: 'Digit2', altKey: true })))
+  })
+
+  it('has nothing to say about zero or a letter', () => {
+    assert.equal(tabDigit(press({ code: 'Digit0', ctrlKey: true })), null)
+    assert.equal(tabDigit(press({ code: 'KeyT', ctrlKey: true })), null)
   })
 })

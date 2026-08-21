@@ -35,7 +35,7 @@ import { sendable } from './prompt'
 import { createUrlReader, nextRightMode, normalizeUrl } from './web'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { MAX_PROMPT } from '../../shared/session'
-import { paneCommand, type PaneCommand } from '../../shared/shortcuts'
+import { paneCommand, tabDigit, type PaneCommand } from '../../shared/shortcuts'
 import { TerminalPane } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
 import { activeAfterMove } from '../../shared/tabs'
@@ -1980,16 +1980,17 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
+  const digit = tabDigit(event) ?? 0
+
   /*
    * Keys typed into a shell belong to the shell - Ctrl+W deletes a word there and
    * Ctrl+D means end of input. So while the terminal has focus the app answers only
-   * to the shifted variants, plus Ctrl+Tab, which no shell uses.
+   * to the shifted variants, plus Ctrl+Tab and the tab digits, which no shell uses
+   * for anything anyone types deliberately.
    */
-  if (terminalHasFocus() && !event.shiftKey && event.key !== 'Tab') return
+  if (terminalHasFocus() && !event.shiftKey && event.key !== 'Tab' && digit === 0) return
 
   const key = event.key.toLowerCase()
-  // Read digits from the physical key: Ctrl+Shift+1 arrives as '!' on many layouts.
-  const digit = event.code.startsWith('Digit') ? Number(event.code.slice(5)) : 0
 
   if (key === 't') {
     event.preventDefault()

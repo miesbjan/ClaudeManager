@@ -774,3 +774,10 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   prázdný. Prázdný tab se teď jmenuje „Nový tab", ale mezi spuštěními se nepamatuje:
   není v něm co obnovit a jeho shell stejně končí s oknem. Až bude tab pamětlivý na
   svůj adresář nezávisle na souborech, změní se to.
+- **21. 8. 2026** - `Ctrl+1` až `Ctrl+9` platí i s fokusem v terminálu. Pravidlo
+  „v shellu jen shiftované varianty" chrání klávesy, které tam něco dělají — `Ctrl+W`
+  maže slovo, `Ctrl+D` ukončuje vstup. Číslice mezi ně nepatří: terminál z nich dělá
+  řídicí znaky, které nikdo nemáčkne záměrně (`Ctrl+2` je NUL, `Ctrl+3` escape), zatímco
+  nemožnost odejít z panelu, ve kterém právě píšeš, je cítit pokaždé. Klávesa se
+  odmítne uvnitř xtermu a tím doputuje do okna; do shellu se neposílá nic — ověřeno
+  tím, že `Ctrl+5` bez pátého tabu nezmění v terminálu ani znak.

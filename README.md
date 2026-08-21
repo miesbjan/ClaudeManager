@@ -131,7 +131,10 @@ arrows, digits or `z` is unused by PowerShell and the TUIs that run in it.
 
 While the shell has focus its keys belong to it — `Ctrl+W` deletes a word, `Ctrl+D`
 means end of input. The app shortcuts above then answer only to their `Ctrl+Shift`
-variants; ``Ctrl+` `` and `Ctrl+Tab` keep working from either side.
+variants; ``Ctrl+` ``, `Ctrl+Tab`, `Ctrl+=`/`Ctrl+-` and `Ctrl+1`…`Ctrl+9` keep working
+from either side. The digits are claimed because what a terminal makes of them is a
+handful of control characters nobody types on purpose - `Ctrl+2` is NUL, `Ctrl+3` is
+escape - while being unable to leave the pane you are typing in is felt every time.
 
 Files passed on the command line are opened too, so the app works as a handler for
 `.md` files (the installer registers the association).
