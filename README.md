@@ -214,10 +214,12 @@ Files passed on the command line are opened too, so the app works as a handler f
   would type into the file instead of stepping. So the match is reported in words - the
   status bar says which line and what it says - and `Esc` puts the caret on it, where
   the selection becomes visible and editing carries on from there.
-- **Subscription usage.** The far right of the status bar reports how much of the
-  five-hour window and the seven-day limit is gone - the same numbers `/usage` shows
-  in Claude Code - and turns amber past three quarters, red past nine tenths. The
-  tooltip gives the reset times.
+- **Subscription usage.** The far right of the status bar carries a small gauge for
+  the five-hour window and one for the seven-day limit - the same numbers `/usage`
+  shows in Claude Code - each filling as the window is spent, turning amber past three
+  quarters and red past nine tenths. They sit next to what the session has used, with
+  a rule between: the same question from two sides, session and account, read in one
+  glance. The tooltips give the reset times.
 
   These come from an **undocumented endpoint**, `api/oauth/usage`, called with the
   OAuth token the CLI logged in with. Nothing Claude Code writes to disk carries them:

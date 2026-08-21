@@ -766,6 +766,33 @@ window.setInterval(() => void refreshUsage(), USAGE_POLL_MS)
  */
 const LIMITS_POLL_MS = 60000
 
+/** One gauge: a label, a bar that fills as the window is spent, and the number. */
+function meter(label: string, percent: number, resetsAt: string | null, now: number): HTMLElement {
+  const wrap = document.createElement('span')
+  wrap.className = 'meter ' + limitLevel(percent)
+
+  const name = document.createElement('span')
+  name.textContent = label
+
+  const track = document.createElement('span')
+  track.className = 'meter-track'
+  const fill = document.createElement('span')
+  fill.className = 'meter-fill'
+  fill.style.width = Math.max(0, Math.min(100, percent)) + '%'
+  track.append(fill)
+
+  const value = document.createElement('span')
+  value.className = 'meter-value'
+  value.textContent = Math.round(percent) + '%'
+
+  const left = timeUntil(resetsAt, now)
+  wrap.title = label === '5h' ? 'Five-hour window' : 'Seven-day limit'
+  wrap.title += ': ' + Math.round(percent) + '% used' + (left ? ', resets in ' + left : '')
+
+  wrap.append(name, track, value)
+  return wrap
+}
+
 async function refreshLimits(): Promise<void> {
   /*
    * No focus check here, unlike the session readout. This is one cached call a
@@ -776,31 +803,16 @@ async function refreshLimits(): Promise<void> {
   const plan = await window.api.readPlanUsage()
   if (!plan) return
 
-  const parts: string[] = []
-  if (plan.windowPercent !== null) parts.push('5h ' + Math.round(plan.windowPercent) + '%')
-  if (plan.weekPercent !== null) parts.push('7d ' + Math.round(plan.weekPercent) + '%')
-  if (parts.length === 0) return
-
   const now = Date.now()
-  const lines: string[] = []
-  if (plan.windowPercent !== null) {
-    const left = timeUntil(plan.windowResetsAt, now)
-    lines.push(
-      'Five-hour window: ' + Math.round(plan.windowPercent) + '% used' + (left ? ', resets in ' + left : '')
-    )
-  }
-  if (plan.weekPercent !== null) {
-    const left = timeUntil(plan.weekResetsAt, now)
-    lines.push(
-      'Seven-day limit: ' + Math.round(plan.weekPercent) + '% used' + (left ? ', resets in ' + left : '')
-    )
-  }
-  lines.push('A spent window means requests are refused, not billed on top.')
+  const gauges: HTMLElement[] = []
+  if (plan.windowPercent !== null) gauges.push(meter('5h', plan.windowPercent, plan.windowResetsAt, now))
+  if (plan.weekPercent !== null) gauges.push(meter('7d', plan.weekPercent, plan.weekResetsAt, now))
+  if (gauges.length === 0) return
 
+  limitsLabel.textContent = ''
+  limitsLabel.append(...gauges)
   limitsLabel.hidden = false
-  limitsLabel.textContent = parts.join('  ·  ')
-  limitsLabel.title = lines.join(String.fromCharCode(10))
-  limitsLabel.className = limitLevel(plan.windowPercent)
+  limitsLabel.title = 'A spent window means requests are refused, not billed on top.'
 }
 
 window.setInterval(() => void refreshLimits(), LIMITS_POLL_MS)

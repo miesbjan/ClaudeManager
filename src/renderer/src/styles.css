@@ -131,10 +131,16 @@ body.dragging::after {
   text-overflow: ellipsis;
 }
 
-/* The one number worth having in view while an agent works next to the document. */
-#usage {
+/*
+ * The right-hand end of the bar is one place, read in one glance: what this session
+ * has spent, then what is left of the account. The two are separated by a rule
+ * rather than by distance, because they answer the same question from two sides.
+ */
+#status-right {
   flex: 0 0 auto;
-  padding-left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -144,19 +150,51 @@ body.dragging::after {
   display: none;
 }
 
-/* What is left of the subscription, so a refusal is not a surprise. */
 #limits {
-  flex: 0 0 auto;
-  padding-left: 16px;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
 }
 
-#limits.warn {
+/* A short gauge that fills up as the window is spent. */
+.meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.meter-track {
+  width: 34px;
+  height: 7px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text-muted) 28%, transparent);
+  overflow: hidden;
+}
+
+.meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--text-muted);
+  transition: width 0.4s ease-out;
+}
+
+/* Colour arrives only when the number starts to matter. */
+.meter.warn .meter-fill {
+  background: var(--change);
+}
+
+.meter.warn .meter-value {
   color: var(--change);
 }
 
-#limits.critical {
+.meter.critical .meter-fill {
+  background: var(--danger);
+}
+
+.meter.critical .meter-value {
   color: var(--danger);
   font-weight: 600;
 }
