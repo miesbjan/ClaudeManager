@@ -174,11 +174,11 @@ export interface ViewerApi {
    */
   setTaskbarState(state: TaskbarState): void
   /**
-   * The window's icon, redrawn by the renderer with a badge on it. Windows draws its
-   * own overlay only in the bottom-right corner, so the badge is painted into the
-   * icon itself instead.
+   * The badge for the taskbar button - how many tabs are waiting - drawn by the
+   * renderer, or null when none are. `count` is for the description a screen reader
+   * reads out.
    */
-  setTaskbarIcon(dataUrl: string): void
+  setTaskbarBadge(dataUrl: string | null, count: number): void
   /** How much the Claude session running in this directory has used, if any is. */
   readUsage(cwd: string): Promise<SessionUsage | null>
   /** How much of the subscription is used - the same numbers `/usage` reports. */

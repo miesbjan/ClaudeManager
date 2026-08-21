@@ -42,7 +42,7 @@ const api: ViewerApi = {
   resolveFiles: (root, candidates) =>
     ipcRenderer.invoke('files:resolve', root, candidates) as Promise<Array<string | null>>,
   setTaskbarState: (state) => ipcRenderer.send('taskbar:set', state),
-  setTaskbarIcon: (dataUrl) => ipcRenderer.send('taskbar:icon', dataUrl),
+  setTaskbarBadge: (dataUrl, count) => ipcRenderer.send('taskbar:badge', dataUrl, count),
   readUsage: (cwd) => ipcRenderer.invoke('usage:read', cwd) as Promise<SessionUsage | null>,
   readPlanUsage: () => ipcRenderer.invoke('limits:read') as Promise<PlanUsage | null>,
   readClipboard: () => ipcRenderer.invoke('clipboard:read') as Promise<string>,

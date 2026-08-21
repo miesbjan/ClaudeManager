@@ -57,6 +57,26 @@ function badgeMarkup(badge: Badge): string {
 }
 
 /**
+ * The badge on its own: a numbered circle to hang on the corner of the taskbar
+ * button. Drawn edge to edge, because Windows scales it into a 16x16 overlay and
+ * anything smaller disappears at that size.
+ */
+export function badgeSvg(badge: Badge): string {
+  const text = badgeText(badge.count)
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="31" fill="#ffffff"/>
+  <circle cx="32" cy="32" r="27" fill="${BADGE_COLOURS[badge.level]}"/>
+  <text x="32" y="34" text-anchor="middle" dominant-baseline="central"
+        font-family="Segoe UI, sans-serif" font-weight="700"
+        font-size="${text.length > 1 ? 30 : 38}" fill="#ffffff">${text}</text>
+</svg>`
+}
+
+export function badgeDataUrl(badge: Badge): string {
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(badgeSvg(badge))
+}
+
+/**
  * The icon as SVG. With a badge it is the same picture with a numbered circle in the
  * corner, so the window can hand the whole thing to Windows as one image.
  */

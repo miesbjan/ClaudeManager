@@ -265,11 +265,19 @@ body.dragging::after {
   border-radius: 50%;
 }
 
+/* Work in progress turns, the way every spinner does; nothing else on the tab moves. */
 .tab-dot--working,
 .tab-dot--busy {
   background: transparent;
-  border: 1.5px solid var(--text-muted);
-  animation: activity-pulse 1.6s ease-in-out infinite;
+  border: 1.5px solid color-mix(in srgb, var(--text-muted) 30%, transparent);
+  border-top-color: var(--accent);
+  animation: tab-spin 0.9s linear infinite;
+}
+
+@keyframes tab-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .tab-dot--waiting,

@@ -282,7 +282,8 @@ Files passed on the command line are opened too, so the app works as a handler f
   flowing, green once it has finished, amber while the agent is asking for permission
   and can go no further, red when it rang the bell, failed or its shell fell over.
   A shell closed on purpose - `exit`, code 0 - leaves no dot at all; a red one there
-  would be crying wolf.
+  would be crying wolf. Work in progress turns, the way every spinner does; nothing
+  else on a tab moves, so the one thing that does is the thing to look at.
 
   There is a dot at all only where something has spoken for itself: an agent's own
   interface on screen, or a program reporting progress with `OSC 9;4`, the sequence
@@ -385,14 +386,18 @@ Files passed on the command line are opened too, so the app works as a handler f
   time rather than you. The colour is the most urgent reason among them: green
   finished, amber asking, red broken.
 
-  Windows has `setOverlayIcon` for badges, but it draws in the bottom-right corner and
-  nowhere else, which on this icon lands on the lines of the document. So the renderer
-  draws the whole icon on a canvas instead and the main process hangs it on the window
-  with `setIcon`. Two things to know about that: Windows caches the icon of an
-  executable per path, so a build that replaces an older one at the same path can keep
-  showing the old icon until the cache turns over, and while running from source all
-  Electron apps share one taskbar button, which makes the badge unreliable in `npm run
-  dev` and correct in a packaged app.
+  The badge is an overlay, `setOverlayIcon`, which is the one mechanism the taskbar
+  keeps up to date - and which chooses the corner itself. Painting the badge into the
+  icon and setting that as the window icon allows any corner and did work once, but the
+  taskbar holds on to the icon it first associated with the executable and ignores what
+  comes later, so the number froze at whatever it happened to be. A corner chosen by
+  the system beats a number that stops being true.
+
+  Two more things to know: Windows caches the icon of an executable per path, so a
+  build replacing an older one at the same path can keep showing the old icon until the
+  cache turns over, and while running from source all Electron apps share one taskbar
+  button, which makes the badge unreliable in `npm run dev` and correct in a packaged
+  app.
 - **Interface language.** The `EN`/`CS` button beside the theme switches the whole
   interface between English and Czech, and the button shows the language it will
   switch to. English is the source: the Czech table is typed against its keys, so a

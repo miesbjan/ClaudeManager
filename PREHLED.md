@@ -33,7 +33,7 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
   Hotový tab se zavře rovnou.
 - **Pořadí tabů** se mění tažením do strany. Tab z lišty nikam nevytáhneš — je to
   místo s běžícím shellem, ne něco na odhození na plochu.
-- **Tečka na tabu** říká, co se v něm děje, když se zrovna díváš jinam: blikající
+- **Tečka na tabu** říká, co se v něm děje, když se zrovna díváš jinam: točící se
   kroužek pracuje se, zelená hotovo nebo je chvíli ticho, oranžová ptá se na
   povolení, červená zazvonil nebo spadl shell. **Objeví se jen tam, kde běží agent** —
   nad samotným shellem v adresáři nesvítí nic, protože o agentovi nemá co říct.

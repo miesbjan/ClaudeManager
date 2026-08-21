@@ -426,15 +426,19 @@ function registerIpc(): void {
   })
 
   /*
-   * The badge with the number of tabs waiting for you. Windows has `setOverlayIcon`
-   * for this, but it only ever draws in the bottom-right corner; the badge belongs in
-   * the top-right, above the lines of the document, so the renderer draws the whole
-   * icon and this only hangs it on the window.
+   * The badge with the number of tabs waiting for you, hung on the corner of the
+   * taskbar button. This is the one mechanism Windows keeps up to date: the icon of
+   * a window can be replaced too, and allows any corner, but the taskbar holds on to
+   * the icon it first associated with the executable and ignores what comes later.
    */
-  ipcMain.on('taskbar:icon', (_event, dataUrl: string) => {
+  ipcMain.on('taskbar:badge', (_event, dataUrl: string | null, count: number) => {
     if (!win || win.isDestroyed()) return
+    if (!dataUrl) {
+      win.setOverlayIcon(null, '')
+      return
+    }
     const image = nativeImage.createFromDataURL(dataUrl)
-    if (!image.isEmpty()) win.setIcon(image)
+    if (!image.isEmpty()) win.setOverlayIcon(image, `${count} waiting`)
   })
 
   ipcMain.handle('usage:read', (_event, cwd: string) => readUsage(cwd))

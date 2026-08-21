@@ -789,3 +789,15 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   „⏵⏵ auto mode on (shift+tab to cycle)" a tečka zůstávala tmavá celých pět minut.
   Sledovaných řetězců je teď víc, včetně řádku režimu a glyfu, kterým začíná; test na
   ně používá text odečtený z opravdové session, ne vymyšlený.
+- **21. 8. 2026** - Badge se kreslí přes `setOverlayIcon`, tedy tam, kam ho položí
+  systém — a tím padá rozhodnutí z téhož dne o překreslování celé ikony. To fungovalo
+  při prvním zkoušení, jenže jen jednou: hlavní panel si drží ikonu, kterou k
+  programu přiřadil poprvé, a další ignoruje. Ukázalo se to až při používání —
+  číslo nenaskočilo vůbec — a při ověření neprobliklo ani vynucené. Číslo, které
+  přestane být pravdivé, je horší než roh, který si nevybereme. (Windows 11 ho ostatně
+  kreslí vpravo nahoru, tedy tam, kde byl původně chtěný.) Ověřeno na zabalené
+  aplikaci: zelená 1 po doběhnutí práce s minimalizovaným oknem, a překreslení na
+  červenou 7.
+- **21. 8. 2026** - Tečka „pracuje se" se točí místo blikání. Pulzování vypadalo stejně
+  jako „něco se děje" i „něco čeká"; otáčení říká jedině „probíhá“. Na tabu se nic
+  jiného nehne, takže to, co se hne, je to, na co se má kouknout.
