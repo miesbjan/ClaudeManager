@@ -22,24 +22,28 @@ export type HelpSection = { title: string; rows: HelpRow[] }
 export type HelpNote = { title: string; body: string }
 
 const EN_INTRO: HelpIntro = {
-  lead: 'A console for one project at a time: a shell on the left, what you are steering by on the right. Somewhere between a terminal and an editor, and deliberately much closer to the terminal.',
+  lead: 'A console for one project at a time: a shell on the left, what you are steering by on the right. Somewhere between a terminal and an editor, and deliberately much closer to the terminal - it is built for working next to an agent and keeping an eye on it.',
   points: [
     'A tab is a place, not a file: a directory, the shell running in it, its dev server, and however many files you have open there. Ctrl+T makes another place.',
     'A tab holds up to three panes - the shell, the document, and the page of the app you are building. Alt and the arrows move between them, Alt+Z zooms one to the whole tab.',
-    'It is built for working next to an agent. The document reloads itself and marks what changed, the dot on the tab says what the agent is doing, and the taskbar button says it while you are looking elsewhere.',
-    'Editing is deliberately tiny: any text file opens as it is written and Ctrl+S saves it. Enough to paste a key into .env or fix a typo, not enough to be an editor.',
-    'What it is not: no file tree, no LSP, no debugger, no settings screen. For those there is an editor, and it is one Alt+Tab away.'
+    'The document reloads itself whenever anything rewrites the file, and the blocks that changed are tinted for a moment - so you can see what the agent just did without reading the file again.',
+    'The dot on a tab says what its agent is doing: turning while it works, green when it has finished, amber when it is asking for permission and cannot go on, red when something broke. It says so on the tab you are looking at too.',
+    'The taskbar button carries the same thing while you are looking elsewhere: how many tabs are waiting for you, coloured by the most urgent one, and it flashes at the moment one finishes. Closing the window keeps the agents running behind the tray icon.',
+    'Bottom right is what it is costing: what the model had in front of it last turn and what it has written this session, and under that the five-hour window and the seven-day limit of the account, so a wall is visible before you hit it.',
+    'Small edits, not an editor: any text file opens as it is written and Ctrl+S saves it - enough to paste a key into .env or fix a typo. There is no file tree, no LSP and no debugger, and for anything that needs them the editor is one Alt+Tab away.'
   ]
 }
 
 const CS_INTRO: HelpIntro = {
-  lead: 'Konzole pro jeden projekt: vlevo shell, vpravo to, podle čeho se orientuješ. Někde mezi terminálem a editorem, a záměrně mnohem blíž terminálu.',
+  lead: 'Konzole pro jeden projekt: vlevo shell, vpravo to, podle čeho se orientuješ. Někde mezi terminálem a editorem, a záměrně mnohem blíž terminálu - je to postavené na práci vedle agenta a na dohledu nad ním.',
   points: [
     'Tab je místo, ne soubor: adresář, shell, který v něm běží, jeho dev server a kolik chceš otevřených souborů. Ctrl+T udělá další místo.',
     'V tabu jsou až tři panely - shell, dokument a stránka aplikace, kterou staví. Alt a šipky mezi nimi přepínají, Alt+Z jeden zvětší na celý tab.',
-    'Je to postavené na práci vedle agenta. Dokument se sám načítá znovu a označí, co se změnilo, tečka na tabu říká, co agent dělá, a ikona v hlavním panelu to říká i když se koukáš jinam.',
-    'Editace je záměrně minimální: každý textový soubor se otevře, jak je zapsaný, a Ctrl+S ho uloží. Dost na vložení klíče do .env nebo opravu překlepu, málo na editor.',
-    'Co to není: žádný soubory nalevo, žádné LSP, debugger ani obrazovka s nastavením. Na to je editor a je vzdálený jedno Alt+Tab.'
+    'Dokument se načte sám, kdykoli soubor někdo přepíše, a bloky, které se změnily, se na chvíli podbarví - takže vidíš, co agent právě udělal, bez čtení celého souboru.',
+    'Tečka na tabu říká, co jeho agent dělá: otáčí se, dokud pracuje, zelená když dobehl, oranžová když se ptá na povolení a dál se nehne, červená když se něco rozbilo. Svítí i na tabu, na který se právě koukáš.',
+    'Ikona v hlavním panelu nese totéž, když se koukáš jinam: kolik tabů na tebe čeká, obarvené podle toho nejnaléhavějšího, a v okamžiku, kdy něco dobehne, blikne. Zavřené okno nechá agenty běžet dál za ikonou v traye.',
+    'Vpravo dole je, co to stojí: co měl model v kontextu a co za tuhle session napsal, a pod tím pětihodinové okno a sedmidenní limit účtu - aby byla zeď vidět dřív, než do ní narazíš.',
+    'Malé úpravy ano, editor ne: každý textový soubor se otevře, jak je zapsaný, a Ctrl+S ho uloží - dost na vložení klíče do .env nebo opravu překlepu. Žádné soubory nalevo, žádné LSP ani debugger; na to, co je potřebuje, je editor vzdálený jedno Alt+Tab.'
   ]
 }
 

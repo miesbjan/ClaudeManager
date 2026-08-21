@@ -129,9 +129,19 @@ describe('helpIntro', () => {
    * from the window: what a tab is, that there are panes, that it is meant for working
    * beside an agent, and where editing stops.
    */
-  it('covers what a tab is, the panes, the agent and the limits of editing', () => {
+  it('covers the shape of the app and everything it watches for you', () => {
     const text = [helpIntro('en').lead, ...helpIntro('en').points].join(' ').toLowerCase()
-    for (const subject of ['tab is a place', 'pane', 'agent', 'editor']) {
+    const subjects = [
+      'tab is a place',
+      'pane',
+      'agent',
+      'reloads itself',
+      'dot on a tab',
+      'taskbar',
+      'seven-day limit',
+      'editor'
+    ]
+    for (const subject of subjects) {
       assert.ok(text.includes(subject), 'the intro says nothing about ' + subject)
     }
   })
