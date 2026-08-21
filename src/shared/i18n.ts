@@ -122,6 +122,11 @@ const en = {
   'shell.failed': 'Shell: {error}',
   'terminal.fontSize': 'Terminal font size {size}',
 
+  /* The buttons of the app's own question box. The last one is always the safe answer. */
+  'close.discard': 'Close and lose them',
+  'close.stop': 'Close and stop it',
+  'close.cancel': 'Keep it open',
+  'close.window': 'Something is running in a shell. Closing the window stops it.',
   'close.unsaved': 'Unsaved changes in {names}. Close and lose them?',
   'close.busy': 'Something is still running in {name}. Closing the tab stops it. Close anyway?',
   'close.busyMany': 'Something is still running in {count} of these tabs. Closing them stops it. Close anyway?',
@@ -241,6 +246,10 @@ const cs: Record<StringKey, string> = {
   'shell.failed': 'Shell: {error}',
   'terminal.fontSize': 'Velikost písma terminálu {size}',
 
+  'close.discard': 'Zavřít a přijít o ně',
+  'close.stop': 'Zavřít a zastavit',
+  'close.cancel': 'Nechat otevřené',
+  'close.window': 'V shellu něco běží. Zavřením okna se to zastaví.',
   'close.unsaved': 'Neuložené změny v {names}. Zavřít a přijít o ně?',
   'close.busy': 'V {name} něco běží. Zavřením tabu se to zastaví. Přesto zavřít?',
   'close.busyMany': 'V {count} z těchto tabů něco běží. Zavřením se to zastaví. Přesto zavřít?',

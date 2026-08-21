@@ -30,6 +30,7 @@ import { nextLang, translate, type Lang, type StringKey } from '../../shared/i18
 import { formatTokens } from '../../shared/usage'
 import { limitLevel, timeUntil } from '../../shared/limits'
 import { stepSelection, visibleEntries, type PaletteEntry } from './palette'
+import { askModal } from './modal'
 import { detectEol, isMarkdown, toEditorText, toFileText } from './plaintext'
 import { sendable } from './prompt'
 import { createUrlReader, nextRightMode, normalizeUrl } from './web'
@@ -82,6 +83,7 @@ const help = document.getElementById('help') as HTMLElement
 const promptPane = document.getElementById('prompt-pane') as HTMLElement
 const promptInput = document.getElementById('prompt-input') as HTMLTextAreaElement
 const promptSend = document.getElementById('prompt-send') as HTMLButtonElement
+const modal = document.getElementById('modal') as HTMLElement
 const palette = document.getElementById('palette') as HTMLElement
 const paletteInput = document.getElementById('palette-input') as HTMLInputElement
 const paletteList = document.getElementById('palette-list') as HTMLUListElement
@@ -295,11 +297,11 @@ async function loadDoc(tab: Tab, doc: Doc, diff = false): Promise<void> {
  * Anything unsaved has to be asked about before it is thrown away. There is no visible
  * list of what a tab holds, so closing one blind could take several files with it.
  */
-function confirmDiscard(docs: Doc[]): boolean {
+async function confirmDiscard(docs: Doc[]): Promise<boolean> {
   const dirty = docs.filter(isDirty)
   if (dirty.length === 0) return true
   const names = dirty.map((doc) => baseName(doc.path)).join(', ')
-  return window.confirm(T('close.unsaved', { names }))
+  return (await ask(T('close.unsaved', { names }), 'close.discard')) === 0
 }
 
 /**
@@ -307,17 +309,41 @@ function confirmDiscard(docs: Doc[]): boolean {
  * pixels from where a tab is dragged, and the thing behind it is an agent halfway
  * through a job - so this asks, while a tab that has finished still closes at once.
  */
-function confirmInterrupt(tab: Tab): boolean {
+async function confirmInterrupt(tab: Tab): Promise<boolean> {
   if (!interruptsWork(tab.activity)) return true
   const name = tab.name ?? baseName(shownDoc(tab)?.path ?? '')
-  return window.confirm(T('close.busy', { name }))
+  return (await ask(T('close.busy', { name }), 'close.stop')) === 0
 }
 
-function closeTab(index: number): void {
+/**
+ * Every question this window asks, in its own frame rather than the system's. The
+ * answer is the index of the button, and the last button is always the safe one -
+ * which is where Escape and the keyboard start.
+ */
+function ask(message: string, goAhead: StringKey): Promise<number> {
+  return askModal(modal, { message, buttons: [T(goAhead), T('close.cancel')] })
+}
+
+/*
+ * The main process owns the window and the shells, so it is the side that knows a close
+ * has to be asked about - but it has no typeface, no palette and no language. It sends
+ * which question, and this draws it.
+ */
+window.api.onAsk(({ id, kind }) => {
+  const question =
+    kind === 'quit'
+      ? ask(T('tray.quitAsk'), 'tray.quitConfirm')
+      : ask(T('close.window'), 'close.stop')
+  // Said before the answer: from here on the main process waits for a person.
+  window.api.askDrawn(id)
+  void question.then((answer) => window.api.answerAsk(id, answer))
+})
+
+async function closeTab(index: number): Promise<void> {
   const tab = tabs[index]
   if (!tab) return
-  if (!confirmInterrupt(tab)) return
-  if (!confirmDiscard(tab.docs)) return
+  if (!(await confirmInterrupt(tab))) return
+  if (!(await confirmDiscard(tab.docs))) return
   for (const doc of tab.docs) unwatchUnlessOpenElsewhere(doc.path, doc)
   shells.get(tab.id)?.dispose()
   shells.delete(tab.id)
@@ -338,15 +364,15 @@ function closeTab(index: number): void {
  * Closes the file on screen. The tab itself goes only when its last file does, which is
  * what makes Ctrl+W safe to press without checking what else the place holds.
  */
-function closeDoc(): void {
+async function closeDoc(): Promise<void> {
   const tab = tabs[activeIndex]
   const doc = shownDoc(tab)
   if (!tab || !doc) return
   if (tab.docs.length === 1) {
-    closeTab(activeIndex)
+    await closeTab(activeIndex)
     return
   }
-  if (!confirmDiscard([doc])) return
+  if (!(await confirmDiscard([doc]))) return
   unwatchUnlessOpenElsewhere(doc.path, doc)
   const next = indexAfterClose(tab.docs.length, tab.docIndex, tab.docIndex)
   tab.docs.splice(tab.docIndex, 1)
@@ -621,9 +647,9 @@ function showContextMenu(index: number, x: number, y: number): void {
   const items: Array<[string, () => void]> = [
     [T('tab.rename'), () => startRename(index)],
     ['Reload', () => void (doc && reloadPath(doc.path))],
-    [T('tab.closeFile'), closeDoc],
-    ['Close tab', () => closeTab(index)],
-    [T('tab.closeOthers'), () => closeOthers(index)],
+    [T('tab.closeFile'), () => void closeDoc()],
+    ['Close tab', () => void closeTab(index)],
+    [T('tab.closeOthers'), () => void closeOthers(index)],
     [
       T('tab.copyPath'),
       () => void (doc && navigator.clipboard.writeText(doc.path).catch(() => undefined))
@@ -652,14 +678,14 @@ function hideContextMenu(): void {
   ctxmenu.hidden = true
 }
 
-function closeOthers(keep: number): void {
+async function closeOthers(keep: number): Promise<void> {
   const kept = tabs[keep]
   if (!kept) return
   const others = tabs.filter((tab) => tab !== kept)
   // Several tabs at once: one question about all of them, not one each.
   const busy = others.filter((tab) => interruptsWork(tab.activity)).length
-  if (busy > 0 && !window.confirm(T('close.busyMany', { count: busy }))) return
-  if (!confirmDiscard(others.flatMap((tab) => tab.docs))) return
+  if (busy > 0 && (await ask(T('close.busyMany', { count: busy }), 'close.stop')) !== 0) return
+  if (!(await confirmDiscard(others.flatMap((tab) => tab.docs)))) return
   for (const tab of others) {
     for (const doc of tab.docs) unwatchUnlessOpenElsewhere(doc.path, doc)
     shells.get(tab.id)?.dispose()
@@ -2059,7 +2085,7 @@ window.addEventListener('keydown', (event) => {
     else closePalette()
   } else if (key === 'w') {
     event.preventDefault()
-    closeDoc()
+    void closeDoc()
   } else if (event.key === 'Tab') {
     event.preventDefault()
     cycleTab(event.shiftKey ? -1 : 1)

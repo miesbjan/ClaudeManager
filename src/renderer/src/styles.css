@@ -1000,6 +1000,69 @@ body.resizing {
 }
 
 /*
+ * The application's own question box. Over everything, because it is asked at the
+ * moment something is about to be lost, and nothing behind it should be clickable.
+ */
+#modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 45%);
+}
+
+#modal[hidden] {
+  display: none;
+}
+
+.modal-box {
+  width: min(440px, calc(100vw - 48px));
+  padding: 18px 20px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-tab-active);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 45%);
+}
+
+.modal-message {
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-btn {
+  font: inherit;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: default;
+}
+
+.modal-btn:hover {
+  border-color: var(--accent);
+}
+
+/* The safe answer is the one with the keyboard, so it is the one that looks chosen. */
+.modal-btn--safe {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.modal-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/*
  * The prompt buffer: a drawer at the bottom of the shell pane, because that is where
  * what you write in it ends up. Closed by default and given a fixed share of the
  * height, so opening it never leaves the terminal too small to read.
