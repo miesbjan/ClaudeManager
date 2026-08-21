@@ -117,6 +117,11 @@ describe('helpIntro', () => {
     for (const lang of ['en', 'cs'] as const) {
       const intro = helpIntro(lang)
       assert.ok(intro.lead.trim().length > 60, lang + ': the lead says too little')
+      // Five short paragraphs: a wall of text is not an introduction.
+      assert.equal(intro.points.length, 5, lang + ' does not have five points')
+      for (const point of intro.points) {
+        assert.ok(point.length < 240, lang + ': a point long enough to be skipped')
+      }
       assert.equal(intro.points.length, helpIntro('en').points.length, lang + ' has a different number of points')
       for (const point of intro.points) {
         assert.ok(point.trim().length > 40, lang + ': a point that says too little')
@@ -138,7 +143,7 @@ describe('helpIntro', () => {
       'reloads itself',
       'dot on a tab',
       'taskbar',
-      'seven-day limit',
+      'limits of the account',
       'editor'
     ]
     for (const subject of subjects) {
