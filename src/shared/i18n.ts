@@ -67,6 +67,7 @@ const en = {
   'limits.used': '{percent}% used',
   'limits.resetsIn': ', resets in {time}',
   'limits.note': 'A spent window means requests are refused, not billed on top.',
+  'limits.readAt': ' · read at {time}',
 
   'run.title': '{command}\nin {root}',
   'run.choose': 'choose what to run',
@@ -168,6 +169,7 @@ const cs: Record<StringKey, string> = {
   'limits.used': 'využito {percent} %',
   'limits.resetsIn': ', obnova za {time}',
   'limits.note': 'Vyčerpané okno znamená odmítnutí, ne doúčtování.',
+  'limits.readAt': ' · odečteno v {time}',
 
   'run.title': '{command}\nv {root}',
   'run.choose': 'vyber, co spustit',

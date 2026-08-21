@@ -20,10 +20,27 @@ import { parsePlanUsage, type PlanUsage } from '../shared/limits'
  */
 const ENDPOINT = 'https://api.anthropic.com/api/oauth/usage'
 
-/** Percentages do not move by the second, and this is a network call. */
-const CACHE_MS = 60_000
+/**
+ * Percentages do not move by the second, and the endpoint says so itself: asked once
+ * a minute it starts answering 429. Five minutes is still current enough to steer by.
+ */
+const FRESH_MS = 5 * 60_000
 
-let cached: { at: number; usage: PlanUsage | null } | null = null
+/** After a plain failure - offline, a hiccup - it is worth another try soon. */
+const RETRY_MS = 60_000
+
+/** After being told to slow down, waiting a minute is what caused it. */
+const COOLDOWN_MS = 15 * 60_000
+
+/**
+ * How long a reading is still worth showing after it stopped being current. The
+ * numbers drift slowly and the reset times inside them stay right, so a stale gauge
+ * is far better than a gauge that vanishes - which is what a rate limit used to do.
+ */
+const KEEP_MS = 60 * 60_000
+
+let lastGood: { at: number; usage: PlanUsage } | null = null
+let nextTry = 0
 
 function accessToken(): string | null {
   try {
@@ -38,16 +55,23 @@ function accessToken(): string | null {
   }
 }
 
+/** The last reading, while it is recent enough to be worth anything. */
+function lastKnown(now: number): PlanUsage | null {
+  if (!lastGood || now - lastGood.at > KEEP_MS) return null
+  return { ...lastGood.usage, readAt: lastGood.at }
+}
+
 export async function readPlanUsage(): Promise<PlanUsage | null> {
-  if (cached && Date.now() - cached.at < CACHE_MS) return cached.usage
+  const now = Date.now()
+  if (lastGood && now - lastGood.at < FRESH_MS) return { ...lastGood.usage, readAt: lastGood.at }
+  if (now < nextTry) return lastKnown(now)
 
   const token = accessToken()
   if (!token) {
-    cached = { at: Date.now(), usage: null }
-    return null
+    nextTry = now + COOLDOWN_MS // not logged in this way; asking again soon is pointless
+    return lastKnown(now)
   }
 
-  let usage: PlanUsage | null = null
   try {
     const response = await fetch(ENDPOINT, {
       headers: {
@@ -56,11 +80,20 @@ export async function readPlanUsage(): Promise<PlanUsage | null> {
       },
       signal: AbortSignal.timeout(15_000)
     })
-    if (response.ok) usage = parsePlanUsage(await response.json())
+    if (response.ok) {
+      const usage = parsePlanUsage(await response.json())
+      if (usage) {
+        lastGood = { at: now, usage }
+        nextTry = now + FRESH_MS
+        return { ...usage, readAt: now }
+      }
+    }
+    // 429 is the endpoint asking to be left alone, and it means it.
+    nextTry = now + (response.status === 429 ? COOLDOWN_MS : RETRY_MS)
   } catch {
-    // Offline, blocked, or the endpoint moved. Nothing to report is a fine answer.
+    // Offline, blocked, or the endpoint moved.
+    nextTry = now + RETRY_MS
   }
 
-  cached = { at: Date.now(), usage }
-  return usage
+  return lastKnown(now)
 }

@@ -20,6 +20,12 @@ export type OutputSignals = {
    * is working is not holding a dialog open.
    */
   dialog: boolean
+  /**
+   * An agent's own interface is on screen in this pane, so what happens here is
+   * worth reporting at all. Without it the dot lit up for any shell that printed
+   * anything, which said nothing about the thing it was being watched for.
+   */
+  agent: boolean
 }
 
 /**
@@ -53,6 +59,21 @@ export function interruptsWork(state: ActivityState): boolean {
   return state === 'working' || state === 'busy' || state === 'permission'
 }
 
+/**
+ * What the tab shows, which is not always what the shell is doing.
+ *
+ * A light that says "finished" over a shell sitting at its prompt is telling you
+ * nothing you asked about: the question behind this dot is what the agent is doing,
+ * and a directory with a shell open in it has no agent. So a pane shows a state only
+ * once something in it has spoken for itself - an agent's interface, or a program
+ * reporting its own progress. A bell or a shell that fell over is shown regardless,
+ * because that is the pane's own news and not a guess about anyone.
+ */
+export function shownActivity(state: ActivityState, reporting: boolean): ActivityState {
+  if (state === 'alert') return 'alert'
+  return reporting ? state : 'idle'
+}
+
 export type ActivityEvent =
   | { type: 'output'; signals: OutputSignals }
   | { type: 'silence' }
@@ -73,6 +94,20 @@ export const SILENCE_MS = 2000
  * only ever adds to the states derived from the stream itself.
  */
 const PERMISSION_MARKERS = ['Yes, allow all', 'No, and tell Claude what to do differently']
+
+/*
+ * How a pane is known to be running Claude Code rather than an ordinary shell: its
+ * own interface says so. The banner is printed once when a session starts and the
+ * hint sits under the input box, redrawn constantly, so one of the two shows up
+ * within the first moments either way.
+ *
+ * The obvious signal would have been the `OSC 9;4` progress sequence, which is what
+ * makes a Windows Terminal tab spin - but Claude Code does not emit it. The string
+ * does not occur anywhere in its binary, while the dialog labels above do, so this
+ * was checked rather than assumed. It is fragile in the same way they are: a change
+ * of wording turns the light off rather than making it lie.
+ */
+const AGENT_MARKERS = ['Welcome to Claude Code', '? for shortcuts']
 
 /** Colour and cursor codes sit between the words on screen; drop them first. */
 function stripAnsi(text: string): string {
@@ -117,6 +152,8 @@ export function createSignalReader(): (chunk: string) => OutputSignals {
 
     text = (text + stripAnsi(chunk)).slice(-MAX_PENDING)
     const dialog = PERMISSION_MARKERS.some((needle) => text.includes(needle))
+    // Being asked for permission is an agent too; nothing else draws that dialog.
+    const agent = dialog || AGENT_MARKERS.some((needle) => text.includes(needle))
 
     let progress: ProgressSignal | null = null
     for (const match of data.matchAll(PROGRESS)) {
@@ -131,7 +168,7 @@ export function createSignalReader(): (chunk: string) => OutputSignals {
     const tail = UNTERMINATED_OSC.exec(stripped)
     if (tail && tail[0].length <= MAX_PENDING) pending = tail[0]
 
-    return { bell, progress, dialog }
+    return { bell, progress, dialog, agent }
   }
 }
 

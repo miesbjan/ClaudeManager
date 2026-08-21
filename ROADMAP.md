@@ -347,6 +347,9 @@ Všechno ostatní na seznamu je reimplementace editoru. Tyhle ne:
    říká, co agent dělá: tlumená, dokud teče výstup, zelená po dokončení, oranžová když
    se ptá na povolení a dál se nehne, červená při zvonku, chybě nebo spadlém shellu.
    Kde program hlásí svůj stav sám (`OSC 9;4`), je přesná; jinde platí odhad z ticha.
+   Svítí jen tam, kde něco mluví samo za sebe — agent nebo program hlásící postup;
+   nad holým shellem ne. Pozor: Claude Code `OSC 9;4` neposílá, pozná se podle
+   svého rozhraní (viz decision log z 21. 8. 2026).
    Svítí i na tabu, na který se koukáš, protože to, co agent dělá, se pohledem nemění.
    Jediné, co pohled zhasne, je červená, protože chyba je událost, ne stav.
    Zdrojem je shell. Dokument přepsaný na pozadí má svůj vlastní signál, totiž
@@ -717,3 +720,23 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   jednou za všechny, ne za každý zvlášť.
   Při té příležitosti dostala překlad i starší otázka na neuložené změny, která zůstala
   anglicky z doby před přepínačem jazyka.
+- **21. 8. 2026** - Tečka svítí jen tam, kde něco mluví samo za sebe. Nad shellem
+  otevřeným v adresáři se rozsvěcela zelená po každém výpisu, což je odpověď na
+  otázku, kterou nikdo nepoložil: ta kontrolka se čte jako „co dělá agent", a tam
+  žádný není. Zvonek a spadlý shell se ukazují dál — to je zpráva samého panelu,
+  ne dohad o někom.
+- **21. 8. 2026** - **Claude Code neposílá `OSC 9;4`.** Roadmapa i README tvrdily
+  opak od 19. 8., což byl můj předpoklad z toho, že Windows Terminal umí u agenta
+  točit kolečko. Při hledání signálu „běží tu Claude" jsem to konečně ověřil: v jeho
+  binárce ta sekvence není ani jednou, pročtením celého souboru, zatímco
+  popisky jeho dialogu tam jsou — takže texty jsou čitelné a nulový výsledek něco
+  znamená. Právě proto ze stavů, které aplikace umí, u Clauda nikdy nesvítily
+  `busy`/`done`, ale jen odhady z ticha. Claude se teď poznává podle vlastního
+  rozhraní („Welcome to Claude Code", „? for shortcuts“) — stejně křehký druh
+  signálu jako dialog na povolení, se stejným chováním při změně: kontrolka zhasne,
+  místo aby lhala. Podpora `OSC 9;4` zůstává pro programy, které ji posílají.
+- **21. 8. 2026** - Ukazatele limitů přežijí 429. Endpoint na dotaz jednou za minutu
+  začne odmítat, takže čtení platí pět minut, po odmítnutí se čtvrt hodiny mlčí a
+  poslední známá hodnota zůstává na obrazovce až hodinu. Zmizet je horší než ukázat
+  trochu starší číslo — časy obnovy uvnitř něj zůstávají správné samy od sebe — ale
+  jakmile čtení není aktuální, tooltip řekne, kdy vzniklo.

@@ -30,9 +30,10 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
   místo s běžícím shellem, ne něco na odhození na plochu.
 - **Tečka na tabu** říká, co se v něm děje, když se zrovna díváš jinam: blikající
   kroužek pracuje se, zelená hotovo nebo je chvíli ticho, oranžová ptá se na
-  povolení, červená zazvonil nebo spadl shell. Když program svůj stav hlásí sám
-  (`OSC 9;4`, což Claude Code umí), tečka mu věří; jinak hádá z ticha a tooltip
-  řekne, které to je.
+  povolení, červená zazvonil nebo spadl shell. **Objeví se jen tam, kde běží agent** —
+  nad samotným shellem v adresáři nesvítí nic, protože o agentovi nemá co říct.
+  Claude se pozná podle svého rozhraní; progress sekvenci `OSC 9;4`, kterou umí
+  ohlásit jiné programy, neposílá.
 - **Ikona v hlavním panelu** dělá totéž přes všechny taby dohromady, aby to bylo
   poznat i z jiné obrazovky, a nese číslo: kolik tabů na tebe čeká. Tab se počítá
   jednou, ať má důvodů kolik chce, pracující taby se nepočítají, a barva je ten
@@ -93,7 +94,9 @@ tab a zpět. Jakmile má fokus shell, ostatní klávesy jdou nedotčené jemu.
 - **Účet**: pětihodinové okno a sedmidenní limit jako ukazatele od 0 do 100, stejná
   čísla jako `/usage`. Barva se čte jako palivoměr — do poloviny zelená, od poloviny
   oranžová, od čtyř pětin červená. Tooltip řekne, kdy se okno obnoví.
-  Když se je nepodaří zjistit, nezobrazí se nic — nikdy chyba.
+  Poslední odečtenou hodnotu si aplikace nechá i hodinu a napíše do tooltipu, kdy ji
+  četla — zmizet by bylo horší než ukázat trochu starší číslo. Když se nepodaří zjistit
+  nic, nezobrazí se nic — nikdy chyba.
 
 ## Vzhled, jazyk, paměť
 

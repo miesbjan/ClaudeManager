@@ -240,6 +240,13 @@ Files passed on the command line are opened too, so the app works as a handler f
   a rule between: the same question from two sides, session and account, read in one
   glance. The tooltips give the reset times.
 
+  Asked once a minute the endpoint starts answering 429, so a reading counts as
+  current for five minutes, a rate limit is met with a quarter of an hour of silence,
+  and the last good reading stays on screen for up to an hour rather than the gauges
+  vanishing - with the time it was taken added to the tooltip once it is no longer
+  current. The reset times inside a kept reading stay right on their own, which is
+  what makes a stale gauge worth more than an empty one.
+
   These come from an **undocumented endpoint**, `api/oauth/usage`, called with the
   OAuth token the CLI logged in with. Nothing Claude Code writes to disk carries them:
   transcripts hold per-session tokens and say nothing about the plan, so the only
@@ -262,10 +269,21 @@ Files passed on the command line are opened too, so the app works as a handler f
   flowing, green once it has finished, amber while the agent is asking for permission
   and can go no further, red when it rang the bell, failed or its shell fell over.
   A shell closed on purpose - `exit`, code 0 - leaves no dot at all; a red one there
-  would be crying wolf. Where a program reports its own state - Claude Code and anything else that
-  emits the `OSC 9;4` progress sequence, the one that drives the spinner in a Windows
-  Terminal tab - the dot follows that report and is exact. Everything else falls back
-  to a guess: quiet for two seconds counts as finished. The two are kept apart
+  would be crying wolf.
+
+  There is a dot at all only where something has spoken for itself: an agent's own
+  interface on screen, or a program reporting progress with `OSC 9;4`, the sequence
+  that drives the spinner in a Windows Terminal tab. A shell sitting over a directory
+  gets none, because the question behind the light is what the agent is doing and
+  there is no agent - a green light there answered nothing that was asked.
+
+  Claude Code is recognised by its interface text, not by that sequence: it does not
+  emit one. That was checked rather than assumed - the string does not occur anywhere
+  in its binary, while the labels of its permission dialog do. It is fragile in the
+  same way they are, and fails the same way: the light stays off rather than lying.
+
+  Where a program does report progress the dot follows that report and is exact.
+  Everything else falls back to a guess: quiet for two seconds counts as finished. The two are kept apart
   internally so the guess never overrules the report, and the tooltip says which one
   you are looking at. A document rewritten in the background lights the same dot.
   It clears when the tab is on screen - a tab whose shell pane is hidden keeps

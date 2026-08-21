@@ -6,6 +6,7 @@ import {
   createSignalReader,
   interruptsWork,
   nextActivity,
+  shownActivity,
   SILENCE_MS,
   type ActivityEvent,
   type OutputSignals
@@ -194,6 +195,7 @@ function createTab(): Tab {
     ratio: DEFAULT_RATIO,
     zoom: null,
     activity: 'idle',
+    reporting: false,
     finished: false,
     project: null,
     runCommand: null,
@@ -812,7 +814,13 @@ window.setInterval(() => void refreshUsage(), USAGE_POLL_MS)
 const LIMITS_POLL_MS = 60000
 
 /** One gauge: a label, a bar that fills as the window is spent, and the number. */
-function meter(label: string, percent: number, resetsAt: string | null, now: number): HTMLElement {
+function meter(
+  label: string,
+  percent: number,
+  resetsAt: string | null,
+  now: number,
+  readAt?: number
+): HTMLElement {
   const wrap = document.createElement('span')
   wrap.className = 'meter ' + limitLevel(percent)
 
@@ -835,7 +843,9 @@ function meter(label: string, percent: number, resetsAt: string | null, now: num
     T(label === '5h' ? 'limits.window' : 'limits.week') +
     ': ' +
     T('limits.used', { percent: Math.round(percent) }) +
-    (left ? T('limits.resetsIn', { time: left }) : '')
+    (left ? T('limits.resetsIn', { time: left }) : '') +
+    // A kept reading says so rather than passing for the number as it stands now.
+    (readAt ? T('limits.readAt', { time: new Date(readAt).toLocaleTimeString() }) : '')
 
   wrap.append(name, track, value)
   return wrap
@@ -853,8 +863,14 @@ async function refreshLimits(): Promise<void> {
 
   const now = Date.now()
   const gauges: HTMLElement[] = []
-  if (plan.windowPercent !== null) gauges.push(meter('5h', plan.windowPercent, plan.windowResetsAt, now))
-  if (plan.weekPercent !== null) gauges.push(meter('7d', plan.weekPercent, plan.weekResetsAt, now))
+  // Only a reading kept from before carries a time; a current one has nothing to add.
+  const readAt = plan.readAt && now - plan.readAt > LIMITS_POLL_MS ? plan.readAt : undefined
+  if (plan.windowPercent !== null) {
+    gauges.push(meter('5h', plan.windowPercent, plan.windowResetsAt, now, readAt))
+  }
+  if (plan.weekPercent !== null) {
+    gauges.push(meter('7d', plan.weekPercent, plan.weekResetsAt, now, readAt))
+  }
   if (gauges.length === 0) return
 
   limitsLabel.textContent = ''
@@ -898,7 +914,11 @@ function applyActivity(tab: Tab, event: ActivityEvent): void {
  * the window has focus: whatever the tabs are saying is already on screen.
  */
 function reportTaskbar(): void {
-  const signals = tabs.map((tab) => ({ state: tab.activity, finished: tab.finished }))
+  const signals = tabs.map((tab) => ({
+    state: shownActivity(tab.activity, tab.reporting),
+    // A shell that never spoke for itself has not finished anything worth counting.
+    finished: tab.finished && tab.reporting
+  }))
   const away = !document.hasFocus()
 
   // The number of places waiting for you, painted into the icon in the corner.
@@ -946,6 +966,11 @@ window.api.terminal.onData(({ id, data }) => {
     urlReaders.set(id, readUrl)
   }
   setWebUrl(tabs[index], readUrl(data))
+  const tab = tabs[index]
+  if (tab && !tab.reporting && (signals.agent || signals.progress !== null)) {
+    tab.reporting = true
+    paintTabs()
+  }
   applyActivity(tabs[index], { type: 'output', signals })
   scheduleSilence(tabs[index])
 })

@@ -10,6 +10,11 @@ export type PlanUsage = {
   /** The same for the seven-day limit. */
   weekPercent: number | null
   weekResetsAt: string | null
+  /**
+   * When this was read, if it is not current. Set only on a reading kept from before
+   * - the window itself says so, rather than showing an old number as if it were now.
+   */
+  readAt?: number
 }
 
 type Bucket = { utilization?: unknown; resets_at?: unknown }

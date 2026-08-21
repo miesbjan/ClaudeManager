@@ -4,6 +4,7 @@ import {
   createSignalReader,
   interruptsWork,
   nextActivity,
+  shownActivity,
   type ActivityState,
   type OutputSignals
 } from '../src/renderer/src/activity.ts'
@@ -18,6 +19,7 @@ const out = (over: Partial<OutputSignals> = {}): OutputSignals => ({
   bell: false,
   progress: null,
   dialog: false,
+  agent: false,
   ...over
 })
 
@@ -64,12 +66,12 @@ describe('reading signals from terminal output', () => {
 
   it('sees the spinner a program reports while it works', () => {
     const read = createSignalReader()
-    assert.deepEqual(read(progress('3')), { bell: false, progress: 'busy', dialog: false })
+    assert.deepEqual(read(progress('3')), out({ progress: 'busy' }))
   })
 
   it('sees progress being cleared as finished', () => {
     const read = createSignalReader()
-    assert.deepEqual(read(progress('0')), { bell: false, progress: 'done', dialog: false })
+    assert.deepEqual(read(progress('0')), out({ progress: 'done' }))
   })
 
   it('treats failure and warning as something to look at', () => {
@@ -283,5 +285,63 @@ describe('interruptsWork', () => {
     assert.equal(interruptsWork('done'), false)
     assert.equal(interruptsWork('waiting'), false)
     assert.equal(interruptsWork('alert'), false)
+  })
+})
+
+describe('recognising an agent in the pane', () => {
+  /*
+   * The dot answers "what is the agent doing", so a pane has to be known to hold one.
+   * Claude Code does not emit the OSC 9;4 progress sequence - verified against its
+   * binary, where the dialog labels appear and that sequence does not - so its own
+   * interface text is what gives it away.
+   */
+  it('sees the banner a session prints when it starts', () => {
+    const read = createSignalReader()
+    assert.equal(read('Welcome to Claude Code!\r\n').agent, true)
+  })
+
+  it('sees the hint under the input box', () => {
+    const read = createSignalReader()
+    assert.equal(read('  ? for shortcuts\r\n').agent, true)
+  })
+
+  it('counts the permission dialog as an agent as well', () => {
+    const read = createSignalReader()
+    const signals = read('  1. Yes, allow all\r\n')
+    assert.equal(signals.dialog, true)
+    assert.equal(signals.agent, true)
+  })
+
+  it('says nothing about a shell that is only printing', () => {
+    const read = createSignalReader()
+    assert.equal(read('PS C:\Users\me> npm run build\r\n').agent, false)
+    assert.equal(read('added 42 packages in 3s\r\n').agent, false)
+  })
+
+  /* The marker is drawn in pieces, so it may straddle two chunks. */
+  it('sees a marker split across two chunks', () => {
+    const read = createSignalReader()
+    assert.equal(read('Welcome to Cla').agent, false)
+    assert.equal(read('ude Code!').agent, true)
+  })
+})
+
+describe('shownActivity', () => {
+  it('shows nothing for a shell nobody has claimed', () => {
+    for (const state of ['working', 'waiting', 'done', 'busy', 'permission'] as const) {
+      assert.equal(shownActivity(state, false), 'idle')
+    }
+  })
+
+  it('shows the state once something has spoken for itself', () => {
+    assert.equal(shownActivity('working', true), 'working')
+    assert.equal(shownActivity('waiting', true), 'waiting')
+    assert.equal(shownActivity('permission', true), 'permission')
+  })
+
+  /* A bell or a shell that fell over is the pane's own news, not a guess. */
+  it('always shows an alert', () => {
+    assert.equal(shownActivity('alert', false), 'alert')
+    assert.equal(shownActivity('alert', true), 'alert')
   })
 })

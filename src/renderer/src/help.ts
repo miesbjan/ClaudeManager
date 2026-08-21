@@ -152,7 +152,7 @@ const CS: HelpSection[] = [
 const EN_NOTES: HelpNote[] = [
   {
     title: 'The dot on a tab',
-    body: 'a pulsing ring while it is working, green once it has finished or gone quiet, amber while it is asking for permission and can go no further, red when it rang the bell or its shell fell over. A tab with nothing running has no dot.'
+    body: 'appears only where an agent is running - a shell over a directory gets none. A pulsing ring while it works, green once finished or quiet, amber while it is asking for permission, red when it rang the bell or its shell fell over.'
   },
   {
     title: 'The document reloads itself',
@@ -180,7 +180,7 @@ const EN_NOTES: HelpNote[] = [
 const CS_NOTES: HelpNote[] = [
   {
     title: 'Tečka na tabu',
-    body: 'blikající kroužek, dokud se pracuje, zelená, když je hotovo nebo už je chvíli ticho, oranžová, když se ptá na povolení a dál se nehne, červená, když zazvonil nebo mu spadl shell. Tab, ve kterém nic neběží, tečku nemá.'
+    body: 'objeví se jen tam, kde běží agent - nad samotným shellem v adresáři nesvítí nic. Blikající kroužek, dokud se pracuje, zelená, když je hotovo nebo je ticho, oranžová, když se ptá na povolení, červená, když zazvonil nebo mu spadl shell.'
   },
   {
     title: 'Dokument se načítá sám',

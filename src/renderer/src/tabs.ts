@@ -1,6 +1,6 @@
 import { translate, type Lang } from '../../shared/i18n'
 import { slotAt } from '../../shared/tabs'
-import type { ActivityState } from './activity'
+import { shownActivity, type ActivityState } from './activity'
 import type { Doc } from './docs'
 import type { ProjectInfo } from '../../shared/types'
 import type { RightMode } from './web'
@@ -50,6 +50,12 @@ export type Tab = {
   rightRatio: number
   /** What happened here while you were looking elsewhere. */
   activity: ActivityState
+  /**
+   * Whether anything in this pane has spoken for itself - an agent's interface, or a
+   * program reporting its own progress. A shell sitting over a directory has not, and
+   * a light about it would answer a question nobody asked.
+   */
+  reporting: boolean
   /** Finished since you last had the window in front of you; drives the taskbar. */
   finished: boolean
   /** The project this document belongs to, if one was recognised. */
@@ -181,10 +187,11 @@ export function renderTabBar(
       .join('\n')
     el.title = doc?.error ? `${listed}\n\n${doc.error}` : listed
 
-    if (tab.activity !== 'idle') {
+    const activity = shownActivity(tab.activity, tab.reporting)
+    if (activity !== 'idle') {
       const dot = document.createElement('span')
-      dot.className = 'tab-dot tab-dot--' + tab.activity
-      dot.title = translate(lang, ACTIVITY_TITLE[tab.activity])
+      dot.className = 'tab-dot tab-dot--' + activity
+      dot.title = translate(lang, ACTIVITY_TITLE[activity])
       el.append(dot)
     }
 
