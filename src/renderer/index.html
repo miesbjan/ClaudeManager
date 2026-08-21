@@ -10,20 +10,33 @@
   </head>
   <body>
     <header id="toolbar">
-      <button id="open-btn" class="toolbar-btn" type="button">+ Open</button>
-      <button id="shell-btn" class="toolbar-btn" type="button" title="Toggle shell pane (Ctrl+`)">
-        Shell
+      <button id="open-btn" class="toolbar-btn" type="button" title="Open a file (Ctrl+O)">
+        + Open
       </button>
-      <button id="web-btn" class="toolbar-btn" type="button" title="Document, dev server, or both (Alt+W)" hidden>
-        Web
-      </button>
-      <button id="theme-btn" class="toolbar-btn" type="button" title="Switch theme (Ctrl+D)">
-        Theme: Auto
-      </button>
-      <button id="help-btn" class="toolbar-btn" type="button" title="Keyboard shortcuts">
-        ?
-      </button>
-      <span id="hint">Ctrl+O open · Ctrl+Tab next tab · Ctrl+` shell · Alt+←→ panes · Alt+Z zoom</span>
+
+      <div class="toolbar-group" role="group" aria-label="Panes">
+        <button id="shell-btn" class="toolbar-btn" type="button" title="Shell pane (Ctrl+`)">
+          Shell
+        </button>
+        <button
+          id="web-btn"
+          class="toolbar-btn"
+          type="button"
+          title="Document, dev server, or both (Alt+W)"
+          hidden
+        >
+          Web
+        </button>
+      </div>
+
+      <div class="toolbar-group toolbar-end" role="group" aria-label="Application">
+        <button id="theme-btn" class="toolbar-btn" type="button" title="Switch theme (Ctrl+D)">
+          Theme: Auto
+        </button>
+        <button id="help-btn" class="toolbar-btn" type="button" title="Keyboard shortcuts">
+          ?
+        </button>
+      </div>
     </header>
 
     <nav id="tabbar"></nav>
@@ -80,7 +93,10 @@
       </div>
     </main>
 
-    <footer id="statusbar">No file open</footer>
+    <footer id="statusbar">
+      <span id="status-text">No file open</span>
+      <span id="usage" hidden></span>
+    </footer>
 
     <div id="ctxmenu" hidden></div>
 

@@ -17,6 +17,7 @@ import { dirname, join, normalize, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { FileWatcher } from './fileWatcher'
 import { detectProject } from './project'
+import { readUsage } from './usage'
 import { listFiles } from './listFiles'
 import { resolveFile } from './resolveFile'
 import { TerminalManager } from './terminal'
@@ -406,6 +407,8 @@ function registerIpc(): void {
     // Flashing is for the states that want you back, and only while you are away.
     win.flashFrame(shown.wantsYou && !win.isFocused())
   })
+
+  ipcMain.handle('usage:read', (_event, cwd: string) => readUsage(cwd))
 
   ipcMain.handle('clipboard:read', () => clipboard.readText())
 

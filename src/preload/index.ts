@@ -7,6 +7,7 @@ import type {
   FileWriteResult,
   ProjectInfo,
   SessionState,
+  SessionUsage,
   StartupPayload,
   TerminalData,
   TerminalExit,
@@ -39,6 +40,7 @@ const api: ViewerApi = {
   resolveFiles: (root, candidates) =>
     ipcRenderer.invoke('files:resolve', root, candidates) as Promise<Array<string | null>>,
   setTaskbarState: (state) => ipcRenderer.send('taskbar:set', state),
+  readUsage: (cwd) => ipcRenderer.invoke('usage:read', cwd) as Promise<SessionUsage | null>,
   readClipboard: () => ipcRenderer.invoke('clipboard:read') as Promise<string>,
   terminal: {
     create: (id, cwd) => ipcRenderer.invoke('terminal:create', id, cwd) as Promise<TerminalStart>,

@@ -214,6 +214,14 @@ Files passed on the command line are opened too, so the app works as a handler f
   would type into the file instead of stepping. So the match is reported in words - the
   status bar says which line and what it says - and `Esc` puts the caret on it, where
   the selection becomes visible and editing carries on from there.
+- **Session usage.** With a shell open, the right of the status bar reports what the
+  Claude session in that project has used: the context it carried on its last turn and
+  everything it has written this session. The numbers come from the transcript Claude
+  Code keeps anyway, so watching them costs the session nothing and asks it nothing.
+  The newest transcript in the project's folder is taken to be the running session,
+  which is right unless two sessions share a directory. A read that finds nothing new
+  leaves the last number on screen rather than blanking it, and a transcript nobody
+  has written to for a quarter of an hour is treated as a session that has ended.
 - **Activity dot.** A tab you are not looking at shows a dot: muted while output is
   flowing, green once it has finished, amber while the agent is asking for permission
   and can go no further, red when it rang the bell, failed or its shell fell over.

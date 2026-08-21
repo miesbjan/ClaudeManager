@@ -346,6 +346,7 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Základ  | panel s prostým textem a úprava s explicitním uložením               |
 | Základ  | `Ctrl+P` nad adresářem projektu, kliknutelné cesty ve výstupu        |
 | Šuplík  | feed změn, prompt buffer, tail logu                                  |
+| Extra   | usage session ve stavovém řádku                                      |
 | Extra   | zvýraznění změn, tečka aktivity, prompt buffer, `Ctrl+F`, paleta     |
 | Extra   | stav v hlavním panelu, agregovaný přes všechny taby                  |
 | Extra   | velikost a rodina fontu v terminálu                                  |
@@ -428,6 +429,15 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **21. 8. 2026** — Ve stavovém řádku vpravo je spotřeba běžící Claude session: kolik
+   měl model minule v kontextu a kolik toho za session napsal. Čte se z transcriptu,
+   který si Claude Code stejně vede, takže se session na nic neptáme a nic jí
+   neposíláme — sledování ji nemůže rozhodit. Za běžící session se bere nejnovější
+   transcript v adresáři projektu; při dvou sessions nad jedním adresářem je to ta,
+   která psala naposled.
+- **21. 8. 2026** — Horní lišta srovnána do tří skupin: čím něco otevřeš, co okno
+   ukazuje, a aplikace sama u pravého okraje. Dlouhý nápovědný řádek zmizel — od toho
+   je tlačítko `?` a paleta, a jeho výčet zkratek byl už tak neúplný.
 - **18. 8. 2026** — Postavit to vlastními silami místo nasazení VS Code nebo Cursoru.
   Důvod: agent je externí, takže aplikace musí být jen okno; chtěné jsou čtyři věci
   v malém okně plus tři funkce pro dohled nad agentem, které žádný editor nemá.

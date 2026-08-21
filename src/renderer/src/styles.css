@@ -73,14 +73,31 @@ body.dragging::after {
 
 /* ---------- chrome ---------- */
 
+/*
+ * Three groups, left to right: what you bring in, what the window shows, and the
+ * application itself. The last one is pushed to the far edge because it is the one
+ * you touch least.
+ */
 #toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 6px 10px;
   background: var(--bg-chrome);
   border-bottom: 1px solid var(--border);
   flex: 0 0 auto;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.toolbar-end {
+  margin-left: auto;
 }
 
 .toolbar-btn {
@@ -108,12 +125,22 @@ body.dragging::after {
   color: var(--text-muted);
 }
 
-#hint {
-  color: var(--text-muted);
-  font-size: 12px;
+#status-text {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* The one number worth having in view while an agent works next to the document. */
+#usage {
+  flex: 0 0 auto;
+  padding-left: 16px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+#usage[hidden] {
+  display: none;
 }
 
 #tabbar {
@@ -551,6 +578,10 @@ body.resizing {
 
 #statusbar {
   flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
   padding: 3px 10px;
   background: var(--bg-chrome);
   border-top: 1px solid var(--border);

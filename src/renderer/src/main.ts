@@ -23,6 +23,7 @@ import {
 } from './find'
 import { createDoc, indexAfterClose, isDirty, nextDocIndex, type Doc } from './docs'
 import { renderShortcuts } from './help'
+import { formatTokens } from '../../shared/usage'
 import { stepSelection, visibleEntries, type PaletteEntry } from './palette'
 import { detectEol, isMarkdown, toEditorText, toFileText } from './plaintext'
 import { sendable } from './prompt'
@@ -61,7 +62,8 @@ const viewer = document.getElementById('viewer') as HTMLElement
 const content = document.getElementById('content') as HTMLElement
 const raw = document.getElementById('raw') as HTMLTextAreaElement
 const empty = document.getElementById('empty') as HTMLElement
-const status = document.getElementById('statusbar') as HTMLElement
+const status = document.getElementById('status-text') as HTMLElement
+const usageLabel = document.getElementById('usage') as HTMLElement
 const ctxmenu = document.getElementById('ctxmenu') as HTMLElement
 const findBar = document.getElementById('find') as HTMLElement
 const findInput = document.getElementById('find-input') as HTMLInputElement
@@ -708,6 +710,50 @@ document.getElementById('find-next')?.addEventListener('click', () => stepFind(1
 document.getElementById('find-prev')?.addEventListener('click', () => stepFind(-1))
 document.getElementById('find-close')?.addEventListener('click', closeFind)
 
+/* ---------- what the session has used ---------- */
+
+/**
+ * Read from the transcript Claude Code keeps anyway, so watching costs the session
+ * nothing. Polled rather than watched: the file is appended to constantly while an
+ * agent works, and a status bar that repaints on every line is worse than one that
+ * is a few seconds behind.
+ */
+const USAGE_POLL_MS = 4000
+
+function shellCwd(tab: Tab): string {
+  return tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
+}
+
+async function refreshUsage(): Promise<void> {
+  const tab = tabs[activeIndex]
+  if (!tab || !shells.has(tab.id)) {
+    usageLabel.hidden = true
+    usageLabel.textContent = ''
+    return
+  }
+  /*
+   * While the window is behind something there is no point reading the file again,
+   * but whatever it last said stays on screen: a readout that blanks itself the
+   * moment you look away is worse than one that is a minute stale. The same goes for
+   * a read that comes back empty - between two turns there is nothing new to find.
+   */
+  if (!document.hasFocus()) return
+
+  const usage = await window.api.readUsage(shellCwd(tab))
+  if (!usage) return
+
+  usageLabel.hidden = false
+  usageLabel.textContent =
+    'context ' + formatTokens(usage.contextTokens) + '  ·  out ' + formatTokens(usage.outputTokens)
+  usageLabel.title =
+    (usage.model ?? 'claude') +
+    ' · context is what the model had in front of it last turn' +
+    String.fromCharCode(10) +
+    'out is everything it has written this session · read from the session transcript'
+}
+
+window.setInterval(() => void refreshUsage(), USAGE_POLL_MS)
+
 /* ---------- tab activity ---------- */
 
 /**
@@ -868,6 +914,7 @@ function applyLayout(): void {
 
   renderShellBar()
   renderWebFrame()
+  void refreshUsage()
 }
 
 /**

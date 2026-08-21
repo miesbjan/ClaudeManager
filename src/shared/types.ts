@@ -114,6 +114,16 @@ export type TerminalStart =
   | { ok: true; shell: string }
   | { ok: false; error: string }
 
+/** What the session in a tab's shell has used so far. */
+export type SessionUsage = {
+  model: string | null
+  /** Everything the model had in front of it on its last turn. */
+  contextTokens: number
+  /** Added up over the session. */
+  outputTokens: number
+  updatedAt: number
+}
+
 export interface ViewerApi {
   /** Native file dialog; returns selected absolute paths (may be empty). */
   openDialog(): Promise<string[]>
@@ -158,6 +168,8 @@ export interface ViewerApi {
    * process only knows how to show it.
    */
   setTaskbarState(state: TaskbarState): void
+  /** How much the Claude session running in this directory has used, if any is. */
+  readUsage(cwd: string): Promise<SessionUsage | null>
   /** Read the system clipboard, for pasting into a shell. */
   readClipboard(): Promise<string>
   /**
