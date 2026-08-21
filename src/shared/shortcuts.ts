@@ -27,6 +27,23 @@ export type KeyLike = {
   metaKey?: boolean
 }
 
+/**
+ * What a key means to the shell pane, if anything.
+ *
+ * Ctrl+C has to keep meaning interrupt, so copying sits on the shifted variant - the
+ * bargain every terminal on Windows makes. Pasting has no such conflict: Ctrl+V
+ * reaches a shell as a control character nothing does anything useful with, while
+ * every program run in this pane - an agent above all - is one you paste into. So
+ * Ctrl+V pastes, and Ctrl+Shift+V stays alongside it for fingers that learned the
+ * other terminals. Everything else belongs to the shell.
+ */
+export function terminalAction(event: KeyLike): 'paste' | 'copy' | null {
+  if (!event.ctrlKey || event.altKey || event.metaKey) return null
+  const key = event.key.toLowerCase()
+  if (key === 'v') return 'paste'
+  return event.shiftKey && key === 'c' ? 'copy' : null
+}
+
 export function paneCommand(event: KeyLike): PaneCommand | null {
   if (!event.altKey || event.ctrlKey || event.metaKey) return null
 

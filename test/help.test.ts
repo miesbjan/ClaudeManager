@@ -55,7 +55,7 @@ describe('shortcut help', () => {
   })
 
   it('keeps the panel short enough to stay glanceable', () => {
-    assert.ok(rows.length <= 24, `the panel has grown to ${rows.length} rows`)
+    assert.ok(rows.length <= 26, `the panel has grown to ${rows.length} rows`)
   })
 
   /*

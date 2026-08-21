@@ -2,7 +2,7 @@ import { Terminal, type IDisposable, type ILink } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { DEFAULT_FAMILY, DEFAULT_SIZE, type TerminalFont } from '../../shared/font'
 import { cellRange, findPaths, rowOf } from './paths'
-import { paneCommand } from '../../shared/shortcuts'
+import { paneCommand, terminalAction } from '../../shared/shortcuts'
 import '@xterm/xterm/css/xterm.css'
 
 /** Kept in step with the palette in styles.css. */
@@ -62,6 +62,7 @@ export class TerminalPane {
       if (!this.exited) window.api.terminal.write(this.id, data)
     })
     this.term.attachCustomKeyEventHandler((event) => this.handleKey(event))
+    this.host.addEventListener('contextmenu', (event) => this.handleContextMenu(event))
 
     this.offData = window.api.terminal.onData(({ id, data }) => {
       if (id === this.id) this.term.write(data)
@@ -214,30 +215,55 @@ export class TerminalPane {
     callback(links.length > 0 ? links : undefined)
   }
 
-  /**
-   * Ctrl+C has to keep meaning interrupt, so copy and paste sit on the shifted
-   * variants - the same bargain every terminal on Windows makes. Everything else
-   * belongs to the shell and is passed through untouched.
-   */
+  /** Hands the clipboard to the shell as a paste, so newlines arrive as text. */
+  private pasteClipboard(): void {
+    void window.api.readClipboard().then((text) => {
+      if (text && !this.exited) this.term.paste(text)
+    })
+  }
+
+  private copySelection(): void {
+    void navigator.clipboard.writeText(this.term.getSelection()).catch(() => undefined)
+  }
+
+  /** Which keys the pane keeps for itself; the rest belong to the shell untouched. */
   private handleKey(event: KeyboardEvent): boolean {
     if (event.type !== 'keydown') return true
 
     // Pane keys are the one thing taken from the shell, the way tmux takes a prefix.
     if (paneCommand(event)) return false
 
-    if (!event.ctrlKey || !event.shiftKey) return true
-    const key = event.key.toLowerCase()
-
-    if (key === 'c' && this.term.hasSelection()) {
-      void navigator.clipboard.writeText(this.term.getSelection()).catch(() => undefined)
+    const action = terminalAction(event)
+    if (action === 'paste') {
+      /*
+       * Chromium pastes into the hidden textarea by itself, and xterm forwards that
+       * to the shell - so without this the clipboard arrives twice, once from the
+       * browser and once from here. Doing it here rather than leaving it to the
+       * browser keeps one path for the keyboard and the right button both.
+       */
+      event.preventDefault()
+      this.pasteClipboard()
       return false
     }
-    if (key === 'v') {
-      void window.api.readClipboard().then((text) => {
-        if (text && !this.exited) this.term.paste(text)
-      })
+    if (action === 'copy' && this.term.hasSelection()) {
+      this.copySelection()
       return false
     }
     return true
+  }
+
+  /**
+   * The right button does what it does in a Windows console: copies when something is
+   * selected, pastes when nothing is. There is no menu, because a menu of two items
+   * is slower than the two things it offers.
+   */
+  private handleContextMenu(event: MouseEvent): void {
+    event.preventDefault()
+    if (this.term.hasSelection()) {
+      this.copySelection()
+      this.term.clearSelection()
+      return
+    }
+    this.pasteClipboard()
   }
 }

@@ -55,7 +55,7 @@ const EN: HelpSection[] = [
   {
     title: 'While the shell has focus',
     rows: [
-      { keys: 'Ctrl+Shift+C / V', action: 'copy / paste' },
+      { keys: 'Ctrl+V / Ctrl+Shift+C', action: 'paste / copy the selection' },
       {
         keys: 'Ctrl+Shift+O, P, W, R, D, 1…9',
         action: 'the app shortcuts above'
@@ -69,6 +69,8 @@ const EN: HelpSection[] = [
       { keys: 'middle-click a tab', action: 'close it' },
       { keys: 'double-click a tab', action: 'name it something of your own' },
       { keys: 'right-click a tab', action: 'rename, reload, close, reveal' },
+      { keys: 'drag a tab sideways', action: 'move it along the bar' },
+      { keys: 'right-click in the shell', action: 'paste, or copy a selection' },
       { keys: 'drag a file in', action: 'open it in this tab' }
     ]
   }
@@ -118,7 +120,7 @@ const CS: HelpSection[] = [
   {
     title: 'Když má fokus shell',
     rows: [
-      { keys: 'Ctrl+Shift+C / V', action: 'kopírovat / vložit' },
+      { keys: 'Ctrl+V / Ctrl+Shift+C', action: 'vložit / kopírovat výběr' },
       {
         keys: 'Ctrl+Shift+O, P, W, R, D, 1…9',
         action: 'zkratky aplikace uvedené výše'
@@ -135,6 +137,8 @@ const CS: HelpSection[] = [
         keys: 'pravé tlačítko na tabu',
         action: 'přejmenovat, načíst, zavřít, ukázat'
       },
+      { keys: 'tažení tabu do strany', action: 'přesune ho po liště' },
+      { keys: 'pravé tlačítko v shellu', action: 'vloží, nebo zkopíruje výběr' },
       { keys: 'přetažení souboru', action: 'otevře ho v tomhle tabu' }
     ]
   }

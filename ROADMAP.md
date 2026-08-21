@@ -380,6 +380,7 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Extra   | vlastní jméno tabu                                                   |
 | Extra   | jazyk rozhraní CS/EN                                                 |
 | Extra   | vlastní ikona a počet čekajících tabů na ní                          |
+| Extra   | přehazování tabů tažením, vkládání do shellu                         |
 
 Přidání položky na tenhle seznam je rozhodnutí, ne detail — patří k němu řádek
 v decision logu níže.
@@ -693,3 +694,17 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   jestli hoří. Šedá výplň tu otázku nezodpovídá bez čtení čísla vedle ní.
   Číslo zůstává šedé, dokud je klid, a barví se až od oranžové — důraz má stále
   stupně.
+- **21. 8. 2026** - Pořadí tabů se mění tažením, ale na myši, ne přes HTML drag &
+  drop. Ta druhá cesta předává tažený prvek operačnímu systému, takže tab jde upustit
+  na plochu nebo vytrhnout do vlastního okna — a tab je tady místo s běžícím shellem,
+  ne záložka. Sledováním kurzoru zůstává celé gesto uvnitř lišty a vytrhnout nejde nic.
+  Cílová pozice se počítá jako počet sousedů, jejichž středem kurzor prošel, ne jako
+  „nad kterým tabem kurzor je": to druhé přeskakuje při tažení doprava o pozici navíc,
+  protože šířka taženého tabu se vleče za kurzorem. Odhalil to test, ne oko.
+- **21. 8. 2026** - `Ctrl+V` v shellu vkládá a právě jednou. Předtím šel do shellu jako
+  řídicí znak, který agent běžící v panelu ignoruje — odtud dojem, že vkládání
+  nefunguje. `Ctrl+C` zůstává přerušením, kopíruje dál `Ctrl+Shift+C`; právé tlačítko
+  dělá to, co ve Windows konzoli — kopíruje při výběru, jinak vkládá. K tomu jedna
+  věc, kterou by člověk nečekal a odhalil ji až test: Chromium vloží schránku do
+  skryté textarey sám a xterm ji pošle dál, takže bez potlačení toho výchozího chování
+  dorazil text dvakrát.

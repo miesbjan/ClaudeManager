@@ -36,6 +36,7 @@ import { MAX_PROMPT } from '../../shared/session'
 import { paneCommand, type PaneCommand } from '../../shared/shortcuts'
 import { TerminalPane } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
+import { activeAfterMove } from '../../shared/tabs'
 import type { TaskbarState, Theme } from '../../shared/types'
 
 const THEMES: Theme[] = ['system', 'light', 'dark']
@@ -149,6 +150,7 @@ const tabHandlers: TabHandlers = {
     if (renaming) renaming.value = value
   },
   onRename: finishRename,
+  onReorder: reorderTab,
   onRenameCancel: () => {
     renaming = null
     paintTabs()
@@ -326,6 +328,23 @@ function cycleDoc(step: number): void {
   if (!tab || tab.docs.length < 2) return
   tab.docIndex = nextDocIndex(tab.docs.length, tab.docIndex, step)
   render()
+  persistSession()
+}
+
+/**
+ * Moving a tab along the bar. What follows the tab is the whole place - its shell,
+ * its files, its dev server - so this is only ever the order they are shown in, and
+ * the tab you were looking at stays the tab you are looking at.
+ */
+function reorderTab(from: number, to: number): void {
+  if (from === to || from < 0 || to < 0 || from >= tabs.length || to >= tabs.length) return
+  const [moved] = tabs.splice(from, 1)
+  if (!moved) return
+  tabs.splice(to, 0, moved)
+
+  activeIndex = activeAfterMove(activeIndex, from, to)
+
+  paintTabs()
   persistSession()
 }
 

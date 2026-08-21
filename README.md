@@ -106,9 +106,11 @@ else closes it. It speaks whichever interface language is selected.
 | `Alt+P`                   | prompt buffer under the shell             |
 | `Ctrl+Enter`              | send the buffer to the shell              |
 | `Ctrl+=` / `Ctrl+-`       | terminal font bigger / smaller            |
-| `Ctrl+Shift+C` / `Ctrl+Shift+V` | copy / paste inside the shell       |
+| `Ctrl+V` / `Ctrl+Shift+C` | paste / copy the selection, in the shell |
 | `F12`                     | toggle DevTools                           |
 | click a path in the shell | open the file it points at, at that line   |
+| drag a tab sideways       | move it along the bar                     |
+| right-click in the shell  | paste, or copy what is selected           |
 | middle-click a tab        | close it                                  |
 | right-click a tab         | reload, close, close others, copy path, reveal in Explorer |
 | drag & drop               | drop `.md` files into the window to open them |
@@ -190,6 +192,21 @@ Files passed on the command line are opened too, so the app works as a handler f
   alive while the tab is open — hiding the pane or switching tabs does not disturb a
   process running inside it; closing the tab kills it. Whether the pane is open and
   how wide it is are remembered per document.
+- **Pasting into the shell.** `Ctrl+V` pastes, and so does the right button - which
+  copies instead when something is selected, the way a Windows console does. `Ctrl+C`
+  is left alone, because in a terminal it means interrupt, so copying is
+  `Ctrl+Shift+C`; `Ctrl+Shift+V` still pastes for fingers that learned it elsewhere.
+
+  Ctrl+V used to go to the shell as the control character it is, which every agent
+  running in the pane ignores - so pasting looked broken. It is claimed here now, and
+  the browser's own paste into the hidden textarea is suppressed at the same time,
+  because otherwise the clipboard arrives twice.
+- **Reordering tabs.** Drag one sideways and it swaps as it passes its neighbours.
+  It is done on the mouse rather than with the HTML drag API, which would hand the tab
+  to the operating system - and a tab here is a place with a shell running in it, not
+  something to drop on the desktop or tear into a window of its own. Nothing leaves
+  the bar. What moves is only the order they are shown in: the tab you were looking at
+  stays the one you are looking at.
 - **Prompt buffer.** `Alt+P` opens a drawer under the shell to compose a longer
   instruction in, and `Ctrl+Enter` sends it. Writing a multi-line prompt straight into a
   TUI is a fight, because the first newline submits it; the buffer hands the text over as

@@ -24,6 +24,8 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
   projektu. Soubor otevřený v jiném tabu se nabídne taky a řádek to řekne.
 - **Vlastní jméno tabu** dvojklikem na popisek — co tam děláš, popisuje místo líp než
   jméno souboru.
+- **Pořadí tabů** se mění tažením do strany. Tab z lišty nikam nevytáhneš — je to
+  místo s běžícím shellem, ne něco na odhození na plochu.
 - **Tečka na tabu** říká, co se v něm děje, když se zrovna díváš jinam: blikající
   kroužek pracuje se, zelená hotovo nebo je chvíli ticho, oranžová ptá se na
   povolení, červená zazvonil nebo spadl shell. Když program svůj stav hlásí sám
@@ -59,6 +61,8 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
 - **Prompt buffer (`Alt+P`)** je šuplík pod shellem na delší zadání; `Ctrl+Enter` ho
   pošle jako jeden celek, takže víceřádkový prompt nedojde do TUI po částech.
   Rozepsaný text přežije restart.
+- **Vkládání**: `Ctrl+V`, nebo pravé tlačítko — to zkopíruje, když je něco vybrané.
+  `Ctrl+C` zůstává přerušením, kopíruje se `Ctrl+Shift+C`.
 - **Velikost písma** `Ctrl+=` / `Ctrl+-`, pamatuje se.
 
 ## Spuštění a web

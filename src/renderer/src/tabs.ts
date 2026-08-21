@@ -1,4 +1,5 @@
 import { translate, type Lang } from '../../shared/i18n'
+import { slotAt } from '../../shared/tabs'
 import type { ActivityState } from './activity'
 import type { Doc } from './docs'
 import type { ProjectInfo } from '../../shared/types'
@@ -76,6 +77,53 @@ export type TabHandlers = {
   /** Empty means going back to being named after the file. */
   onRename: (index: number, name: string) => void
   onRenameCancel: () => void
+  /** Dragging a tab sideways: move the one at `from` into the slot at `to`. */
+  onReorder: (from: number, to: number) => void
+}
+
+/** How far a tab must be dragged before it counts as dragging and not a click. */
+const DRAG_THRESHOLD = 5
+
+/**
+ * Reordering by hand, on the mouse rather than on the HTML drag API. The drag API
+ * would hand the tab to the operating system, which is how a tab ends up dropped on
+ * the desktop or torn into a window of its own - and a tab here is a place with a
+ * shell running in it, not something to tear off. Following the pointer directly
+ * keeps the whole gesture inside the bar.
+ *
+ * The listeners live on the document because the bar is rebuilt on every move: the
+ * element the drag started on is gone by the second frame.
+ */
+function beginDrag(
+  container: HTMLElement,
+  index: number,
+  start: MouseEvent,
+  onReorder: (from: number, to: number) => void
+): void {
+  let from = index
+  let dragging = false
+
+  const move = (event: MouseEvent): void => {
+    if (!dragging) {
+      if (Math.abs(event.clientX - start.clientX) < DRAG_THRESHOLD) return
+      dragging = true
+      container.classList.add('reordering')
+    }
+    const bounds = [...container.children].map((child) => child.getBoundingClientRect())
+    const to = slotAt(bounds, event.clientX, from)
+    if (to === from) return
+    onReorder(from, to)
+    from = to
+  }
+
+  const stop = (): void => {
+    document.removeEventListener('mousemove', move)
+    document.removeEventListener('mouseup', stop)
+    container.classList.remove('reordering')
+  }
+
+  document.addEventListener('mousemove', move)
+  document.addEventListener('mouseup', stop)
 }
 
 /**
@@ -200,8 +248,12 @@ export function renderTabBar(
         handlers.onClose(index)
       } else if (event.button === 0) {
         handlers.onSelect(index)
+        beginDrag(container, index, event, handlers.onReorder)
       }
     })
+    // Nothing here is handed to the operating system; the bar is where a tab stays.
+    el.draggable = false
+    el.addEventListener('dragstart', (event) => event.preventDefault())
     el.addEventListener('contextmenu', (event) => {
       event.preventDefault()
       handlers.onContextMenu(index, event.clientX, event.clientY)
