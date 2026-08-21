@@ -821,3 +821,16 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   ale aplikace běžela dál, protože `window-all-closed` ukončoval jen tehdy, když
   neexistovala ikona v traye. Správně se tam nemá ptat na tray vůbec: schované okno
   se nezavírá, takže když se ta událost stane, není pro co běžet dál.
+- **21. 8. 2026** - O tom, co udělá křížek okna, rozhodují živé shelly, ne rozpoznaný
+  agent. Rozpoznávání podle řetězců, které Claude Code vypisuje, je záměrně křehké a u
+  tečky na tabu je to bezpečné selhání: zhasne, nelže. Jenže tentýž příznak začal řídit
+  i skrývání okna, a tam má selhání opačný požadavek - přeformulovaný banner by tiše
+  ukončil běžící session, přesně to, proti čemu skrývání vzniklo. Rozhodnutí má teď tři
+  stavy místo dvou: nic neběží → ukončit, rozpoznaný agent → skrýt, běžící shell, který
+  nikdo nerozpoznal → zeptat se. Shelly počítá main proces, kterému patří, takže o tom
+  nerozhoduje stav přitékající z rendereru.
+- **21. 8. 2026** - Rušení shellů a file watcheru se přesunulo z `before-quit` do
+  `will-quit`. `before-quit` běží dřív, než se okno vůbec zeptá na zavření, a neuložené
+  úpravy to zavření odmítnou - odmítnutý quit tak nechal okno na obrazovce s
+  pozabíjenými agenty a bez live reloadu. `will-quit` je první moment, kdy už quit
+  odmítnout nejde, takže tam patří všechno nevratné.

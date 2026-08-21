@@ -219,6 +219,22 @@ Files passed on the command line are opened too, so the app works as a handler f
   something to drop on the desktop or tear into a window of its own. Nothing leaves
   the bar. What moves is only the order they are shown in: the tab you were looking at
   stays the one you are looking at.
+- **Closing the window.** With an agent recognised in some tab the cross hides the
+  window instead of ending the application, so a job halfway through is not killed by
+  the click that tidies the desktop; the tray icon brings it back. With nothing running
+  anywhere it ends the application as it always did.
+
+  In between there is a third case, and it is the reason the decision is not left to
+  recognition alone: a shell is running that was not recognised as an agent. Recognising
+  one is done by the strings its interface prints, which is fragile on purpose - for the
+  dot on a tab that fails safely, since the light goes out rather than lying, but for the
+  window it would mean ending a session over a reworded banner. So an unrecognised shell
+  is a question: close and stop it, or keep it running. The shells are counted by the
+  main process, which owns them, rather than reported from the window.
+
+  Anything destructive waits for the moment a quit can no longer be refused: unsaved
+  edits cancel the close, and a quit whose shells were already torn down would leave the
+  window back on screen with dead agents.
 - **Prompt buffer.** `Alt+P` opens a drawer under the shell to compose a longer
   instruction in, and `Ctrl+Enter` sends it. Writing a multi-line prompt straight into a
   TUI is a fight, because the first newline submits it; the buffer hands the text over as
