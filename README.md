@@ -109,6 +109,7 @@ else closes it. It speaks whichever interface language is selected.
 | `Ctrl+V` / `Ctrl+Shift+C` | paste / copy the selection, in the shell |
 | `F12`                     | toggle DevTools                           |
 | click a path in the shell | open the file it points at, at that line   |
+| the + after the tabs      | a new place, the same as Ctrl+T           |
 | drag a tab sideways       | move it along the bar                     |
 | right-click in the shell  | paste, or copy what is selected           |
 | middle-click a tab        | close it                                  |
@@ -201,6 +202,13 @@ Files passed on the command line are opened too, so the app works as a handler f
   running in the pane ignores - so pasting looked broken. It is claimed here now, and
   the browser's own paste into the hidden textarea is suppressed at the same time,
   because otherwise the clipboard arrives twice.
+- **A new place.** `Ctrl+T`, or the `+` after the last tab - the key had it to itself,
+  which is fine for anyone who knows the key and invisible to everyone else. A new tab
+  comes with its shell already open, because a place is opened in order to work
+  somewhere and there is nothing else in it yet; the shell starts in the home directory
+  since the tab belongs to no project until a file is opened in it. Until then the tab
+  is labelled *New tab*, and an empty tab is not remembered between launches - there is
+  nothing in it to restore, its shell having ended with the window.
 - **Reordering tabs.** Drag one sideways and it swaps as it passes its neighbours.
   It is done on the mouse rather than with the HTML drag API, which would hand the tab
   to the operating system - and a tab here is a place with a shell running in it, not

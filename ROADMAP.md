@@ -761,3 +761,13 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   týmž souborem si nechají prosté jméno — doplňování cesty je nerozliší a skončilo
   celou cestou v každém tabu. `Ctrl+P` na řádku nadále hlásí, že soubor je otevřený i
   jinde, ale už jako informaci, ne jako slib skoku.
+- **21. 8. 2026** - Nový tab jde založit i myší a přichází s otevřeným shellem.
+  `Ctrl+T` byla jediná cesta, což je v pořádku pro toho, kdo tu klávesu zná, a
+  neviditelné pro všechny ostatní — `+` sedí za posledním tabem, kde ho má každé okno
+  s taby. Shell je otevřený rovnou, protože místo se zakládá kvůli práci a nic jiného
+  v něm zatím není; startuje v domovském adresáři, dokud tab nepatří žádnému projektu.
+  Při tom vylezla chyba, kterou předtím nemělo jak spustit: `render()` se v tabu bez
+  dokumentu vracel dřív, než se shell vůbec nastartoval, takže panel byl otevřený a
+  prázdný. Prázdný tab se teď jmenuje „Nový tab", ale mezi spuštěními se nepamatuje:
+  není v něm co obnovit a jeho shell stejně končí s oknem. Až bude tab pamětlivý na
+  svůj adresář nezávisle na souborech, změní se to.

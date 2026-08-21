@@ -171,6 +171,7 @@ const tabHandlers: TabHandlers = {
   },
   onRename: finishRename,
   onReorder: reorderTab,
+  onNew: newTab,
   onRenameCancel: () => {
     renaming = null
     paintTabs()
@@ -380,6 +381,20 @@ function reorderTab(from: number, to: number): void {
   persistSession()
 }
 
+/**
+ * A new place, empty: the next file you open lands in it. Its shell is open from the
+ * start, because a place is opened in order to work somewhere - and with nothing else
+ * in the tab, the shell is the only thing there is to do. It starts in the home
+ * directory, since an empty tab belongs to no project yet.
+ */
+function newTab(): void {
+  const tab = createTab()
+  tab.terminalOpen = true
+  activeIndex = tabs.indexOf(tab)
+  render()
+  persistSession()
+}
+
 function selectTab(index: number): void {
   if (index < 0 || index >= tabs.length || index === activeIndex) return
   activeIndex = index
@@ -413,6 +428,9 @@ function render(): void {
     status.textContent = T('status.noFile')
     document.title = 'Project Console'
     applyLayout()
+    // A place with no file in it still has its shell - and now that a new tab opens
+    // with one, this is the only path that reaches it.
+    ensureShell()
     return
   }
 
@@ -1972,10 +1990,7 @@ window.addEventListener('keydown', (event) => {
 
   if (key === 't') {
     event.preventDefault()
-    // A new place, empty: the next file you open lands in it.
-    activeIndex = tabs.indexOf(createTab())
-    render()
-    persistSession()
+    newTab()
   } else if (key === 'e') {
     event.preventDefault()
     toggleRaw()

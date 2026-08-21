@@ -297,6 +297,10 @@ body.dragging::after {
   text-overflow: ellipsis;
 }
 
+.tab-label.unnamed {
+  color: var(--text-muted);
+}
+
 .tab-close {
   font: inherit;
   line-height: 1;
@@ -310,6 +314,27 @@ body.dragging::after {
 
 .tab-close:hover {
   background: var(--border);
+  color: var(--text);
+}
+
+/* Quieter than a tab: it is a way in, not one of the places. */
+.tab-new {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: 4px;
+  padding: 2px 8px 4px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.tab-new:hover {
+  background: var(--bg-tab);
   color: var(--text);
 }
 

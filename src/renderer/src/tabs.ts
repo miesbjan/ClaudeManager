@@ -83,6 +83,8 @@ export type TabHandlers = {
   /** Empty means going back to being named after the file. */
   onRename: (index: number, name: string) => void
   onRenameCancel: () => void
+  /** A new place of its own, the same as Ctrl+T. */
+  onNew: () => void
   /** Dragging a tab sideways: move the one at `from` into the slot at `to`. */
   onReorder: (from: number, to: number) => void
 }
@@ -115,7 +117,9 @@ function beginDrag(
       dragging = true
       container.classList.add('reordering')
     }
-    const bounds = [...container.children].map((child) => child.getBoundingClientRect())
+    const bounds = [...container.querySelectorAll('.tab')].map((child) =>
+      child.getBoundingClientRect()
+    )
     const to = slotAt(bounds, event.clientX, from)
     if (to === from) return
     onReorder(from, to)
@@ -197,8 +201,11 @@ export function renderTabBar(
 
     const label = document.createElement('span')
     label.className = 'tab-label'
-    label.textContent = tab.name ?? labels[index]
+    // A place with nothing open in it still has to be somewhere to click.
+    const empty = !tab.name && !labels[index]
+    label.textContent = tab.name ?? (empty ? translate(lang, 'tab.empty') : labels[index])
     if (tab.name) label.classList.add('named')
+    if (empty) label.classList.add('unnamed')
     label.addEventListener('dblclick', (event) => {
       event.stopPropagation()
       handlers.onRenameStart(index)
@@ -244,6 +251,21 @@ export function renderTabBar(
 
     container.append(el)
   })
+
+  /*
+   * The keyboard had this to itself, which is fine for anyone who knows the key and
+   * invisible to everyone else. It sits after the tabs, where every window with tabs
+   * puts it.
+   */
+  const add = document.createElement('button')
+  add.className = 'tab-new'
+  add.type = 'button'
+  add.textContent = '+'
+  add.title = translate(lang, 'tabbar.new')
+  add.addEventListener('click', handlers.onNew)
+  // Dragging starts on mousedown, and this is not a tab to drag.
+  add.addEventListener('mousedown', (event) => event.stopPropagation())
+  container.append(add)
 
   container.querySelector('.tab.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
 }

@@ -41,6 +41,8 @@ const en = {
     'Still watching - the document loads automatically if the file reappears.',
   'doc.gone': 'The file no longer exists on disk.',
 
+  'tabbar.new': 'New tab (Ctrl+T)',
+  'tab.empty': 'New tab',
   'tab.rename': 'Rename tab',
   'tab.closeFile': 'Close file',
   'tab.close': 'Close tab',
@@ -143,6 +145,8 @@ const cs: Record<StringKey, string> = {
   'doc.unavailable.hint': 'Sleduje se dál - jakmile se soubor objeví, načte se sám.',
   'doc.gone': 'Soubor už na disku není.',
 
+  'tabbar.new': 'Nový tab (Ctrl+T)',
+  'tab.empty': 'Nový tab',
   'tab.rename': 'Přejmenovat tab',
   'tab.closeFile': 'Zavřít soubor',
   'tab.close': 'Zavřít tab',
