@@ -304,6 +304,11 @@ Files passed on the command line are opened too, so the app works as a handler f
   you somewhere random after switching how the file is shown.
 - **Files in a tab.** A tab is a place - a directory, its shell, its dev server - and
   it holds however many files you open while working there, one of them on screen.
+  The same file may be open in more than one place: two tabs over one project is a
+  thing people do, and being dragged to the other one instead of opening it here was a
+  leftover from when a tab was a file. Every copy follows the file - a rewrite on disk
+  reaches all of them, and closing one leaves the others watched. Two copies showing
+  the same file both keep the plain name; the way to tell them apart is to name one.
   Opening a file puts it in the tab you are in; `Ctrl+T` makes another place. `Ctrl+W`
   closes the file and only the last one closes the tab. `Ctrl+PageUp` and
   `Ctrl+PageDown` move between them, the status bar says which of how many, and the

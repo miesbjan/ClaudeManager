@@ -38,3 +38,32 @@ export function activeAfterMove(active: number, from: number, to: number): numbe
   if (from > active && to <= active) return active + 1
   return active
 }
+
+/**
+ * Shortest label that still distinguishes each file: the base name, extended with
+ * as many parent directories as needed when base names collide.
+ */
+export function computeLabels(paths: string[]): string[] {
+  const segments = paths.map((p) => p.replace(/\\/g, '/').split('/').filter(Boolean))
+  const names = segments.map((s) => s[s.length - 1] ?? '')
+  const counts = new Map<string, number>()
+  for (const name of names) counts.set(name, (counts.get(name) ?? 0) + 1)
+
+  return segments.map((parts, index) => {
+    const name = names[index]
+    if ((counts.get(name) ?? 0) < 2) return name
+    for (let depth = 2; depth <= parts.length; depth++) {
+      const candidate = parts.slice(-depth).join('/')
+      const collides = segments.some(
+        (other, j) => j !== index && other.slice(-depth).join('/') === candidate
+      )
+      if (!collides) return candidate
+    }
+    /*
+     * Two tabs showing the same file. No amount of path tells them apart, and the
+     * full path in every tab tells you nothing while costing the whole bar - so they
+     * both keep the plain name and the way to distinguish them is to name one.
+     */
+    return name
+  })
+}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { activeAfterMove, slotAt } from '../src/shared/tabs.ts'
+import { activeAfterMove, computeLabels, slotAt } from '../src/shared/tabs.ts'
 
 describe('slotAt', () => {
   // Four tabs, 100 wide, side by side: middles at 50, 150, 250, 350.
@@ -58,5 +58,31 @@ describe('activeAfterMove', () => {
     assert.equal(activeAfterMove(0, 2, 3), 0)
     assert.equal(activeAfterMove(3, 0, 1), 3)
     assert.equal(activeAfterMove(1, 1, 1), 1)
+  })
+})
+
+describe('computeLabels with the same file in two places', () => {
+  const SAME = 'C:/work/app/docs/roadmap.md'
+
+  /*
+   * Extending the path is how two files of the same name are told apart, but the same
+   * file twice cannot be - and walking to the full path put the whole path in every
+   * tab while still saying nothing.
+   */
+  it('leaves both as the plain name', () => {
+    assert.deepEqual(computeLabels([SAME, SAME]), ['roadmap.md', 'roadmap.md'])
+  })
+
+  it('still tells different files of the same name apart', () => {
+    assert.deepEqual(computeLabels(['C:/a/docs/roadmap.md', 'C:/b/docs/roadmap.md']), [
+      'a/docs/roadmap.md',
+      'b/docs/roadmap.md'
+    ])
+  })
+
+  it('handles a copy alongside a different file of that name', () => {
+    const labels = computeLabels([SAME, SAME, 'C:/other/roadmap.md'])
+    assert.deepEqual(labels.slice(0, 2), ['roadmap.md', 'roadmap.md'])
+    assert.equal(labels[2], 'other/roadmap.md')
   })
 })

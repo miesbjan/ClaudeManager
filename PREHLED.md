@@ -22,6 +22,8 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
   říká kolikátý z kolika, tooltip tabu je vypíše všechny.
 - **`Ctrl+P`** nabídne, co je otevřené tady, a po prvním písmenu každý soubor
   projektu. Soubor otevřený v jiném tabu se nabídne taky a řádek to řekne.
+- **Stejný soubor může být otevřený ve víc tabech.** Taby jsou samostatná místa, takže
+  dvě session nad jedním projektem si nepřekáží; změna na disku dojde do všech kopií.
 - **Vlastní jméno tabu** dvojklikem na popisek — co tam děláš, popisuje místo líp než
   jméno souboru.
 - **Tab, ve kterém se pracuje, se nezavře na jedno kliknutí** — aplikace se zeptá.

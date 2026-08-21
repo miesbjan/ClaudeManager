@@ -121,12 +121,30 @@ const shownDoc = (tab: Tab | undefined): Doc | undefined => tab?.docs[tab.docInd
  * Where a file is open, if it is. The watcher speaks in paths and a path is open in at
  * most one place, because opening one already open brings you to it instead.
  */
-function findDoc(path: string): { tab: Tab; tabIndex: number; doc: Doc; docIndex: number } | null {
+type Found = { tab: Tab; tabIndex: number; doc: Doc; docIndex: number }
+
+/**
+ * Every copy of a file that is open, because a file may be open in more than one
+ * place. Anything that follows the file itself - a rewrite on disk, a deletion, the
+ * watch on it - has to reach all of them, or one place would quietly stop keeping up.
+ */
+function findDocs(path: string): Found[] {
+  const found: Found[] = []
   for (const [tabIndex, tab] of tabs.entries()) {
-    const docIndex = tab.docs.findIndex((doc) => samePath(doc.path, path))
-    if (docIndex >= 0) return { tab, tabIndex, doc: tab.docs[docIndex], docIndex }
+    for (const [docIndex, doc] of tab.docs.entries()) {
+      if (samePath(doc.path, path)) found.push({ tab, tabIndex, doc, docIndex })
+    }
   }
-  return null
+  return found
+}
+
+/**
+ * Watching is per file, not per copy, so it may only be dropped once the last copy of
+ * it is gone. `except` is the copy being closed, which is still in the list.
+ */
+function unwatchUnlessOpenElsewhere(path: string, except: Doc): void {
+  const others = findDocs(path).filter((entry) => entry.doc !== except)
+  if (others.length === 0) void window.api.unwatch(path)
 }
 
 /** By tab: for anything belonging to the tab as a place, above all its shell. */
@@ -215,19 +233,18 @@ function createTab(): Tab {
  * Files land in the tab you are in: a tab is a place, and everything you open while
  * working there belongs to it. A new place is something you ask for.
  *
- * A file already open anywhere brings you to it rather than opening a second copy -
- * two views of one file would mean two drafts of it, and one of them losing.
+ * A file already open in this tab is switched to rather than added twice. One open in
+ * another tab is opened here all the same: the tabs are separate places, and two of
+ * them over one project is a thing people do - being dragged to the other one instead
+ * was a leftover from when a tab was a file rather than a place.
  */
 async function openFiles(paths: string[], activate = true, into?: Tab): Promise<void> {
   let tab = into ?? tabs[activeIndex]
   for (const path of paths) {
-    const found = findDoc(path)
-    if (found) {
-      if (activate) {
-        activeIndex = found.tabIndex
-        found.tab.docIndex = found.docIndex
-      }
-      tab = found.tab
+    const here = tab?.docs.findIndex((doc) => samePath(doc.path, path)) ?? -1
+    if (tab && here >= 0) {
+      tab.docIndex = here
+      if (activate) activeIndex = tabs.indexOf(tab)
       continue
     }
     if (!tab) tab = createTab()
@@ -300,7 +317,7 @@ function closeTab(index: number): void {
   if (!tab) return
   if (!confirmInterrupt(tab)) return
   if (!confirmDiscard(tab.docs)) return
-  for (const doc of tab.docs) void window.api.unwatch(doc.path)
+  for (const doc of tab.docs) unwatchUnlessOpenElsewhere(doc.path, doc)
   shells.get(tab.id)?.dispose()
   shells.delete(tab.id)
   signalReaders.delete(tab.id)
@@ -329,7 +346,7 @@ function closeDoc(): void {
     return
   }
   if (!confirmDiscard([doc])) return
-  void window.api.unwatch(doc.path)
+  unwatchUnlessOpenElsewhere(doc.path, doc)
   const next = indexAfterClose(tab.docs.length, tab.docIndex, tab.docIndex)
   tab.docs.splice(tab.docIndex, 1)
   tab.docIndex = next
@@ -530,8 +547,10 @@ function isShowing(found: { tabIndex: number; docIndex: number }): boolean {
 }
 
 async function reloadPath(path: string): Promise<void> {
-  const found = findDoc(path)
-  if (!found) return
+  for (const found of findDocs(path)) await reloadDoc(found)
+}
+
+async function reloadDoc(found: Found): Promise<void> {
   const { tab, doc } = found
   /*
    * The one rule this pane lives or dies by. Somebody else wrote the file while there
@@ -552,15 +571,19 @@ async function reloadPath(path: string): Promise<void> {
 }
 
 window.api.onFileEvent(({ path, type }) => {
-  const found = findDoc(path)
-  if (!found) return
+  const found = findDocs(path)
+  if (found.length === 0) return
   if (type !== 'unlink') {
     scheduleReload(path)
     return
   }
-  found.doc.error = T('doc.gone')
-  found.doc.html = ''
-  if (isShowing(found)) render()
+  let showing = false
+  for (const entry of found) {
+    entry.doc.error = T('doc.gone')
+    entry.doc.html = ''
+    showing ||= isShowing(entry)
+  }
+  if (showing) render()
   else paintTabs()
 })
 
@@ -620,7 +643,7 @@ function closeOthers(keep: number): void {
   if (busy > 0 && !window.confirm(T('close.busyMany', { count: busy }))) return
   if (!confirmDiscard(others.flatMap((tab) => tab.docs))) return
   for (const tab of others) {
-    for (const doc of tab.docs) void window.api.unwatch(doc.path)
+    for (const doc of tab.docs) unwatchUnlessOpenElsewhere(doc.path, doc)
     shells.get(tab.id)?.dispose()
     shells.delete(tab.id)
   }
@@ -1654,7 +1677,9 @@ function renderPalette(): void {
     if (entry.here || entry.elsewhere) {
       const where = document.createElement('span')
       where.className = 'palette-where'
-      where.textContent = entry.here ? T('palette.openHere') : 'open in ' + entry.elsewhere
+      where.textContent = entry.here
+        ? T('palette.openHere')
+        : T('palette.openIn', { tab: entry.elsewhere ?? '' })
       row.append(where)
     }
 

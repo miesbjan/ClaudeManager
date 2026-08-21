@@ -90,7 +90,7 @@ const en = {
   'palette.nothingHere': 'Nothing open here',
   'palette.noMatch': 'No match',
   'palette.openHere': 'open here',
-  'palette.openIn': 'open in {tab}',
+  'palette.openIn': 'also open in {tab}',
 
   'save.notRendered': 'Nothing to render here - this file is shown as it is written',
   'save.unsavedFirst': 'Unsaved edits here - save with Ctrl+S first, or undo them',
@@ -192,7 +192,7 @@ const cs: Record<StringKey, string> = {
   'palette.nothingHere': 'Tady nic otevřeného není',
   'palette.noMatch': 'Nic nenalezeno',
   'palette.openHere': 'otevřít zde',
-  'palette.openIn': 'otevřít v {tab}',
+  'palette.openIn': 'otevřený i v {tab}',
 
   'save.notRendered': 'Není co vykreslit - soubor se zobrazuje tak, jak je zapsaný',
   'save.unsavedFirst': 'Jsou tu neuložené úpravy - ulož je Ctrl+S, nebo je vrať zpět',

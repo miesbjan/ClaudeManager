@@ -750,3 +750,14 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   Uložený tvar čte vlastní funkce, ne `parsePlanUsage`: ta bere odpověď serveru, ne
   to, co už přes ni prošlo. Chyba, která by se tím zavřela potichu — cache, která se
   nikdy nenačte — je teď pokrytá testem.
+- **21. 8. 2026** - Jeden soubor může být otevřený ve víc tabech. Do teď `Ctrl+O`
+  nad souborem, který už byl otevřený jinde, přeskočil do toho druhého tabu — z obavy,
+  že dvě kopie znamenají dva rozepsané texty a jeden o druhém neví. Jenže to je pravidlo
+  z doby, kdy tab byl soubor. Dnes je tab místo a dvě místa nad jedním projektem jsou
+  běžná věc; skok do cizího tabu vynucoval jediné „sezínu" tam, kde uživatel chce dvě.
+  Rozepsané úpravy drží dál starší pravidlo: kdo má draft, tomu se nic nenačte a stavový
+  řádek to řekne. Z toho plynou tři věci, které musely následovat: přepsání na disku
+  dojde do všech kopií, sledování se zruší až se zavřením té poslední, a dva taby nad
+  týmž souborem si nechají prosté jméno — doplňování cesty je nerozliší a skončilo
+  celou cestou v každém tabu. `Ctrl+P` na řádku nadále hlásí, že soubor je otevřený i
+  jinde, ale už jako informaci, ne jako slib skoku.
