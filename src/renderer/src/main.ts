@@ -972,7 +972,10 @@ function dressTray(waiting: Attention | null): void {
     quitConfirm: T('tray.quitConfirm'),
     cancel: T('tray.cancel'),
     hidden: T('tray.hidden'),
-    hiddenBody: T('tray.hiddenBody')
+    hiddenBody: T('tray.hiddenBody'),
+    closeAsk: T('close.ask'),
+    closeQuit: T('close.quit'),
+    closeKeep: T('close.keep')
   }
   const tooltip = waiting
     ? 'Project Console - ' + T('tray.waiting', { count: waiting.count })

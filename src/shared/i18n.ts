@@ -51,6 +51,14 @@ const en = {
   'tray.hidden': 'Project Console is still running',
   'tray.hiddenBody': 'Sessions carry on. Click the tray icon to come back.',
   'tray.waiting': '{count} waiting',
+  /*
+   * Asked when a shell is running that was not recognised as an agent. Recognising one
+   * is done by the strings its interface prints, so this is the answer to that being
+   * wrong: a question rather than a session ended without a word.
+   */
+  'close.ask': 'Something is running in a shell. Close the window, or keep it running?',
+  'close.quit': 'Close and stop it',
+  'close.keep': 'Keep it running',
   'tabbar.new': 'New tab (Ctrl+T)',
   'tab.empty': 'New tab',
   'tab.rename': 'Rename tab',
@@ -165,6 +173,9 @@ const cs: Record<StringKey, string> = {
   'tray.hidden': 'Project Console běží dál',
   'tray.hiddenBody': 'Session pokračují. Kliknutím na ikonu v traye se vrátíš.',
   'tray.waiting': 'čeká {count}',
+  'close.ask': 'V shellu něco běží. Zavřít okno, nebo to nechat běžet?',
+  'close.quit': 'Zavřít a zastavit',
+  'close.keep': 'Nechat běžet',
   'tabbar.new': 'Nový tab (Ctrl+T)',
   'tab.empty': 'Nový tab',
   'tab.rename': 'Přejmenovat tab',

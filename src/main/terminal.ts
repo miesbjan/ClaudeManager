@@ -114,6 +114,11 @@ export class TerminalManager {
     }
   }
 
+  /** How many shells are alive. What closing the window would take with it. */
+  count(): number {
+    return this.terminals.size
+  }
+
   disposeAll(): void {
     for (const id of [...this.terminals.keys()]) this.kill(id)
   }

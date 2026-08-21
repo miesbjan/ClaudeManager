@@ -27,6 +27,7 @@ import { resolveFile } from './resolveFile'
 import { TerminalManager } from './terminal'
 import { loadState, saveState, terminalFont, type AppState } from './store'
 import { clampSize } from '../shared/font'
+import { closeAction } from '../shared/closing'
 import { sanitisePane, sanitiseSession } from '../shared/session'
 import { paneCommand } from '../shared/shortcuts'
 import type {
@@ -82,7 +83,10 @@ let trayText = {
   quitConfirm: 'Quit',
   cancel: 'Cancel',
   hidden: 'Project Console is still running',
-  hiddenBody: 'Sessions carry on. Click the tray icon to come back.'
+  hiddenBody: 'Sessions carry on. Click the tray icon to come back.',
+  closeAsk: 'Something is running in a shell. Close it, or keep it running in the tray?',
+  closeQuit: 'Close and stop it',
+  closeKeep: 'Keep it running'
 }
 
 function trayIcon(): Electron.NativeImage {
@@ -98,6 +102,21 @@ function showWindow(): void {
   win.focus()
 }
 
+/**
+ * Shown first, because quitting can be refused: unsaved edits stop the window from
+ * closing and say so in its status bar, which is no use behind a hidden window. And if
+ * it is refused, this is no longer a quit - leaving the flag set would make the next
+ * close destroy the window instead of hiding it.
+ */
+function quitNow(): void {
+  showWindow()
+  quitting = true
+  app.quit()
+  setTimeout(() => {
+    quitting = false
+  }, 1000)
+}
+
 function askThenQuit(): void {
   const answer = dialog.showMessageBoxSync({
     type: 'question',
@@ -107,19 +126,15 @@ function askThenQuit(): void {
     message: trayText.quitAsk
   })
   if (answer !== 0) return
+  quitNow()
+}
 
-  /*
-   * Shown first, because quitting can be refused: unsaved edits stop the window from
-   * closing and say so in its status bar, which is no use behind a hidden window. And
-   * if it is refused, this is no longer a quit - leaving the flag set would make the
-   * next close destroy the window instead of hiding it.
-   */
-  showWindow()
-  quitting = true
-  app.quit()
-  setTimeout(() => {
-    quitting = false
-  }, 1000)
+/** Out of the way, still running, and said once - see `announcedHiding`. */
+function hideWindow(): void {
+  win?.hide()
+  if (!tray || announcedHiding) return
+  announcedHiding = true
+  tray.displayBalloon({ title: trayText.hidden, content: trayText.hiddenBody })
 }
 
 function refreshTray(): void {
@@ -350,15 +365,38 @@ function createWindow(): void {
 
   win.on('close', (event) => {
     persistNow()
-    if (quitting || !tray || !guarded) return
+    const action = closeAction({
+      quitting,
+      tray: tray !== null,
+      guarded,
+      shells: terminals?.count() ?? 0
+    })
+    if (action === 'quit' && quitting) return
+
+    /*
+     * Refused first and acted on afterwards, whatever the answer: a modal opened from
+     * inside this handler does not reliably hold the close, which was learned the hard
+     * way when the unsaved-edits guard lived here rather than in the renderer.
+     */
     event.preventDefault()
-    win?.hide()
-    // Said once: an application that vanishes from the screen but not from the machine
-    // has to announce itself, or it is simply lost.
-    if (!announcedHiding) {
-      announcedHiding = true
-      tray.displayBalloon({ title: trayText.hidden, content: trayText.hiddenBody })
+    if (action === 'hide') {
+      hideWindow()
+      return
     }
+    if (action === 'ask') {
+      const answer = dialog.showMessageBoxSync({
+        type: 'question',
+        buttons: [trayText.closeQuit, trayText.closeKeep],
+        defaultId: 1,
+        cancelId: 1,
+        message: trayText.closeAsk
+      })
+      if (answer !== 0) {
+        hideWindow()
+        return
+      }
+    }
+    quitNow()
   })
   win.on('closed', () => {
     win = null
