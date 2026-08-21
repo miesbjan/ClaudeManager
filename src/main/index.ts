@@ -48,10 +48,12 @@ const DEV_URL = process.env['ELECTRON_RENDERER_URL']
 const DEV_ICON = join(__dirname, '../../build/icon.ico')
 
 /**
- * Closing the window leaves the application running behind a tray icon, because what
- * is running in it does not stop being useful when the window is out of the way: an
- * agent halfway through a job would otherwise be killed by the same click that tidies
- * the desktop. Quitting is a separate act, from the tray menu.
+ * Closing the window leaves the application running behind a tray icon whenever an
+ * agent is in one of the tabs, because what is running in it does not stop being
+ * useful when the window is out of the way: an agent halfway through a job would
+ * otherwise be killed by the same click that tidies the desktop. With no agent
+ * anywhere the cross ends the application as it always did. Quitting outright is a
+ * separate act, from the tray menu.
  *
  * This buys exactly one thing - surviving the window - and no more. The shells live
  * in this process, so quitting, logging out or rebooting still ends them; sessions
@@ -60,6 +62,17 @@ const DEV_ICON = join(__dirname, '../../build/icon.ico')
 let tray: Tray | null = null
 let quitting = false
 let announcedHiding = false
+
+/**
+ * Whether the window is holding anything that closing it would kill - an agent in one
+ * of the tabs, running or waiting for you. Told by the renderer, which is the side
+ * that knows what is in them.
+ *
+ * With nothing to protect, the cross means what it always meant: the application ends
+ * and leaves nothing behind. Tabs, layout and names are in the session file either
+ * way, so what is lost by quitting is a shell at a prompt, which is nothing.
+ */
+let guarded = false
 
 /** Filled in by the renderer, which is the side that knows the language. */
 let trayText = {
@@ -337,7 +350,7 @@ function createWindow(): void {
 
   win.on('close', (event) => {
     persistNow()
-    if (quitting || !tray) return
+    if (quitting || !tray || !guarded) return
     event.preventDefault()
     win?.hide()
     // Said once: an application that vanishes from the screen but not from the machine
@@ -538,19 +551,23 @@ function registerIpc(): void {
    * The tray is dressed from the renderer, which is the side that knows the language
    * and already draws the icon with its badge - the main process only hangs things up.
    */
-  ipcMain.on('tray:set', (_event, icon: string | null, text: typeof trayText, tip: string) => {
-    trayText = { ...trayText, ...text }
-    if (!tray) return
-    tray.setToolTip(tip)
-    if (icon) {
-      const image = nativeImage.createFromDataURL(icon)
-      if (!image.isEmpty()) tray.setImage(image.resize({ width: 16, height: 16 }))
-    } else {
-      const plain = trayIcon()
-      if (!plain.isEmpty()) tray.setImage(plain)
+  ipcMain.on(
+    'tray:set',
+    (_event, icon: string | null, text: typeof trayText, tip: string, holds: boolean) => {
+      guarded = holds
+      trayText = { ...trayText, ...text }
+      if (!tray) return
+      tray.setToolTip(tip)
+      if (icon) {
+        const image = nativeImage.createFromDataURL(icon)
+        if (!image.isEmpty()) tray.setImage(image.resize({ width: 16, height: 16 }))
+      } else {
+        const plain = trayIcon()
+        if (!plain.isEmpty()) tray.setImage(plain)
+      }
+      refreshTray()
     }
-    refreshTray()
-  })
+  )
 
   ipcMain.on('taskbar:badge', (_event, dataUrl: string | null, count: number) => {
     if (!win || win.isDestroyed()) return
@@ -633,9 +650,13 @@ if (!app.requestSingleInstanceLock()) {
     })
   })
 
+  /*
+   * Reached only when the window really closed - hiding it prevents the close, so this
+   * never fires for a window that went to the tray. Getting here therefore means there
+   * was nothing to keep running for.
+   */
   app.on('window-all-closed', () => {
-    // With a tray there is a way back, so the last window closing is not the end.
-    if (!tray) app.quit()
+    app.quit()
   })
 
   app.on('will-quit', () => globalShortcut.unregisterAll())

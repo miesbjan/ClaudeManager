@@ -812,3 +812,12 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   špatná, okno, které nejde vrátit, horší. První schování to řekne bublinou, jinak by
   aplikace zmizela z obrazovky, ale ne ze stroje. Ověřeno na zabalené aplikaci: okno
   zavřeno systémovým způsobem, shelly běžely dál, po opětovném spuštění okno zpátky.
+- **21. 8. 2026** - Křížek schovává jen tehdy, když je co chránit: když je v některém
+  tabu agent, ať pracuje nebo stojí na promptu. Bez něj ukončí aplikaci jako dřív —
+  co tím padne, je shell na promptu, a taby, rozložení i jména jsou v uložené session.
+  Cena je známá: chování křížku závisí na stavu, který není vidět na první pohled —
+  proto to svítí tečka na tabu, která se řídí týmž příznakem.
+  Při ověřování vylezla chyba, kterou by nikdo nečekal: okno se sice zavřelo napevno,
+  ale aplikace běžela dál, protože `window-all-closed` ukončoval jen tehdy, když
+  neexistovala ikona v traye. Správně se tam nemá ptat na tray vůbec: schované okno
+  se nezavírá, takže když se ta událost stane, není pro co běžet dál.

@@ -66,11 +66,12 @@ export async function paintTaskbarIcon(badge: Badge | null): Promise<void> {
 export async function paintTray(
   badge: Badge | null,
   text: Record<string, string>,
-  tooltip: string
+  tooltip: string,
+  holds: boolean
 ): Promise<void> {
   try {
-    window.api.setTray(await draw(iconDataUrl(badge), 32), text, tooltip)
+    window.api.setTray(await draw(iconDataUrl(badge), 32), text, tooltip, holds)
   } catch {
-    window.api.setTray(null, text, tooltip)
+    window.api.setTray(null, text, tooltip, holds)
   }
 }

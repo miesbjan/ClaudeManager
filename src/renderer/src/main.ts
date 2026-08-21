@@ -959,6 +959,12 @@ function applyActivity(tab: Tab, event: ActivityEvent): void {
  * window that is out of the way still reports what it is holding.
  */
 function dressTray(waiting: Attention | null): void {
+  /*
+   * An agent in any tab is what makes closing the window mean hiding it. Idle counts:
+   * a session sitting at its prompt is work in progress too, and it is the state of
+   * the tab that says so, not whether anything is moving right now.
+   */
+  const holds = tabs.some((tab) => tab.reporting)
   const text: Record<string, string> = {
     show: T('tray.show'),
     quit: T('tray.quit'),
@@ -971,7 +977,7 @@ function dressTray(waiting: Attention | null): void {
   const tooltip = waiting
     ? 'Project Console - ' + T('tray.waiting', { count: waiting.count })
     : 'Project Console'
-  void paintTray(waiting, text, tooltip)
+  void paintTray(waiting, text, tooltip, holds)
 }
 
 function reportTaskbar(): void {
@@ -1034,6 +1040,8 @@ window.api.terminal.onData(({ id, data }) => {
   if (tab && !tab.reporting && (signals.agent || signals.progress !== null)) {
     tab.reporting = true
     paintTabs()
+    // From here on the cross means hiding rather than quitting.
+    reportTaskbar()
   }
   applyActivity(tabs[index], { type: 'output', signals })
   scheduleSilence(tabs[index])

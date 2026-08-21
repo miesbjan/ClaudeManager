@@ -358,10 +358,12 @@ Files passed on the command line are opened too, so the app works as a handler f
   finished, gone quiet or fallen over closes at once: asking there would turn the
   question into a reflex, and a reflex protects nothing. Closing every other tab asks
   once about however many of them are busy, not once each.
-- **Closing the window leaves it running.** The cross hides the window into the tray
-  and the application carries on: what is running in a tab does not stop being useful
-  because the window is in the way, and an agent halfway through a job would otherwise
-  be killed by the same click that tidies the desktop. Clicking the tray icon - or
+- **Closing the window leaves it running, when there is something to leave.** With an
+  agent in one of the tabs - working or idle at its prompt - the cross hides the window
+  into the tray and the application carries on: an agent halfway through a job would
+  otherwise be killed by the same click that tidies the desktop. With no agent anywhere
+  the cross ends the application as it always did, since what closing costs then is a
+  shell at a prompt, and everything else is in the session file. Clicking the tray icon - or
   starting the application again, from the shortcut or a `.md` file - brings the window
   back with everything as it was: the same shells, their scrollback, whatever ran while
   nobody was watching. The tray icon carries the same badge as the taskbar button, so

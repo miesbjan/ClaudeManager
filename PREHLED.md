@@ -44,7 +44,9 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
   jednou, ať má důvodů kolik chce, pracující taby se nepočítají, a barva je ten
   nejnaléhavější důvod — zelená hotovo, oranžová ptá se, červená spadl.
 
-- **Zavření okna aplikaci neukončí.** Křížek okno schová do traye a co běží, běží dál;
+- **Zavření okna aplikaci neukončí, pokud někde běží Claude.** Křížek okno schová do
+  traye a co běží, běží dál; když žádný agent otevřený není, křížek ukončí všechno.
+  Jinak řečeno:
   kliknutím na ikonu v traye (nebo dalším spuštěním zástupce) se okno vrátí i s tím, co
   mezitím doběhlo. Ukončit se dá z nabídky té ikony a aplikace se zeptá. Přežije to
   zavření okna, ne ukončení, odhlášení nebo restart.
@@ -53,7 +55,8 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
 
 | Co uděláš | Co se stane |
 | --------- | ----------- |
-| Křížek okna nebo `Alt+F4` | Okno se schová do traye, shelly i agenti běží dál. Poprvé to řekne bublinou. Rozložení se v tu chvíli uloží. |
+| Křížek okna nebo `Alt+F4`, **když někde běží Claude** | Okno se schová do traye, shelly i agenti běží dál. Poprvé to řekne bublinou. Rozložení se v tu chvíli uloží. |
+| Křížek okna, **když žádný Claude neběží** | Aplikace se ukončí, nic nezůstane viset. Taby, rozložení i jména se obnoví při dalším spuštění. |
 | Klik na ikonu v traye | Okno je zpátky i s výpisem v terminálu a vším, co mezitím doběhlo. |
 | Spustíš zástupce znovu | Totéž — druhá instance se nespustí, jen vrátí okno. Když otevíráš `.md`, otevře se v aktivním tabu. |
 | Otevřeš `.md` z Průzkumníka | Okno se vrátí a soubor se otevře v tabu, ve kterém jsi byl. |
