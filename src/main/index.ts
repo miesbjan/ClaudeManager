@@ -94,8 +94,19 @@ function askThenQuit(): void {
     message: trayText.quitAsk
   })
   if (answer !== 0) return
+
+  /*
+   * Shown first, because quitting can be refused: unsaved edits stop the window from
+   * closing and say so in its status bar, which is no use behind a hidden window. And
+   * if it is refused, this is no longer a quit - leaving the flag set would make the
+   * next close destroy the window instead of hiding it.
+   */
+  showWindow()
   quitting = true
   app.quit()
+  setTimeout(() => {
+    quitting = false
+  }, 1000)
 }
 
 function refreshTray(): void {

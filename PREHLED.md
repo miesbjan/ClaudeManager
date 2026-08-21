@@ -49,6 +49,20 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
   mezitím doběhlo. Ukončit se dá z nabídky té ikony a aplikace se zeptá. Přežije to
   zavření okna, ne ukončení, odhlášení nebo restart.
 
+### Co se stane při zavírání
+
+| Co uděláš | Co se stane |
+| --------- | ----------- |
+| Křížek okna nebo `Alt+F4` | Okno se schová do traye, shelly i agenti běží dál. Poprvé to řekne bublinou. Rozložení se v tu chvíli uloží. |
+| Klik na ikonu v traye | Okno je zpátky i s výpisem v terminálu a vším, co mezitím doběhlo. |
+| Spustíš zástupce znovu | Totéž — druhá instance se nespustí, jen vrátí okno. Když otevíráš `.md`, otevře se v aktivním tabu. |
+| Otevřeš `.md` z Průzkumníka | Okno se vrátí a soubor se otevře v tabu, ve kterém jsi byl. |
+| Tray → Ukončit | Zeptá se. Po potvrzení se okno ukáže a všechno se ukončí — shelly i agenti. |
+| Ukončení s neuloženou úpravou | Ukončení se odmítne, okno se ukáže a stavový řádek řekne, který soubor to je. Ulož `Ctrl+S` nebo úpravu vrať a zkus znovu. |
+| `Ctrl+W` v posledním tabu | Zavře tab, ne aplikaci. Když v něm něco běží, zeptá se. |
+| Odhlášení, restart, vypnutí | Konec všeho — tohle tray neřeší. Konverzace zůstanou, `claude --continue` je v tom adresáři obnoví. |
+| Pád aplikace | Totéž co odhlášení: shelly umřou s procesem, taby a rozložení se obnoví z uložené session. |
+
 ## Dokument
 
 - **Živý Markdown**: nadpisy, seznamy, tabulky, checkboxy, citace, kód se
