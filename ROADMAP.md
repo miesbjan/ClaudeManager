@@ -381,6 +381,7 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Extra   | jazyk rozhraní CS/EN                                                 |
 | Extra   | vlastní ikona a počet čekajících tabů na ní                          |
 | Extra   | přehazování tabů tažením, vkládání do shellu                         |
+| Extra   | otázka před zavřením tabu, ve kterém se pracuje                     |
 
 Přidání položky na tenhle seznam je rozhodnutí, ne detail — patří k němu řádek
 v decision logu níže.
@@ -708,3 +709,11 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   věc, kterou by člověk nečekal a odhalil ji až test: Chromium vloží schránku do
   skryté textarey sám a xterm ji pošle dál, takže bez potlačení toho výchozího chování
   dorazil text dvakrát.
+- **21. 8. 2026** - Zavření tabu, ve kterém něco běží, se ptá. Vyšlo z přehazování
+  tabů: křížek je pár pixelů od místa, kde se tab chytá, a za ním může být agent v půlce
+  práce. Ptá se jen na tři stavy — teče výstup, program hlásí práci, nebo se čeká na
+  povolení. „Hotovo", „ticho" a „spadl" se zavírají rovnou: otázka, která se ptá
+  pokaždé, se odklikává bez čtení a pak nechrání nic. Zavření ostatních tabů se ptá
+  jednou za všechny, ne za každý zvlášť.
+  Při té příležitosti dostala překlad i starší otázka na neuložené změny, která zůstala
+  anglicky z doby před přepínačem jazyka.

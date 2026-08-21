@@ -309,6 +309,13 @@ Files passed on the command line are opened too, so the app works as a handler f
   name of its own - what you are doing there usually describes it better than whichever
   file is on screen. A named tab is shown in italics, an empty name goes back to being
   named after the file, and the name is remembered with the rest of the place.
+- **A tab that is busy is not closed on one click.** Closing one where something is
+  running - output flowing, the program reporting work, or an agent stopped at a
+  permission question - asks first. The cross sits a few pixels from where a tab is
+  dragged, and behind it may be an agent halfway through a job. A tab that has
+  finished, gone quiet or fallen over closes at once: asking there would turn the
+  question into a reflex, and a reflex protects nothing. Closing every other tab asks
+  once about however many of them are busy, not once each.
 - **Unsaved edits cannot be lost quietly.** Closing a file, a tab or the window asks
   first. The window is refused rather than asked, because a dialog raised while the
   window is already closing proved unreliable; the status bar says what to do.

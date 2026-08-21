@@ -4,6 +4,7 @@ import { changedLines } from './diff'
 import { renderMarkdown } from './markdownRenderer'
 import {
   createSignalReader,
+  interruptsWork,
   nextActivity,
   SILENCE_MS,
   type ActivityEvent,
@@ -278,12 +279,24 @@ function confirmDiscard(docs: Doc[]): boolean {
   const dirty = docs.filter(isDirty)
   if (dirty.length === 0) return true
   const names = dirty.map((doc) => baseName(doc.path)).join(', ')
-  return window.confirm(`Unsaved changes in ${names}. Close and lose them?`)
+  return window.confirm(T('close.unsaved', { names }))
+}
+
+/**
+ * A tab with something running in it is not closed on one click. The cross sits a few
+ * pixels from where a tab is dragged, and the thing behind it is an agent halfway
+ * through a job - so this asks, while a tab that has finished still closes at once.
+ */
+function confirmInterrupt(tab: Tab): boolean {
+  if (!interruptsWork(tab.activity)) return true
+  const name = tab.name ?? baseName(shownDoc(tab)?.path ?? '')
+  return window.confirm(T('close.busy', { name }))
 }
 
 function closeTab(index: number): void {
   const tab = tabs[index]
   if (!tab) return
+  if (!confirmInterrupt(tab)) return
   if (!confirmDiscard(tab.docs)) return
   for (const doc of tab.docs) void window.api.unwatch(doc.path)
   shells.get(tab.id)?.dispose()
@@ -600,6 +613,9 @@ function closeOthers(keep: number): void {
   const kept = tabs[keep]
   if (!kept) return
   const others = tabs.filter((tab) => tab !== kept)
+  // Several tabs at once: one question about all of them, not one each.
+  const busy = others.filter((tab) => interruptsWork(tab.activity)).length
+  if (busy > 0 && !window.confirm(T('close.busyMany', { count: busy }))) return
   if (!confirmDiscard(others.flatMap((tab) => tab.docs))) return
   for (const tab of others) {
     for (const doc of tab.docs) void window.api.unwatch(doc.path)

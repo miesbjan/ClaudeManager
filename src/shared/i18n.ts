@@ -100,6 +100,10 @@ const en = {
   'shell.failed': 'Shell: {error}',
   'terminal.fontSize': 'Terminal font size {size}',
 
+  'close.unsaved': 'Unsaved changes in {names}. Close and lose them?',
+  'close.busy': 'Something is still running in {name}. Closing the tab stops it. Close anyway?',
+  'close.busyMany': 'Something is still running in {count} of these tabs. Closing them stops it. Close anyway?',
+
   'help.heading': 'Keyboard shortcuts',
   'help.notes': 'Without a key',
   'help.close': 'Esc or the ? button closes this.'
@@ -196,6 +200,10 @@ const cs: Record<StringKey, string> = {
 
   'shell.failed': 'Shell: {error}',
   'terminal.fontSize': 'Velikost písma terminálu {size}',
+
+  'close.unsaved': 'Neuložené změny v {names}. Zavřít a přijít o ně?',
+  'close.busy': 'V {name} něco běží. Zavřením tabu se to zastaví. Přesto zavřít?',
+  'close.busyMany': 'V {count} z těchto tabů něco běží. Zavřením se to zastaví. Přesto zavřít?',
 
   'help.heading': 'Klávesové zkratky',
   'help.notes': 'Bez zkratky',

@@ -24,6 +24,8 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
   projektu. Soubor otevřený v jiném tabu se nabídne taky a řádek to řekne.
 - **Vlastní jméno tabu** dvojklikem na popisek — co tam děláš, popisuje místo líp než
   jméno souboru.
+- **Tab, ve kterém se pracuje, se nezavře na jedno kliknutí** — aplikace se zeptá.
+  Hotový tab se zavře rovnou.
 - **Pořadí tabů** se mění tažením do strany. Tab z lišty nikam nevytáhneš — je to
   místo s běžícím shellem, ne něco na odhození na plochu.
 - **Tečka na tabu** říká, co se v něm děje, když se zrovna díváš jinam: blikající

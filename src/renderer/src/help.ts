@@ -164,6 +164,10 @@ const EN_NOTES: HelpNote[] = [
     body: 'an address the shell prints opens in the right pane by itself. Only addresses on this machine are shown; you can also type one in.'
   },
   {
+    title: 'Closing a tab that is busy',
+    body: 'asks first. The cross is a few pixels from where a tab is dragged, and behind it may be an agent halfway through a job; a tab that has finished still closes at once.'
+  },
+  {
     title: 'The icon in the taskbar',
     body: 'carries the number of tabs waiting for you while you are looking elsewhere - green finished, amber asking for permission, red broken.'
   },
@@ -189,6 +193,10 @@ const CS_NOTES: HelpNote[] = [
   {
     title: 'Dev server',
     body: 'adresu, kterou shell vypíše, otevře pravý panel sám. Zobrazí se jen adresa na tomhle stroji; napsat ji jde i ručně.'
+  },
+  {
+    title: 'Zavření tabu, ve kterém se pracuje',
+    body: 'se nejdřív zeptá. Křížek je pár pixelů od místa, kde se tab tahá, a za ním může být agent v půlce práce; hotový tab se zavře rovnou.'
   },
   {
     title: 'Ikona v hlavním panelu',

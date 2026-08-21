@@ -41,6 +41,18 @@ export type ActivityState =
   | 'permission'
   | 'alert'
 
+/**
+ * Whether closing this tab would cut something off mid-way.
+ *
+ * Work in flight is the obvious case; being asked for permission counts too, because
+ * an agent stopped at a question has done everything up to it and is holding the
+ * result. Everything else - finished, quiet, fallen over - has nothing left to lose,
+ * and asking there would train the answer out of anyone.
+ */
+export function interruptsWork(state: ActivityState): boolean {
+  return state === 'working' || state === 'busy' || state === 'permission'
+}
+
 export type ActivityEvent =
   | { type: 'output'; signals: OutputSignals }
   | { type: 'silence' }

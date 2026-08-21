@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
   createSignalReader,
+  interruptsWork,
   nextActivity,
   type ActivityState,
   type OutputSignals
@@ -259,5 +260,28 @@ describe('a run from start to finish', () => {
     assert.equal(feed(' 2. Yes, allow all'), 'permission')
     // No progress reporting anywhere: the dialog scrolling away is the only signal.
     assert.equal(feed('y'.repeat(300)), 'working')
+  })
+})
+
+describe('interruptsWork', () => {
+  it('protects a tab with something running in it', () => {
+    assert.equal(interruptsWork('working'), true)
+    assert.equal(interruptsWork('busy'), true)
+  })
+
+  /* An agent stopped at a question holds everything it did before it. */
+  it('protects a tab that is waiting to be answered', () => {
+    assert.equal(interruptsWork('permission'), true)
+  })
+
+  /*
+   * Asking about a tab with nothing left to lose is how a confirmation becomes a
+   * reflex, and a reflex protects nothing.
+   */
+  it('asks nothing about a tab that has finished, gone quiet or fallen over', () => {
+    assert.equal(interruptsWork('idle'), false)
+    assert.equal(interruptsWork('done'), false)
+    assert.equal(interruptsWork('waiting'), false)
+    assert.equal(interruptsWork('alert'), false)
   })
 })
