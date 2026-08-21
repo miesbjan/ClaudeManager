@@ -1057,20 +1057,23 @@ window.api.terminal.onExit(({ id, exitCode }) => {
 
 /* ---------- shortcut help ---------- */
 
+/** Built on demand, and rebuilt whenever the language it is written in changes. */
+function paintHelp(): void {
+  renderShortcuts(help, lang, {
+    intro: T('help.intro'),
+    heading: T('help.heading'),
+    notes: T('help.notes'),
+    close: T('help.close')
+  })
+}
+
 /**
  * Focus moves into the panel while it is open, so Esc closes it instead of being
  * swallowed by whatever runs in the shell.
  */
 function toggleHelp(): void {
   if (help.hidden) {
-    if (!help.firstChild) {
-      renderShortcuts(help, lang, {
-        intro: T('help.intro'),
-        heading: T('help.heading'),
-        notes: T('help.notes'),
-        close: T('help.close')
-      })
-    }
+    if (!help.firstChild) paintHelp()
     help.hidden = false
     help.focus()
   } else {
@@ -1939,9 +1942,13 @@ function applyLanguage(): void {
   if (promptSend) promptSend.textContent = T('prompt.send')
 
   dressTray(null)
-  // The panel is built once and cached; drop it so the next opening speaks the
-  // language now in force.
-  help.textContent = ''
+  /*
+   * The panel is built once and cached. Dropping it is enough while it is closed - the
+   * next opening builds it again - but a panel on screen has to be redrawn now, or
+   * switching the language in front of it leaves it blank.
+   */
+  if (help.hidden) help.textContent = ''
+  else paintHelp()
   render()
   void refreshUsage()
   void refreshLimits()
