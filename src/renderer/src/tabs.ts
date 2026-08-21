@@ -1,17 +1,18 @@
+import { translate, type Lang } from '../../shared/i18n'
 import type { ActivityState } from './activity'
 import type { Doc } from './docs'
 import type { ProjectInfo } from '../../shared/types'
 import type { RightMode } from './web'
 
 /** What the dot on a tab says, and what it means when you hover it. */
-const ACTIVITY_TITLE: Record<Exclude<ActivityState, 'idle'>, string> = {
-  working: 'Output is flowing',
-  busy: 'Working - the program said so',
-  done: 'Finished - the program said so',
-  waiting: 'Quiet for a while - probably finished',
-  permission: 'Asking for permission',
-  alert: 'Wants attention'
-}
+const ACTIVITY_TITLE = {
+  working: 'activity.working',
+  busy: 'activity.busy',
+  done: 'activity.done',
+  waiting: 'activity.waiting',
+  permission: 'activity.permission',
+  alert: 'activity.alert'
+} as const satisfies Record<Exclude<ActivityState, 'idle'>, string>
 
 export type Tab = {
   /**
@@ -107,7 +108,8 @@ export function renderTabBar(
   activeIndex: number,
   handlers: TabHandlers,
   /** The tab being named and what is typed so far, held outside this function. */
-  renaming: { id: string; value: string } | null = null
+  renaming: { id: string; value: string } | null = null,
+  lang: Lang = 'en'
 ): void {
   container.textContent = ''
   // A tab is named after the file it is showing, disambiguated against the others.
@@ -134,7 +136,7 @@ export function renderTabBar(
     if (tab.activity !== 'idle') {
       const dot = document.createElement('span')
       dot.className = 'tab-dot tab-dot--' + tab.activity
-      dot.title = ACTIVITY_TITLE[tab.activity]
+      dot.title = translate(lang, ACTIVITY_TITLE[tab.activity])
       el.append(dot)
     }
 
@@ -176,7 +178,7 @@ export function renderTabBar(
     close.className = 'tab-close'
     close.type = 'button'
     close.textContent = '×'
-    close.title = 'Close tab (Ctrl+W)'
+    close.title = translate(lang, 'tab.close.title')
     /*
      * The tab selects itself on mousedown, which happens before the button's click.
      * Without stopping it there, closing a tab you are not looking at would switch

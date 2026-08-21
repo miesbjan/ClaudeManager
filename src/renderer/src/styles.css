@@ -313,7 +313,7 @@ body.dragging::after {
   top: 44px;
   left: 10px;
   z-index: 40;
-  max-width: min(760px, calc(100vw - 20px));
+  max-width: min(880px, calc(100vw - 20px));
   max-height: calc(100vh - 90px);
   overflow-y: auto;
   padding: 14px 18px 10px;
@@ -333,6 +333,10 @@ body.dragging::after {
   font-size: 14px;
 }
 
+#help h3:first-child {
+  margin-top: 0;
+}
+
 #help h3 {
   margin: 12px 0 4px;
   font-size: 11.5px;
@@ -344,9 +348,13 @@ body.dragging::after {
 
 .help-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 0 28px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px 28px;
   align-items: start;
+}
+
+.help-grid section {
+  break-inside: avoid;
 }
 
 #help dl {
@@ -358,6 +366,12 @@ body.dragging::after {
 
 #help dt {
   white-space: nowrap;
+}
+
+/* A row that describes a gesture rather than a chord is a sentence, so let it wrap. */
+#help dt:not(:has(kbd)) {
+  white-space: normal;
+  color: var(--text);
 }
 
 #help dd {
@@ -373,6 +387,34 @@ body.dragging::after {
   border-bottom-width: 2px;
   border-radius: 4px;
   background: var(--code-bg);
+}
+
+/* What happens without a key: prose, not a key table, so it reads as a paragraph. */
+.help-notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  columns: 2;
+  column-gap: 28px;
+}
+
+.help-notes li {
+  break-inside: avoid;
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.help-notes strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+@media (width <= 720px) {
+  .help-notes {
+    columns: 1;
+  }
 }
 
 .help-hint {

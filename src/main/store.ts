@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import type { Lang } from '../shared/i18n'
 import { clampSize, DEFAULT_SIZE, sanitiseFamily, type TerminalFont } from '../shared/font'
 import { sanitiseSession } from '../shared/session'
 import type { SessionTab, Theme } from '../shared/types'
@@ -14,6 +15,7 @@ export type AppState = {
   bounds?: WindowBounds
   maximized?: boolean
   theme: Theme
+  lang: Lang
   /** Terminal font size. The family is a preference and lives in settings.json. */
   fontSize: number
 }
@@ -23,6 +25,7 @@ const DEFAULT_STATE: AppState = {
   tabs: [],
   activeTab: 0,
   theme: 'system',
+  lang: 'en',
   fontSize: DEFAULT_SIZE
 }
 
@@ -57,6 +60,7 @@ export function loadState(): AppState {
       bounds: raw.bounds as WindowBounds | undefined,
       maximized: raw.maximized === true,
       theme: THEMES.includes(raw.theme as Theme) ? (raw.theme as Theme) : 'system',
+      lang: raw.lang === 'cs' ? 'cs' : 'en',
       fontSize: clampSize(raw.fontSize)
     }
   } catch {

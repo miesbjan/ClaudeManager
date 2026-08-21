@@ -15,6 +15,7 @@ import { statSync } from 'node:fs'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, normalize, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import type { Lang } from '../shared/i18n'
 import { FileWatcher } from './fileWatcher'
 import { detectProject } from './project'
 import { readPlanUsage } from './limits'
@@ -369,12 +370,17 @@ function registerIpc(): void {
     }
 
     const activeTab = tabs.length > 0 ? Math.min(Math.max(session.activeTab, 0), tabs.length - 1) : 0
-    return { tabs, activeTab, theme: state.theme, font: terminalFont(state) }
+    return { tabs, activeTab, theme: state.theme, lang: state.lang, font: terminalFont(state) }
   })
 
   // Size is app state, like the theme. The family stays a hand-edited preference.
   ipcMain.on('font:size', (_event, size: number) => {
     state.fontSize = clampSize(size)
+    persistSoon()
+  })
+
+  ipcMain.handle('lang:set', (_event, lang: Lang) => {
+    state.lang = lang === 'cs' ? 'cs' : 'en'
     persistSoon()
   })
 

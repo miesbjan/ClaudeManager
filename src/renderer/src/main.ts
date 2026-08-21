@@ -23,6 +23,7 @@ import {
 } from './find'
 import { createDoc, indexAfterClose, isDirty, nextDocIndex, type Doc } from './docs'
 import { renderShortcuts } from './help'
+import { nextLang, translate, type Lang, type StringKey } from '../../shared/i18n'
 import { formatTokens } from '../../shared/usage'
 import { limitLevel, timeUntil } from '../../shared/limits'
 import { stepSelection, visibleEntries, type PaletteEntry } from './palette'
@@ -37,15 +38,16 @@ import { renderTabBar, type Tab, type TabHandlers } from './tabs'
 import type { TaskbarState, Theme } from '../../shared/types'
 
 const THEMES: Theme[] = ['system', 'light', 'dark']
-const THEME_LABELS: Record<Theme, string> = {
-  system: 'Theme: Auto',
-  light: 'Theme: Light',
-  dark: 'Theme: Dark'
+const THEME_LABELS: Record<Theme, StringKey> = {
+  system: 'toolbar.theme.system',
+  light: 'toolbar.theme.light',
+  dark: 'toolbar.theme.dark'
 }
 
 const openButton = document.getElementById('open-btn') as HTMLButtonElement
 const shellButton = document.getElementById('shell-btn') as HTMLButtonElement
 const themeButton = document.getElementById('theme-btn') as HTMLButtonElement
+const langButton = document.getElementById('lang-btn') as HTMLButtonElement
 const panes = document.getElementById('panes') as HTMLElement
 const terminalPane = document.getElementById('terminal-pane') as HTMLElement
 const termHosts = document.getElementById('term-hosts') as HTMLElement
@@ -83,6 +85,11 @@ const paletteNote = document.getElementById('palette-note') as HTMLElement
 const tabs: Tab[] = []
 let activeIndex = -1
 let theme: Theme = 'system'
+let lang: Lang = 'en'
+
+/** Every piece of text the window shows goes through here. */
+const T = (key: StringKey, vars?: Record<string, string | number>): string =>
+  translate(lang, key, vars)
 const reloadTimers = new Map<string, number>()
 let reportedTaskbar: TaskbarState = 'none'
 let terminalFont: TerminalFont = { family: DEFAULT_FAMILY, size: DEFAULT_SIZE }
@@ -153,14 +160,14 @@ const tabHandlers: TabHandlers = {
  */
 function paintTabs(): void {
   if (renaming && tabbar.querySelector('.tab-rename')) return
-  renderTabBar(tabbar, tabs, activeIndex, tabHandlers, renaming)
+  renderTabBar(tabbar, tabs, activeIndex, tabHandlers, renaming, lang)
 }
 
 function startRename(index: number): void {
   const tab = tabs[index]
   if (!tab) return
   renaming = { id: tab.id, value: tab.name ?? '' }
-  renderTabBar(tabbar, tabs, activeIndex, tabHandlers, renaming)
+  renderTabBar(tabbar, tabs, activeIndex, tabHandlers, renaming, lang)
 }
 
 /** An empty name is how you go back to being named after the file on screen. */
@@ -351,7 +358,7 @@ function render(): void {
     raw.value = ''
     viewer.classList.remove('showing-raw')
     empty.hidden = false
-    status.textContent = 'No file open'
+    status.textContent = T('status.noFile')
     document.title = 'Project Console'
     applyLayout()
     return
@@ -398,14 +405,14 @@ function renderError(doc: Doc): void {
   box.className = 'file-error'
 
   const title = document.createElement('strong')
-  title.textContent = 'File unavailable'
+  title.textContent = T('doc.unavailable.title')
   const path = document.createElement('code')
   path.textContent = doc.path
   const message = document.createElement('p')
   message.textContent = doc.error ?? ''
   const hint = document.createElement('p')
   hint.className = 'muted'
-  hint.textContent = 'Still watching - the document loads automatically if the file reappears.'
+  hint.textContent = T('doc.unavailable.hint')
 
   box.append(title, path, message, hint)
   content.append(box)
@@ -418,7 +425,7 @@ function renderError(doc: Doc): void {
  */
 function renderStatus(tab: Tab, doc: Doc): void {
   if (doc.error) {
-    status.textContent = doc.path + '  ·  unavailable'
+    status.textContent = doc.path + '  ·  ' + T('status.unavailable')
     return
   }
   const parts = [doc.path]
@@ -428,14 +435,18 @@ function renderStatus(tab: Tab, doc: Doc): void {
    * nothing to count.
    */
   if (tab.docs.length > 1) {
-    parts.push(`${tab.docIndex + 1}/${tab.docs.length} open here - Ctrl+PageUp/PageDown`)
+    parts.push(T('status.openHere', { index: tab.docIndex + 1, count: tab.docs.length }))
   }
-  if (doc.raw) parts.push(doc.truncated ? 'first 2 MB only, read-only' : 'raw')
-  if (doc.draft !== null) parts.push('unsaved - Ctrl+S')
-  if (doc.staleOnDisk) parts.push('changed on disk while you were editing')
+  if (doc.raw) parts.push(T(doc.truncated ? 'status.truncated' : 'status.raw'))
+  if (doc.draft !== null) parts.push(T('status.unsaved'))
+  if (doc.staleOnDisk) parts.push(T('status.stale'))
   if (doc.draft === null && !doc.staleOnDisk) {
-    parts.push('updated ' + (doc.updatedAt ? new Date(doc.updatedAt).toLocaleTimeString() : '-'))
-    parts.push('watching')
+    parts.push(
+      T('status.updated', {
+        time: doc.updatedAt ? new Date(doc.updatedAt).toLocaleTimeString() : '-'
+      })
+    )
+    parts.push(T('status.watching'))
   }
   status.textContent = parts.join('  ·  ')
 }
@@ -512,7 +523,7 @@ window.api.onFileEvent(({ path, type }) => {
     scheduleReload(path)
     return
   }
-  found.doc.error = 'The file no longer exists on disk.'
+  found.doc.error = T('doc.gone')
   found.doc.html = ''
   if (isShowing(found)) render()
   else paintTabs()
@@ -532,16 +543,16 @@ function showContextMenu(index: number, x: number, y: number): void {
 
   const doc = shownDoc(tab)
   const items: Array<[string, () => void]> = [
-    ['Rename tab', () => startRename(index)],
+    [T('tab.rename'), () => startRename(index)],
     ['Reload', () => void (doc && reloadPath(doc.path))],
-    ['Close file', closeDoc],
+    [T('tab.closeFile'), closeDoc],
     ['Close tab', () => closeTab(index)],
-    ['Close other tabs', () => closeOthers(index)],
+    [T('tab.closeOthers'), () => closeOthers(index)],
     [
-      'Copy path',
+      T('tab.copyPath'),
       () => void (doc && navigator.clipboard.writeText(doc.path).catch(() => undefined))
     ],
-    ['Reveal in Explorer', () => void (doc && window.api.reveal(doc.path))]
+    [T('tab.reveal'), () => void (doc && window.api.reveal(doc.path))]
   ]
 
   for (const [label, action] of items) {
@@ -746,12 +757,10 @@ async function refreshUsage(): Promise<void> {
 
   usageLabel.hidden = false
   usageLabel.textContent =
-    'context ' + formatTokens(usage.contextTokens) + '  ·  out ' + formatTokens(usage.outputTokens)
-  usageLabel.title =
-    (usage.model ?? 'claude') +
-    ' · context is what the model had in front of it last turn' +
-    String.fromCharCode(10) +
-    'out is everything it has written this session · read from the session transcript'
+    T('usage.context', { tokens: formatTokens(usage.contextTokens) }) +
+    '  ·  ' +
+    T('usage.out', { tokens: formatTokens(usage.outputTokens) })
+  usageLabel.title = T('usage.title', { model: usage.model ?? 'claude' })
 }
 
 window.setInterval(() => void refreshUsage(), USAGE_POLL_MS)
@@ -786,8 +795,11 @@ function meter(label: string, percent: number, resetsAt: string | null, now: num
   value.textContent = Math.round(percent) + '%'
 
   const left = timeUntil(resetsAt, now)
-  wrap.title = label === '5h' ? 'Five-hour window' : 'Seven-day limit'
-  wrap.title += ': ' + Math.round(percent) + '% used' + (left ? ', resets in ' + left : '')
+  wrap.title =
+    T(label === '5h' ? 'limits.window' : 'limits.week') +
+    ': ' +
+    T('limits.used', { percent: Math.round(percent) }) +
+    (left ? T('limits.resetsIn', { time: left }) : '')
 
   wrap.append(name, track, value)
   return wrap
@@ -812,7 +824,7 @@ async function refreshLimits(): Promise<void> {
   limitsLabel.textContent = ''
   limitsLabel.append(...gauges)
   limitsLabel.hidden = false
-  limitsLabel.title = 'A spent window means requests are refused, not billed on top.'
+  limitsLabel.title = T('limits.note')
 }
 
 window.setInterval(() => void refreshLimits(), LIMITS_POLL_MS)
@@ -911,7 +923,13 @@ window.api.terminal.onExit(({ id, exitCode }) => {
  */
 function toggleHelp(): void {
   if (help.hidden) {
-    if (!help.firstChild) renderShortcuts(help)
+    if (!help.firstChild) {
+      renderShortcuts(help, lang, {
+        heading: T('help.heading'),
+        notes: T('help.notes'),
+        close: T('help.close')
+      })
+    }
     help.hidden = false
     help.focus()
   } else {
@@ -1060,7 +1078,7 @@ webUrlInput.addEventListener('keydown', (event) => {
   const url = normalizeUrl(webUrlInput.value)
   if (!url) {
     webUrlInput.value = tab.webUrl ?? ''
-    status.textContent = 'Only addresses on this machine can be shown here.'
+    status.textContent = T('web.onlyLocal')
     return
   }
   setWebUrl(tab, url, true)
@@ -1086,7 +1104,7 @@ async function openShell(tab: Tab): Promise<void> {
     shells.set(tab.id, pane)
     applyLayout()
     const error = await pane.start(termHosts)
-    if (error) status.textContent = 'Shell: ' + error
+    if (error) status.textContent = T('shell.failed', { error })
   }
   pane.setVisible(true)
   pane.focus()
@@ -1220,11 +1238,14 @@ function renderShellBar(): void {
     return
   }
   const command = chosenCommand(tab)
-  runButton.title = (command ?? 'choose what to run') + String.fromCharCode(10) + 'in ' + project.root
+  runButton.title = T('run.title', {
+    command: command ?? T('run.choose'),
+    root: project.root
+  })
   shellProject.textContent =
     (project.name ?? project.kind) +
     '  ·  ' +
-    (command ?? project.commands.length + ' ways to run')
+    (command ?? T('run.ways', { count: project.commands.length }))
 }
 
 /** A monorepo offers one command per app; the choice is remembered per document. */
@@ -1355,7 +1376,7 @@ async function sendPrompt(): Promise<void> {
   if (!tab) return
   const text = sendable(promptInput.value)
   if (text === null) {
-    status.textContent = 'Nothing to send - the prompt buffer is empty'
+    status.textContent = T('prompt.empty')
     return
   }
   if (!tab.terminalOpen) tab.terminalOpen = true
@@ -1550,7 +1571,7 @@ function renderPalette(): void {
   if (shown.length === 0) {
     const empty = document.createElement('li')
     empty.className = 'palette-empty'
-    empty.textContent = paletteInput.value.trim() === '' ? 'Nothing open here' : 'No match'
+    empty.textContent = paletteInput.value.trim() === '' ? T('palette.nothingHere') : T('palette.noMatch')
     paletteList.append(empty)
     return
   }
@@ -1568,7 +1589,7 @@ function renderPalette(): void {
     if (entry.here || entry.elsewhere) {
       const where = document.createElement('span')
       where.className = 'palette-where'
-      where.textContent = entry.here ? 'open here' : 'open in ' + entry.elsewhere
+      where.textContent = entry.here ? T('palette.openHere') : 'open in ' + entry.elsewhere
       row.append(where)
     }
 
@@ -1631,11 +1652,11 @@ function toggleRaw(): void {
   const doc = shownDoc(tab)
   if (!tab || !doc) return
   if (!isMarkdown(doc.path)) {
-    status.textContent = 'Nothing to render here - this file is shown as it is written'
+    status.textContent = T('save.notRendered')
     return
   }
   if (doc.draft !== null && doc.raw) {
-    status.textContent = 'Unsaved edits here - save with Ctrl+S first, or undo them'
+    status.textContent = T('save.unsavedFirst')
     return
   }
   doc.raw = !doc.raw
@@ -1648,7 +1669,7 @@ async function saveDraft(): Promise<void> {
   const doc = shownDoc(tab)
   if (!tab || !doc || doc.draft === null) return
   if (doc.truncated) {
-    status.textContent = 'Only the first 2 MB of this file was read, so it cannot be saved'
+    status.textContent = T('save.truncated')
     return
   }
 
@@ -1661,9 +1682,9 @@ async function saveDraft(): Promise<void> {
     if (result.reason === 'stale') {
       doc.staleOnDisk = true
       doc.forceSave = true
-      status.textContent = 'Changed on disk since you opened it - Ctrl+S again to overwrite'
+      status.textContent = T('save.stale')
     } else {
-      status.textContent = 'Could not save: ' + result.error
+      status.textContent = T('save.failed', { error: '' }) + result.error
     }
     return
   }
@@ -1702,7 +1723,7 @@ window.addEventListener('beforeunload', (event) => {
  */
 function setTheme(next: Theme, persist = true): void {
   theme = next
-  themeButton.textContent = THEME_LABELS[next]
+  themeButton.textContent = T(THEME_LABELS[next])
   if (persist) void window.api.setTheme(next)
 }
 
@@ -1725,6 +1746,62 @@ function stepFontSize(by: number): void {
 }
 
 themeButton.addEventListener('click', cycleTheme)
+
+/**
+ * Text that is written once into the markup rather than redrawn - buttons, titles,
+ * placeholders - has to be set again when the language changes. Everything else
+ * follows from a normal render.
+ */
+function applyLanguage(): void {
+  langButton.textContent = nextLang(lang).toUpperCase()
+  langButton.title = T('toolbar.lang.title')
+
+  openButton.textContent = T('toolbar.open')
+  openButton.title = T('toolbar.open.title')
+  shellButton.textContent = T('toolbar.shell')
+  shellButton.title = T('toolbar.shell.title')
+  webButton.textContent = T('toolbar.web')
+  webButton.title = T('toolbar.web.title')
+  themeButton.title = T('toolbar.theme.title')
+  themeButton.textContent = T(THEME_LABELS[theme])
+  helpButton.title = T('toolbar.help.title')
+
+  findInput.placeholder = T('find.placeholder')
+  webUrlInput.placeholder = T('web.placeholder')
+  const emptyTitle = empty.querySelector('strong')
+  if (emptyTitle) emptyTitle.textContent = T('empty.title')
+  const emptyBody = empty.querySelectorAll('p')[1]
+  if (emptyBody) emptyBody.textContent = T('empty.body')
+
+  const label = (id: string, key: StringKey): void => {
+    const node = document.getElementById(id)
+    if (node) node.title = T(key)
+  }
+  label('find-prev', 'find.previous')
+  label('find-next', 'find.next')
+  label('find-close', 'find.close')
+  label('web-reload', 'web.reload')
+
+  const promptHint = document.getElementById('prompt-hint')
+  if (promptHint) promptHint.textContent = T('prompt.hint')
+  const promptSend = document.getElementById('prompt-send')
+  if (promptSend) promptSend.textContent = T('prompt.send')
+
+  // The panel is built once and cached; drop it so the next opening speaks the
+  // language now in force.
+  help.textContent = ''
+  render()
+  void refreshUsage()
+  void refreshLimits()
+}
+
+function setLang(next: Lang, persist = true): void {
+  lang = next
+  if (persist) void window.api.setLang(next)
+  applyLanguage()
+}
+
+langButton.addEventListener('click', () => setLang(nextLang(lang)))
 
 /* ---------- input ---------- */
 
@@ -1871,6 +1948,7 @@ window.addEventListener('drop', (event) => {
 async function start(): Promise<void> {
   render()
   const startup = await window.api.getStartupFiles()
+  setLang(startup.lang, false)
   setTheme(startup.theme, false)
   terminalFont = startup.font
 

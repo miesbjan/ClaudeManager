@@ -30,6 +30,7 @@ const api: ViewerApi = {
   getStartupFiles: () => ipcRenderer.invoke('startup:files') as Promise<StartupPayload>,
   saveSession: (state: SessionState) => ipcRenderer.send('session:save', state),
   setTheme: (theme: Theme) => ipcRenderer.invoke('theme:set', theme) as Promise<void>,
+  setLang: (lang) => ipcRenderer.invoke('lang:set', lang) as Promise<void>,
   setTerminalFontSize: (size) => ipcRenderer.send('font:size', size),
   writeFile: (path, content, seenMtimeMs) =>
     ipcRenderer.invoke('file:write', path, content, seenMtimeMs) as Promise<FileWriteResult>,

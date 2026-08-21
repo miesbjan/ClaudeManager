@@ -1,5 +1,6 @@
 /** Types shared between main, preload and renderer. Type-only, no runtime code. */
 import type { TerminalFont } from './font'
+import type { Lang } from './i18n'
 import type { PlanUsage } from './limits'
 import type { PaneCommand } from './shortcuts'
 
@@ -42,6 +43,7 @@ export type StartupPayload = {
   tabs: SessionTab[]
   activeTab: number
   theme: Theme
+  lang: Lang
   font: TerminalFont
 }
 
@@ -140,6 +142,8 @@ export interface ViewerApi {
   saveSession(state: SessionState): void
   /** Switch the palette; also persisted for the next launch. */
   setTheme(theme: Theme): Promise<void>
+  /** Switch the interface language; also persisted for the next launch. */
+  setLang(lang: Lang): Promise<void>
   /** Remember the terminal font size, the way the theme is remembered. */
   setTerminalFontSize(size: number): void
   /**

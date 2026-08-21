@@ -87,8 +87,10 @@ This is a machine-wide electron-builder issue, not specific to this project.
 
 ## Controls
 
-The `?` button in the toolbar shows the same list inside the app; `Esc` or a click
-anywhere else closes it.
+The `?` button in the toolbar shows the same list inside the app, followed by a short
+note on everything that happens without a key being pressed - the dot on a tab, the
+reload, Run, the dev server, the readouts in the status bar. `Esc` or a click anywhere
+else closes it. It speaks whichever interface language is selected.
 
 | Input                     | Action                                    |
 | ------------------------- | ----------------------------------------- |
@@ -306,6 +308,12 @@ Files passed on the command line are opened too, so the app works as a handler f
   follows the Windows setting; the other two force the palette. The choice is
   applied through `nativeTheme.themeSource`, so it also covers native chrome such
   as scrollbars and dialogs, and it is remembered between launches.
+- **Interface language.** The `EN`/`CS` button beside the theme switches the whole
+  interface between English and Czech, and the button shows the language it will
+  switch to. English is the source: the Czech table is typed against its keys, so a
+  string added in one language and forgotten in the other does not compile. Key names
+  are not translated - they are what is printed on the keyboard - and neither are file
+  paths or anything the shell prints. The choice is remembered like the theme.
 - **Session.** The list of open files and the active tab are stored in
   `%APPDATA%/project-console/state.json`, together with the window geometry, and restored
   on the next launch. Files that no longer exist are shown as unavailable.

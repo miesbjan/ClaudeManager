@@ -250,6 +250,17 @@ stojící na promptu je trvale dokončený.
 *Hotovo, když:* pustíš agenta, přepneš se na jinou obrazovku a poznáš z hlavního
 panelu, že dobehl, aniž bys okno hledal.
 
+**Jazyk rozhraní** (hotovo). Přepínač EN/CS vedle motivu, tlačítko ukazuje jazyk, na
+který přepne. Aplikace se používá česky a tři slova anglicky nejsou překážka, ale
+stavový řádek a panel se zkratkami jsou text, který se čte pokaždé znovu.
+
+Zdrojem je angličtina: česká tabulka je typovaná proti jejím klíčům, takže řetězec
+přidaný v jednom jazyce a zapomenutý v druhém neproleze přes překladač. Názvy kláves
+se nepřekládají - je to to, co je napsané na klávesnici - a stejně tak cesty a výstup
+shellu. Volba se pamatuje jako motiv.
+
+*Hotovo, když:* přepneš na češtinu, restartuješ aplikaci a je česky včetně panelu `?`.
+
 **Font terminálu** (hotovo). Velikost a rodina, nic dalšího. V panelu, ve kterém se celý den
 čte výstup agenta, je čitelnost základ, a výchozí velikost xtermu sedí každému jinak.
 
@@ -351,6 +362,7 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Extra   | stav v hlavním panelu, agregovaný přes všechny taby                  |
 | Extra   | velikost a rodina fontu v terminálu                                  |
 | Extra   | vlastní jméno tabu                                                   |
+| Extra   | jazyk rozhraní CS/EN                                                 |
 
 Přidání položky na tenhle seznam je rozhodnutí, ne detail — patří k němu řádek
 v decision logu níže.
@@ -627,3 +639,19 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   až za koncem pastu, proto se z bufferu předem odřežou koncové prázdné řádky.
   Šuplík zůstal bez přepínače obsahu: je v něm jedna věc a přepínač mezi jednou
   možností je ovládací prvek pro nic. Přijde s druhým obsahem.
+- **21. 8. 2026** - Rozhraní umí česky, ale zdrojem zůstává angličtina a čeština je
+  proti ní typovaná. Druhý jazyk je místo, kde se špatně překládá to, co nikdo neviděl:
+  řetězec přidaný jen do jedné tabulky by se projevil prázdným místem v okně až při
+  použití. `Record<StringKey, string>` z toho dělá chybu překladače, což je jediný
+  náklad, který tahle funkce trvale nese. Klávesy, cesty a výstup shellu se
+  nepřekládají - nejsou to věty aplikace.
+- **21. 8. 2026** - Panel `?` přestal být seznamem zkratek a říká i to, co se děje bez
+  klávesy: tečka na tabu, načítání dokumentu, Spustit, dev server, čísla vpravo dole.
+  Vyšlo z otázky „je v `?` popsané všechno" - nebylo: půlka aplikace se neovládá
+  klávesou, takže tabulka zkratek ji celou zamlčela. Je to zvláštní blok pod mřížkou, ne
+  další řádky v ní, aby limit „panel se musí dát přehlédnout jedním pohledem" platil dál.
+- **21. 8. 2026** - Řádek panelu se vysází jako klávesy jen tehdy, když opravdu jmenuje
+  modifikátor. Vyšlo z pohledu na hotový panel: „přetažení souboru" bylo rozsekané do
+  tří kláves, které neexistují. Gesto je věta, takže se sází jako věta; čárka mezi
+  klávesami zůstala mimo rámeček. Nadpis sekce navíc cestuje se svou tabulkou v jednom
+  bloku, jinak ho mřížka položí vedle cizích kláves.

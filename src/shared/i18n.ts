@@ -1,0 +1,222 @@
+/**
+ * Interface text in the two languages this is used in.
+ *
+ * English is the source: `cs` is typed against its keys, so a translation that is
+ * missing or misspelled is a compile error rather than a hole in the window. Values
+ * carry `{name}` placeholders where a number or a path belongs.
+ */
+export type Lang = 'en' | 'cs'
+
+export const LANGS: Lang[] = ['en', 'cs']
+
+const en = {
+  'toolbar.open': '+ Open',
+  'toolbar.open.title': 'Open a file (Ctrl+O)',
+  'toolbar.shell': 'Shell',
+  'toolbar.shell.title': 'Shell pane (Ctrl+`)',
+  'toolbar.web': 'Web',
+  'toolbar.web.title': 'Document, dev server, or both (Alt+W)',
+  'toolbar.theme.title': 'Switch theme (Ctrl+D)',
+  'toolbar.theme.system': 'Theme: Auto',
+  'toolbar.theme.light': 'Theme: Light',
+  'toolbar.theme.dark': 'Theme: Dark',
+  'toolbar.lang.title': 'Interface language',
+  'toolbar.help.title': 'Keyboard shortcuts',
+
+  'empty.title': 'No document open.',
+  'empty.body': 'Press Ctrl+O, use + Open, or drop a file into this window.',
+
+  'status.noFile': 'No file open',
+  'status.unavailable': 'unavailable',
+  'status.openHere': '{index}/{count} open here - Ctrl+PageUp/PageDown',
+  'status.raw': 'as written',
+  'status.truncated': 'first 2 MB only, read-only',
+  'status.unsaved': 'unsaved - Ctrl+S',
+  'status.stale': 'changed on disk while you were editing',
+  'status.updated': 'updated {time}',
+  'status.watching': 'watching',
+
+  'doc.unavailable.title': 'File unavailable',
+  'doc.unavailable.hint':
+    'Still watching - the document loads automatically if the file reappears.',
+  'doc.gone': 'The file no longer exists on disk.',
+
+  'tab.rename': 'Rename tab',
+  'tab.closeFile': 'Close file',
+  'tab.close': 'Close tab',
+  'tab.closeOthers': 'Close other tabs',
+  'tab.copyPath': 'Copy path',
+  'tab.reveal': 'Reveal in Explorer',
+  'tab.reload': 'Reload',
+  'tab.close.title': 'Close tab (Ctrl+W)',
+
+  'activity.working': 'Output is flowing',
+  'activity.busy': 'Working - the program said so',
+  'activity.done': 'Finished - the program said so',
+  'activity.waiting': 'Quiet for a while - probably finished',
+  'activity.permission': 'Asking for permission',
+  'activity.alert': 'Wants attention',
+
+  'usage.context': 'context {tokens}',
+  'usage.out': 'out {tokens}',
+  'usage.title':
+    '{model} · context is what the model had in front of it last turn\nout is everything it has written this session · read from the session transcript',
+
+  'limits.window': 'Five-hour window',
+  'limits.week': 'Seven-day limit',
+  'limits.used': '{percent}% used',
+  'limits.resetsIn': ', resets in {time}',
+  'limits.note': 'A spent window means requests are refused, not billed on top.',
+
+  'run.title': '{command}\nin {root}',
+  'run.choose': 'choose what to run',
+  'run.ways': '{count} ways to run',
+
+  'web.onlyLocal': 'Only addresses on this machine can be shown here.',
+  'web.reload': 'Reload',
+  'web.placeholder': 'localhost:3000',
+
+  'find.placeholder': 'Find in document',
+  'find.previous': 'Previous (Shift+Enter)',
+  'find.next': 'Next (Enter)',
+  'find.close': 'Close (Esc)',
+  'find.line': 'line {line}: {text}',
+
+  'prompt.hint': 'Ctrl+Enter sends · Esc back to the shell',
+  'prompt.send': 'Send ⏎',
+  'prompt.empty': 'Nothing to send - the prompt buffer is empty',
+
+  'palette.nothingHere': 'Nothing open here',
+  'palette.noMatch': 'No match',
+  'palette.openHere': 'open here',
+  'palette.openIn': 'open in {tab}',
+
+  'save.notRendered': 'Nothing to render here - this file is shown as it is written',
+  'save.unsavedFirst': 'Unsaved edits here - save with Ctrl+S first, or undo them',
+  'save.truncated': 'Only the first 2 MB of this file was read, so it cannot be saved',
+  'save.stale': 'Changed on disk since you opened it - Ctrl+S again to overwrite',
+  'save.failed': 'Could not save: {error}',
+
+  'shell.failed': 'Shell: {error}',
+  'terminal.fontSize': 'Terminal font size {size}',
+
+  'help.heading': 'Keyboard shortcuts',
+  'help.notes': 'Without a key',
+  'help.close': 'Esc or the ? button closes this.'
+} as const
+
+export type StringKey = keyof typeof en
+
+const cs: Record<StringKey, string> = {
+  'toolbar.open': '+ Otevřít',
+  'toolbar.open.title': 'Otevřít soubor (Ctrl+O)',
+  'toolbar.shell': 'Shell',
+  'toolbar.shell.title': 'Panel se shellem (Ctrl+`)',
+  'toolbar.web': 'Web',
+  'toolbar.web.title': 'Dokument, dev server, nebo obojí (Alt+W)',
+  'toolbar.theme.title': 'Přepnout motiv (Ctrl+D)',
+  'toolbar.theme.system': 'Motiv: Auto',
+  'toolbar.theme.light': 'Motiv: Světlý',
+  'toolbar.theme.dark': 'Motiv: Tmavý',
+  'toolbar.lang.title': 'Jazyk rozhraní',
+  'toolbar.help.title': 'Klávesové zkratky',
+
+  'empty.title': 'Nic není otevřené.',
+  'empty.body': 'Stiskni Ctrl+O, použij + Otevřít, nebo přetáhni soubor do okna.',
+
+  'status.noFile': 'Nic není otevřené',
+  'status.unavailable': 'nedostupné',
+  'status.openHere': '{index}/{count} otevřeno zde - Ctrl+PageUp/PageDown',
+  'status.raw': 'jak je zapsaný',
+  'status.truncated': 'jen první 2 MB, jen ke čtení',
+  'status.unsaved': 'neuloženo - Ctrl+S',
+  'status.stale': 'na disku se změnil, zatímco jsi psal',
+  'status.updated': 'načteno {time}',
+  'status.watching': 'sleduje se',
+
+  'doc.unavailable.title': 'Soubor není dostupný',
+  'doc.unavailable.hint': 'Sleduje se dál - jakmile se soubor objeví, načte se sám.',
+  'doc.gone': 'Soubor už na disku není.',
+
+  'tab.rename': 'Přejmenovat tab',
+  'tab.closeFile': 'Zavřít soubor',
+  'tab.close': 'Zavřít tab',
+  'tab.closeOthers': 'Zavřít ostatní taby',
+  'tab.copyPath': 'Kopírovat cestu',
+  'tab.reveal': 'Ukázat v Průzkumníku',
+  'tab.reload': 'Načíst znovu',
+  'tab.close.title': 'Zavřít tab (Ctrl+W)',
+
+  'activity.working': 'Teče výstup',
+  'activity.busy': 'Pracuje - hlásí to sám program',
+  'activity.done': 'Hotovo - hlásí to sám program',
+  'activity.waiting': 'Chvíli ticho - nejspíš hotovo',
+  'activity.permission': 'Ptá se na povolení',
+  'activity.alert': 'Chce pozornost',
+
+  'usage.context': 'kontext {tokens}',
+  'usage.out': 'napsáno {tokens}',
+  'usage.title':
+    '{model} · kontext je to, co měl model minule před sebou\nnapsáno je vše, co za tuhle session vytvořil · čteno z transcriptu session',
+
+  'limits.window': 'Pětihodinové okno',
+  'limits.week': 'Sedmidenní limit',
+  'limits.used': 'využito {percent} %',
+  'limits.resetsIn': ', obnova za {time}',
+  'limits.note': 'Vyčerpané okno znamená odmítnutí, ne doúčtování.',
+
+  'run.title': '{command}\nv {root}',
+  'run.choose': 'vyber, co spustit',
+  'run.ways': '{count} způsobů spuštění',
+
+  'web.onlyLocal': 'Zobrazit lze jen adresu na tomto stroji.',
+  'web.reload': 'Načíst znovu',
+  'web.placeholder': 'localhost:3000',
+
+  'find.placeholder': 'Najít v dokumentu',
+  'find.previous': 'Předchozí (Shift+Enter)',
+  'find.next': 'Další (Enter)',
+  'find.close': 'Zavřít (Esc)',
+  'find.line': 'řádek {line}: {text}',
+
+  'prompt.hint': 'Ctrl+Enter odešle · Esc zpět do shellu',
+  'prompt.send': 'Odeslat ⏎',
+  'prompt.empty': 'Není co poslat - prompt je prázdný',
+
+  'palette.nothingHere': 'Tady nic otevřeného není',
+  'palette.noMatch': 'Nic nenalezeno',
+  'palette.openHere': 'otevřít zde',
+  'palette.openIn': 'otevřít v {tab}',
+
+  'save.notRendered': 'Není co vykreslit - soubor se zobrazuje tak, jak je zapsaný',
+  'save.unsavedFirst': 'Jsou tu neuložené úpravy - ulož je Ctrl+S, nebo je vrať zpět',
+  'save.truncated': 'Načtené byly jen první 2 MB souboru, uložit ho proto nejde',
+  'save.stale': 'Na disku se od otevření změnil - Ctrl+S znovu ho přepíše',
+  'save.failed': 'Uložení se nezdařilo: {error}',
+
+  'shell.failed': 'Shell: {error}',
+  'terminal.fontSize': 'Velikost písma terminálu {size}',
+
+  'help.heading': 'Klávesové zkratky',
+  'help.notes': 'Bez zkratky',
+  'help.close': 'Zavře se Escapem nebo tlačítkem ?.'
+}
+
+const DICTS: Record<Lang, Record<StringKey, string>> = { en, cs }
+
+export function translate(
+  lang: Lang,
+  key: StringKey,
+  vars?: Record<string, string | number>
+): string {
+  const text = DICTS[lang][key]
+  if (!vars) return text
+  return text.replace(/\{(\w+)\}/g, (whole, name: string) =>
+    name in vars ? String(vars[name]) : whole
+  )
+}
+
+/** What the button offers next; with two languages it is simply the other one. */
+export function nextLang(lang: Lang): Lang {
+  return lang === 'en' ? 'cs' : 'en'
+}
