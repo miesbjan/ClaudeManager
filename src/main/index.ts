@@ -659,12 +659,21 @@ if (!app.requestSingleInstanceLock()) {
     app.quit()
   })
 
-  app.on('will-quit', () => globalShortcut.unregisterAll())
+  /*
+   * Everything destructive waits for `will-quit`, the first moment a quit cannot be
+   * refused any more. `before-quit` runs before the window is even asked to close, and
+   * unsaved edits refuse that close - so tearing the shells down there killed the
+   * agents of a quit that then did not happen, leaving the window back on screen with
+   * dead shells and no file watcher.
+   */
+  app.on('will-quit', () => {
+    globalShortcut.unregisterAll()
+    terminals?.disposeAll()
+    void watcher?.dispose()
+  })
 
   app.on('before-quit', () => {
     quitting = true
     persistNow()
-    terminals?.disposeAll()
-    void watcher?.dispose()
   })
 }
