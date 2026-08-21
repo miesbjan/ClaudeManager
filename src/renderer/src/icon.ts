@@ -11,7 +11,7 @@
  * The drawing is done here rather than in the main process because a renderer has a
  * canvas and the main process has none.
  */
-import { badgeDataUrl, type Badge } from '../../shared/icon'
+import { badgeDataUrl, iconDataUrl, type Badge } from '../../shared/icon'
 
 /** Windows scales this into a 16x16 overlay; drawing larger keeps the digit clean. */
 const SIZE = 64
@@ -22,24 +22,24 @@ function key(badge: Badge | null): string {
   return badge ? `${badge.level}:${badge.count}` : 'none'
 }
 
-function draw(badge: Badge): Promise<string> {
+function draw(source: string, size = SIZE): Promise<string> {
   return new Promise((resolve, reject) => {
     const art = new Image()
     art.addEventListener('load', () => {
       const canvas = document.createElement('canvas')
-      canvas.width = SIZE
-      canvas.height = SIZE
+      canvas.width = size
+      canvas.height = size
       const context = canvas.getContext('2d')
       if (!context) {
         reject(new Error('no 2d context'))
         return
       }
-      context.clearRect(0, 0, SIZE, SIZE)
-      context.drawImage(art, 0, 0, SIZE, SIZE)
+      context.clearRect(0, 0, size, size)
+      context.drawImage(art, 0, 0, size, size)
       resolve(canvas.toDataURL('image/png'))
     })
-    art.addEventListener('error', () => reject(new Error('the badge would not load')))
-    art.src = badgeDataUrl(badge)
+    art.addEventListener('error', () => reject(new Error('the drawing would not load')))
+    art.src = source
   })
 }
 
@@ -52,8 +52,25 @@ export async function paintTaskbarIcon(badge: Badge | null): Promise<void> {
   if (wanted === lastDrawn) return
   lastDrawn = wanted
   try {
-    window.api.setTaskbarBadge(badge ? await draw(badge) : null, badge?.count ?? 0)
+    window.api.setTaskbarBadge(badge ? await draw(badgeDataUrl(badge)) : null, badge?.count ?? 0)
   } catch {
     lastDrawn = null
+  }
+}
+
+/**
+ * The tray: the same drawing with the badge on it, since a hidden window has no
+ * taskbar button to carry one - and the words for its menu, which only this side
+ * knows the language of.
+ */
+export async function paintTray(
+  badge: Badge | null,
+  text: Record<string, string>,
+  tooltip: string
+): Promise<void> {
+  try {
+    window.api.setTray(await draw(iconDataUrl(badge), 32), text, tooltip)
+  } catch {
+    window.api.setTray(null, text, tooltip)
   }
 }

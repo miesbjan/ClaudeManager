@@ -801,3 +801,14 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 - **21. 8. 2026** - Tečka „pracuje se" se točí místo blikání. Pulzování vypadalo stejně
   jako „něco se děje" i „něco čeká"; otáčení říká jedině „probíhá“. Na tabu se nic
   jiného nehne, takže to, co se hne, je to, na co se má kouknout.
+- **21. 8. 2026** - Zavření okna aplikaci neukončí; schová ji do traye. Tray byl
+  dřív odmítnutý s tím, že „běžet na pozadí" samo o sobě nic nepřidává — a to platilo,
+  dokud důvodem bylo běhání na pozadí. Důvod je teď jiný: křížek zabíjel agenty
+  uprostřed práce, takže úklid plochy stál rozdělanou práci. Není to krok k perzistentním
+  session: PTY dál žijí v procesu aplikace, takže ukončení, odhlášení i restart je
+  pořád konec. Aby přežily i to, musel by je držet samostatný proces — dny práce a jiný
+  program.
+  Bez ikony v traye se zavírání chová po starém a aplikace skončí: ztracená session je
+  špatná, okno, které nejde vrátit, horší. První schování to řekne bublinou, jinak by
+  aplikace zmizela z obrazovky, ale ne ze stroje. Ověřeno na zabalené aplikaci: okno
+  zavřeno systémovým způsobem, shelly běžely dál, po opětovném spuštění okno zpátky.

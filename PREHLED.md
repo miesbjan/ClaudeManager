@@ -44,6 +44,11 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
   jednou, ať má důvodů kolik chce, pracující taby se nepočítají, a barva je ten
   nejnaléhavější důvod — zelená hotovo, oranžová ptá se, červená spadl.
 
+- **Zavření okna aplikaci neukončí.** Křížek okno schová do traye a co běží, běží dál;
+  kliknutím na ikonu v traye (nebo dalším spuštěním zástupce) se okno vrátí i s tím, co
+  mezitím doběhlo. Ukončit se dá z nabídky té ikony a aplikace se zeptá. Přežije to
+  zavření okna, ne ukončení, odhlášení nebo restart.
+
 ## Dokument
 
 - **Živý Markdown**: nadpisy, seznamy, tabulky, checkboxy, citace, kód se

@@ -179,6 +179,13 @@ export interface ViewerApi {
    * reads out.
    */
   setTaskbarBadge(dataUrl: string | null, count: number): void
+
+  /**
+   * The tray icon and the words on its menu. Closing the window hides it there rather
+   * than ending the application, so this is the way back - and the renderer is the
+   * side that knows both the language and what the icon should look like.
+   */
+  setTray(icon: string | null, text: Record<string, string>, tooltip: string): void
   /** How much the Claude session running in this directory has used, if any is. */
   readUsage(cwd: string): Promise<SessionUsage | null>
   /** How much of the subscription is used - the same numbers `/usage` reports. */

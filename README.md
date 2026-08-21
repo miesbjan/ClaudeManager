@@ -358,6 +358,21 @@ Files passed on the command line are opened too, so the app works as a handler f
   finished, gone quiet or fallen over closes at once: asking there would turn the
   question into a reflex, and a reflex protects nothing. Closing every other tab asks
   once about however many of them are busy, not once each.
+- **Closing the window leaves it running.** The cross hides the window into the tray
+  and the application carries on: what is running in a tab does not stop being useful
+  because the window is in the way, and an agent halfway through a job would otherwise
+  be killed by the same click that tidies the desktop. Clicking the tray icon - or
+  starting the application again, from the shortcut or a `.md` file - brings the window
+  back with everything as it was: the same shells, their scrollback, whatever ran while
+  nobody was watching. The tray icon carries the same badge as the taskbar button, so
+  the count is still readable with no window on screen.
+
+  Quitting is a separate act, from the tray menu, and asks first. This buys exactly one
+  thing - surviving the window - and no more: the shells live in the application's own
+  process, so quitting, logging out or rebooting still ends them. Sessions that outlive
+  the application would need a process of their own to live in, which is a different
+  program. What is not lost either way is the conversation: `claude --continue` in that
+  directory picks it up from the transcript.
 - **Unsaved edits cannot be lost quietly.** Closing a file, a tab or the window asks
   first. The window is refused rather than asked, because a dialog raised while the
   window is already closing proved unreliable; the status bar says what to do.

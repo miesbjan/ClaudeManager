@@ -6,6 +6,8 @@ directories:
 files:
   - out/**
   - package.json
+  # The tray needs a picture at runtime; the .ico on the exe is not one it can read.
+  - build/icon.png
   # Debug symbols shipped with node-pty are 11 MB of nothing useful here.
   - "!**/*.pdb"
   - "!**/node_modules/node-pty/prebuilds/{darwin,linux}-*/**"

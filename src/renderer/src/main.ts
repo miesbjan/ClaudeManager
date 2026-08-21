@@ -11,8 +11,8 @@ import {
   type ActivityEvent,
   type OutputSignals
 } from './activity'
-import { aggregateActivity, attention, justFinished } from './taskbar'
-import { paintTaskbarIcon } from './icon'
+import { aggregateActivity, attention, justFinished, type Attention } from './taskbar'
+import { paintTaskbarIcon, paintTray } from './icon'
 import { DEFAULT_FAMILY, DEFAULT_SIZE, stepSize, type TerminalFont } from '../../shared/font'
 import {
   clearMatches,
@@ -954,6 +954,26 @@ function applyActivity(tab: Tab, event: ActivityEvent): void {
  * The window's own signal, for when it is behind something. Nothing is reported while
  * the window has focus: whatever the tabs are saying is already on screen.
  */
+/**
+ * What the tray shows and says. The count goes on its icon and into its tooltip, so a
+ * window that is out of the way still reports what it is holding.
+ */
+function dressTray(waiting: Attention | null): void {
+  const text: Record<string, string> = {
+    show: T('tray.show'),
+    quit: T('tray.quit'),
+    quitAsk: T('tray.quitAsk'),
+    quitConfirm: T('tray.quitConfirm'),
+    cancel: T('tray.cancel'),
+    hidden: T('tray.hidden'),
+    hiddenBody: T('tray.hiddenBody')
+  }
+  const tooltip = waiting
+    ? 'Project Console - ' + T('tray.waiting', { count: waiting.count })
+    : 'Project Console'
+  void paintTray(waiting, text, tooltip)
+}
+
 function reportTaskbar(): void {
   const signals = tabs.map((tab) => ({
     state: shownActivity(tab.activity, tab.reporting),
@@ -962,8 +982,11 @@ function reportTaskbar(): void {
   }))
   const away = !document.hasFocus()
 
-  // The number of places waiting for you, painted into the icon in the corner.
-  void paintTaskbarIcon(away ? attention(signals) : null)
+  // The number of places waiting for you, on the corner of the taskbar button.
+  const waiting = attention(signals)
+  void paintTaskbarIcon(away ? waiting : null)
+  // The tray carries it too: a hidden window has no button for it to sit on.
+  void dressTray(waiting)
 
   const next = away ? aggregateActivity(signals) : 'none'
   if (next === reportedTaskbar) return
@@ -1897,6 +1920,7 @@ function applyLanguage(): void {
   const promptSend = document.getElementById('prompt-send')
   if (promptSend) promptSend.textContent = T('prompt.send')
 
+  dressTray(null)
   // The panel is built once and cached; drop it so the next opening speaks the
   // language now in force.
   help.textContent = ''

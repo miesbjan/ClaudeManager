@@ -10,7 +10,8 @@ import {
   nativeTheme,
   net,
   protocol,
-  shell
+  shell,
+  Tray
 } from 'electron'
 import { existsSync, statSync } from 'node:fs'
 import { readFile, stat, writeFile } from 'node:fs/promises'
@@ -45,6 +46,84 @@ const DEV_URL = process.env['ELECTRON_RENDERER_URL']
  * the icon on the exe is what Windows uses.
  */
 const DEV_ICON = join(__dirname, '../../build/icon.ico')
+
+/**
+ * Closing the window leaves the application running behind a tray icon, because what
+ * is running in it does not stop being useful when the window is out of the way: an
+ * agent halfway through a job would otherwise be killed by the same click that tidies
+ * the desktop. Quitting is a separate act, from the tray menu.
+ *
+ * This buys exactly one thing - surviving the window - and no more. The shells live
+ * in this process, so quitting, logging out or rebooting still ends them; sessions
+ * that outlive the application are a different machine altogether.
+ */
+let tray: Tray | null = null
+let quitting = false
+let announcedHiding = false
+
+/** Filled in by the renderer, which is the side that knows the language. */
+let trayText = {
+  show: 'Show Project Console',
+  quit: 'Quit',
+  quitAsk: 'Quit Project Console? Anything running in it will stop.',
+  quitConfirm: 'Quit',
+  cancel: 'Cancel',
+  hidden: 'Project Console is still running',
+  hiddenBody: 'Sessions carry on. Click the tray icon to come back.'
+}
+
+function trayIcon(): Electron.NativeImage {
+  const file = join(app.getAppPath(), 'build', 'icon.png')
+  const image = nativeImage.createFromPath(file)
+  return image.isEmpty() ? image : image.resize({ width: 16, height: 16 })
+}
+
+function showWindow(): void {
+  if (!win || win.isDestroyed()) return
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+}
+
+function askThenQuit(): void {
+  const answer = dialog.showMessageBoxSync({
+    type: 'question',
+    buttons: [trayText.quitConfirm, trayText.cancel],
+    defaultId: 1,
+    cancelId: 1,
+    message: trayText.quitAsk
+  })
+  if (answer !== 0) return
+  quitting = true
+  app.quit()
+}
+
+function refreshTray(): void {
+  if (!tray) return
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: trayText.show, click: showWindow },
+      { type: 'separator' },
+      { label: trayText.quit, click: askThenQuit }
+    ])
+  )
+}
+
+/**
+ * Without an icon there would be no way back to a hidden window, so the tray has to
+ * exist before closing is allowed to mean hiding. If it cannot be made, closing keeps
+ * its old meaning and the application ends - a lost session is bad, a window that
+ * cannot be reopened is worse.
+ */
+function ensureTray(): void {
+  if (tray) return
+  const icon = trayIcon()
+  if (icon.isEmpty()) return
+  tray = new Tray(icon)
+  tray.setToolTip('Project Console')
+  tray.on('click', showWindow)
+  refreshTray()
+}
 
 /**
  * How much of a file is read at all. A console shows logs, and a log has no upper
@@ -245,10 +324,23 @@ function createWindow(): void {
   })
   win.on('blur', () => globalShortcut.unregister('Alt+W'))
 
-  win.on('close', persistNow)
+  win.on('close', (event) => {
+    persistNow()
+    if (quitting || !tray) return
+    event.preventDefault()
+    win?.hide()
+    // Said once: an application that vanishes from the screen but not from the machine
+    // has to announce itself, or it is simply lost.
+    if (!announcedHiding) {
+      announcedHiding = true
+      tray.displayBalloon({ title: trayText.hidden, content: trayText.hiddenBody })
+    }
+  })
   win.on('closed', () => {
     win = null
   })
+
+  ensureTray()
 
   if (DEV_URL) void win.loadURL(DEV_URL)
   else void win.loadFile(join(__dirname, '../renderer/index.html'))
@@ -431,6 +523,24 @@ function registerIpc(): void {
    * a window can be replaced too, and allows any corner, but the taskbar holds on to
    * the icon it first associated with the executable and ignores what comes later.
    */
+  /*
+   * The tray is dressed from the renderer, which is the side that knows the language
+   * and already draws the icon with its badge - the main process only hangs things up.
+   */
+  ipcMain.on('tray:set', (_event, icon: string | null, text: typeof trayText, tip: string) => {
+    trayText = { ...trayText, ...text }
+    if (!tray) return
+    tray.setToolTip(tip)
+    if (icon) {
+      const image = nativeImage.createFromDataURL(icon)
+      if (!image.isEmpty()) tray.setImage(image.resize({ width: 16, height: 16 }))
+    } else {
+      const plain = trayIcon()
+      if (!plain.isEmpty()) tray.setImage(plain)
+    }
+    refreshTray()
+  })
+
   ipcMain.on('taskbar:badge', (_event, dataUrl: string | null, count: number) => {
     if (!win || win.isDestroyed()) return
     if (!dataUrl) {
@@ -473,8 +583,8 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', (_event, argv) => {
     const files = collectFileArgs(argv)
     if (win) {
-      if (win.isMinimized()) win.restore()
-      win.focus()
+      // Starting it again is how anyone comes back to a window hidden in the tray.
+      showWindow()
       if (files.length > 0) win.webContents.send('files:open', files)
     }
   })
@@ -513,12 +623,14 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.on('window-all-closed', () => {
-    app.quit()
+    // With a tray there is a way back, so the last window closing is not the end.
+    if (!tray) app.quit()
   })
 
   app.on('will-quit', () => globalShortcut.unregisterAll())
 
   app.on('before-quit', () => {
+    quitting = true
     persistNow()
     terminals?.disposeAll()
     void watcher?.dispose()
