@@ -30,6 +30,32 @@ export function aggregateActivity(tabs: readonly TabSignal[]): TaskbarState {
 }
 
 /**
+ * How many tabs are waiting for you, and what the worst of it is - the number on the
+ * taskbar badge and its colour.
+ *
+ * A tab counts once, however many reasons it has, because the number answers "how
+ * many places do I have to go", not "how many things happened". Working tabs are not
+ * counted: they want time, not you. The colour is the most urgent reason among them,
+ * so three finished runs and one dialog waiting for an answer reads as amber four -
+ * the count says how much is left, the colour says where to start.
+ */
+export type Attention = { count: number; level: 'done' | 'permission' | 'alert' }
+
+export function attention(tabs: readonly TabSignal[]): Attention | null {
+  const waiting = tabs.filter(
+    (tab) => tab.finished || tab.state === 'permission' || tab.state === 'alert'
+  )
+  if (waiting.length === 0) return null
+
+  const level = waiting.some((tab) => tab.state === 'alert')
+    ? 'alert'
+    : waiting.some((tab) => tab.state === 'permission')
+      ? 'permission'
+      : 'done'
+  return { count: waiting.length, level }
+}
+
+/**
  * Whether a step from one state to another is the moment a run ended. `waiting` counts
  * as well as `done`: not every program reports its own progress, and for those the
  * silence heuristic is the only end there is.

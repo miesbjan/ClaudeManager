@@ -160,6 +160,10 @@ const EN_NOTES: HelpNote[] = [
     body: 'an address the shell prints opens in the right pane by itself. Only addresses on this machine are shown; you can also type one in.'
   },
   {
+    title: 'The icon in the taskbar',
+    body: 'carries the number of tabs waiting for you while you are looking elsewhere - green finished, amber asking for permission, red broken.'
+  },
+  {
     title: 'Bottom right',
     body: 'this session: what the model had in front of it last turn and what it has written. Below it the five-hour window and the seven-day limit of the account.'
   }
@@ -181,6 +185,10 @@ const CS_NOTES: HelpNote[] = [
   {
     title: 'Dev server',
     body: 'adresu, kterou shell vypíše, otevře pravý panel sám. Zobrazí se jen adresa na tomhle stroji; napsat ji jde i ručně.'
+  },
+  {
+    title: 'Ikona v hlavním panelu',
+    body: 'nese počet tabů, které na tebe čekají, když se díváš jinam - zelená hotovo, oranžová ptá se na povolení, červená spadl.'
   },
   {
     title: 'Vpravo dole',

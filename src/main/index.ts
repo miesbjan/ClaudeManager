@@ -6,12 +6,13 @@ import {
   globalShortcut,
   ipcMain,
   Menu,
+  nativeImage,
   nativeTheme,
   net,
   protocol,
   shell
 } from 'electron'
-import { statSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, normalize, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -37,6 +38,13 @@ import type {
 } from '../shared/types'
 
 const DEV_URL = process.env['ELECTRON_RENDERER_URL']
+
+/*
+ * Running from source there is no packaged executable to take an icon from, so the
+ * window is handed the generated one. In a packaged app this path does not exist and
+ * the icon on the exe is what Windows uses.
+ */
+const DEV_ICON = join(__dirname, '../../build/icon.ico')
 
 /**
  * How much of a file is read at all. A console shows logs, and a log has no upper
@@ -160,6 +168,7 @@ function createWindow(): void {
     // Matches the renderer's prefers-color-scheme palette, so there is no flash.
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#16181d' : '#ffffff',
     title: 'Project Console',
+    ...(existsSync(DEV_ICON) ? { icon: DEV_ICON } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -405,7 +414,8 @@ function registerIpc(): void {
   /*
    * The taskbar button is the only place a state can be read without finding the
    * window first. Windows colours the button from the progress bar, which fits these
-   * states exactly and needs no icon of its own - the app does not have one yet.
+   * states exactly. How many tabs are waiting is a separate signal, drawn onto the
+   * icon itself - see `taskbar:icon` below.
    */
   ipcMain.on('taskbar:set', (_event, state: TaskbarState) => {
     if (!win || win.isDestroyed()) return
@@ -413,6 +423,18 @@ function registerIpc(): void {
     win.setProgressBar(shown.progress, { mode: shown.mode })
     // Flashing is for the states that want you back, and only while you are away.
     win.flashFrame(shown.wantsYou && !win.isFocused())
+  })
+
+  /*
+   * The badge with the number of tabs waiting for you. Windows has `setOverlayIcon`
+   * for this, but it only ever draws in the bottom-right corner; the badge belongs in
+   * the top-right, above the lines of the document, so the renderer draws the whole
+   * icon and this only hangs it on the window.
+   */
+  ipcMain.on('taskbar:icon', (_event, dataUrl: string) => {
+    if (!win || win.isDestroyed()) return
+    const image = nativeImage.createFromDataURL(dataUrl)
+    if (!image.isEmpty()) win.setIcon(image)
   })
 
   ipcMain.handle('usage:read', (_event, cwd: string) => readUsage(cwd))

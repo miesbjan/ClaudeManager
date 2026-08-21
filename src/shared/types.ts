@@ -173,6 +173,12 @@ export interface ViewerApi {
    * process only knows how to show it.
    */
   setTaskbarState(state: TaskbarState): void
+  /**
+   * The window's icon, redrawn by the renderer with a badge on it. Windows draws its
+   * own overlay only in the bottom-right corner, so the badge is painted into the
+   * icon itself instead.
+   */
+  setTaskbarIcon(dataUrl: string): void
   /** How much the Claude session running in this directory has used, if any is. */
   readUsage(cwd: string): Promise<SessionUsage | null>
   /** How much of the subscription is used - the same numbers `/usage` reports. */

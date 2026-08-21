@@ -30,7 +30,9 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
   (`OSC 9;4`, což Claude Code umí), tečka mu věří; jinak hádá z ticha a tooltip
   řekne, které to je.
 - **Ikona v hlavním panelu** dělá totéž přes všechny taby dohromady, aby to bylo
-  poznat i z jiné obrazovky.
+  poznat i z jiné obrazovky, a nese číslo: kolik tabů na tebe čeká. Tab se počítá
+  jednou, ať má důvodů kolik chce, pracující taby se nepočítají, a barva je ten
+  nejnaléhavější důvod — zelená hotovo, oranžová ptá se, červená spadl.
 
 ## Dokument
 

@@ -15,7 +15,8 @@
     "build:dir": "electron-vite build && electron-builder --win --dir && node scripts/deploy-desktop.mjs",
     "build:exe": "electron-vite build && electron-builder --win && node scripts/deploy-desktop.mjs --exe",
     "desktop": "node scripts/deploy-desktop.mjs",
-    "desktop:sync": "node scripts/desktop-if-changed.mjs"
+    "desktop:sync": "node scripts/desktop-if-changed.mjs",
+    "icon": "node scripts/icon.mjs"
   },
   "dependencies": {
     "chokidar": "^4.0.3",

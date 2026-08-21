@@ -250,6 +250,22 @@ stojící na promptu je trvale dokončený.
 *Hotovo, když:* pustíš agenta, přepneš se na jinou obrazovku a poznáš z hlavního
 panelu, že dobehl, aniž bys okno hledal.
 
+**Vlastní ikona a číslo na ní** (hotovo). Aplikace do teď běžela pod výchozí ikonou
+Electronu, což je potíž právě proto, že stav v hlavním panelu funguje tak, že tu ikonu
+mezi ostatními poznáš. K tomu přibývá číslo: kolik tabů na tebe čeká.
+
+Kresba je v `src/shared/icon.ts`, ne v binárce. `npm run icon` ji vyrenderuje do
+`build/icon.ico` Chromiem, které je stejně v Electronu — žádná knihovna na obrázky
+navíc. `.ico` je commitnuté, aby build nezávisel na tom, jestli si to někdo pustil, ale
+zdrojem zůstává to, co jde ukázat v diffu.
+
+Tab se do čísla počítá jednou, ať má důvodů kolik chce: otázka zní „kolik míst musím
+obejít", ne „kolik věcí se stalo". Pracující taby se nepočítají — ty chtějí čas, ne tebe.
+Barva je nejnaléhavější důvod mezi nimi: zelená hotovo, oranžová ptá se, červená spadl.
+
+*Hotovo, když:* pustíš agenty ve dvou tabech, přepneš se jinam a z hlavního panelu
+přečteš číslo, aniž bys okno hledal.
+
 **Jazyk rozhraní** (hotovo). Přepínač EN/CS vedle motivu, tlačítko ukazuje jazyk, na
 který přepne. Aplikace se používá česky a tři slova anglicky nejsou překážka, ale
 stavový řádek a panel se zkratkami jsou text, který se čte pokaždé znovu.
@@ -363,6 +379,7 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Extra   | velikost a rodina fontu v terminálu                                  |
 | Extra   | vlastní jméno tabu                                                   |
 | Extra   | jazyk rozhraní CS/EN                                                 |
+| Extra   | vlastní ikona a počet čekajících tabů na ní                          |
 
 Přidání položky na tenhle seznam je rozhodnutí, ne detail — patří k němu řádek
 v decision logu níže.
@@ -655,3 +672,17 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   tří kláves, které neexistují. Gesto je věta, takže se sází jako věta; čárka mezi
   klávesami zůstala mimo rámeček. Nadpis sekce navíc cestuje se svou tabulkou v jednom
   bloku, jinak ho mřížka položí vedle cizích kláves.
+- **21. 8. 2026** - Badge s počtem se kreslí do ikony, ne přes `setOverlayIcon`.
+  Windows má na přesně tuhle věc API, jenže kreslí výhradně do pravého dolního rohu, kde
+  na téhle ikoně leží řádky dokumentu. Renderer proto vykreslí celou ikonu na canvas a
+  hlavní proces ji pověsí na okno přes `setIcon`. Cena je známá a zapsaná: ze zdrojů
+  (`npm run dev`) sdílí všechny Electron aplikace jedno tlačítko na liště, takže tam je
+  badge nespolehlivý; v zabalené aplikaci funguje. Ověřeno screenshotem hlavního panelu:
+  zelená 3 se překreslila na oranžovou 8.
+- **21. 8. 2026** - Ikona je kód, ne asset. První pokus byl položit do repozitáře
+  `.ico`, což je soubor, který nikdo neumí přečíst ani porovnat. Místo toho je kresba
+  TypeScript modul a `npm run icon` z ní udělá `.ico` — se stejným zdrojem pro badge za
+  běhu, takže ikona a badge nemohou vypadat jinak. Skript běží dvakrát, jednou v Node
+  kvůli `.ts` a jednou v Electronu kvůli kreslení: Electron má starší Node, který `.ts`
+  neumí, a v ESM se v něm `app.whenReady()` nedočká nikdy — proto je kreslící půlka
+  CommonJS.

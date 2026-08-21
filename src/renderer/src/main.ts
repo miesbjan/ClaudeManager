@@ -9,7 +9,8 @@ import {
   type ActivityEvent,
   type OutputSignals
 } from './activity'
-import { aggregateActivity, justFinished } from './taskbar'
+import { aggregateActivity, attention, justFinished } from './taskbar'
+import { paintTaskbarIcon } from './icon'
 import { DEFAULT_FAMILY, DEFAULT_SIZE, stepSize, type TerminalFont } from '../../shared/font'
 import {
   clearMatches,
@@ -862,9 +863,13 @@ function applyActivity(tab: Tab, event: ActivityEvent): void {
  * the window has focus: whatever the tabs are saying is already on screen.
  */
 function reportTaskbar(): void {
-  const next = document.hasFocus()
-    ? 'none'
-    : aggregateActivity(tabs.map((tab) => ({ state: tab.activity, finished: tab.finished })))
+  const signals = tabs.map((tab) => ({ state: tab.activity, finished: tab.finished }))
+  const away = !document.hasFocus()
+
+  // The number of places waiting for you, painted into the icon in the corner.
+  void paintTaskbarIcon(away ? attention(signals) : null)
+
+  const next = away ? aggregateActivity(signals) : 'none'
   if (next === reportedTaskbar) return
   reportedTaskbar = next
   window.api.setTaskbarState(next)

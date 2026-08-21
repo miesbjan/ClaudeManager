@@ -308,6 +308,26 @@ Files passed on the command line are opened too, so the app works as a handler f
   follows the Windows setting; the other two force the palette. The choice is
   applied through `nativeTheme.themeSource`, so it also covers native chrome such
   as scrollbars and dialogs, and it is remembered between launches.
+- **The icon, and the number on it.** The icon is a drawing in `src/shared/icon.ts`,
+  not a binary blob: `npm run icon` renders it into `build/icon.ico` with Electron's
+  own Chromium, so there is no image library to install and the committed `.ico` can
+  always be regenerated from something a diff can show.
+
+  While the window is away, the same drawing carries a badge in its top-right corner
+  with the number of tabs waiting for you - finished, asking for permission, or
+  broken. A tab counts once however many reasons it has, because the number answers
+  "how many places do I have to go"; tabs still working are left out, since they want
+  time rather than you. The colour is the most urgent reason among them: green
+  finished, amber asking, red broken.
+
+  Windows has `setOverlayIcon` for badges, but it draws in the bottom-right corner and
+  nowhere else, which on this icon lands on the lines of the document. So the renderer
+  draws the whole icon on a canvas instead and the main process hangs it on the window
+  with `setIcon`. Two things to know about that: Windows caches the icon of an
+  executable per path, so a build that replaces an older one at the same path can keep
+  showing the old icon until the cache turns over, and while running from source all
+  Electron apps share one taskbar button, which makes the badge unreliable in `npm run
+  dev` and correct in a packaged app.
 - **Interface language.** The `EN`/`CS` button beside the theme switches the whole
   interface between English and Czech, and the button shows the language it will
   switch to. English is the source: the Czech table is typed against its keys, so a
