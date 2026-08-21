@@ -16,8 +16,8 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
 ## Okno a taby
 
 - **Tab je místo, ne soubor.** Drží adresář, svůj shell, svůj dev server a všechny
-  soubory, které jsi v něm otevřel; jeden z nich je na obrazovce. `Ctrl+T` nebo `+` za
-  posledním tabem udělá další místo, `Ctrl+W` zavře soubor a teprve poslední zavře tab.
+  soubory, které jsi v něm otevřel; jeden z nich je na obrazovce. `Ctrl+T` nebo *+ Nový tab*
+  v horní liště udělá další místo, `Ctrl+W` zavře soubor a teprve poslední zavře tab.
 - **Nový tab přijde rovnou s otevřeným shellem**, protože nic jiného v něm zatím není.
   Shell startuje v domovském adresáři, dokud v tabu neotevřeš soubor. Prázdný tab se
   mezi spuštěními nepamatuje — není v něm co obnovit.

@@ -10,9 +10,14 @@
   </head>
   <body>
     <header id="toolbar">
-      <button id="open-btn" class="toolbar-btn" type="button" title="Open a file (Ctrl+O)">
-        + Open
-      </button>
+      <div class="toolbar-group toolbar-first" role="group" aria-label="Open">
+        <button id="new-tab-btn" class="toolbar-btn" type="button" title="New tab (Ctrl+T)">
+          + New tab
+        </button>
+        <button id="open-btn" class="toolbar-btn" type="button" title="Open a file (Ctrl+O)">
+          Open file
+        </button>
+      </div>
 
       <div class="toolbar-group" role="group" aria-label="Panes">
         <button id="shell-btn" class="toolbar-btn" type="button" title="Shell pane (Ctrl+`)">

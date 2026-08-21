@@ -49,6 +49,7 @@ const THEME_LABELS: Record<Theme, StringKey> = {
 }
 
 const openButton = document.getElementById('open-btn') as HTMLButtonElement
+const newTabButton = document.getElementById('new-tab-btn') as HTMLButtonElement
 const shellButton = document.getElementById('shell-btn') as HTMLButtonElement
 const themeButton = document.getElementById('theme-btn') as HTMLButtonElement
 const langButton = document.getElementById('lang-btn') as HTMLButtonElement
@@ -171,7 +172,6 @@ const tabHandlers: TabHandlers = {
   },
   onRename: finishRename,
   onReorder: reorderTab,
-  onNew: newTab,
   onRenameCancel: () => {
     renaming = null
     paintTabs()
@@ -1864,6 +1864,8 @@ function applyLanguage(): void {
   langButton.textContent = nextLang(lang).toUpperCase()
   langButton.title = T('toolbar.lang.title')
 
+  newTabButton.textContent = T('toolbar.newTab')
+  newTabButton.title = T('toolbar.newTab.title')
   openButton.textContent = T('toolbar.open')
   openButton.title = T('toolbar.open.title')
   shellButton.textContent = T('toolbar.shell')
@@ -1918,6 +1920,7 @@ async function pickFiles(): Promise<void> {
   if (paths.length > 0) await openFiles(paths)
 }
 
+newTabButton.addEventListener('click', newTab)
 openButton.addEventListener('click', () => void pickFiles())
 
 window.addEventListener('keydown', (event) => {

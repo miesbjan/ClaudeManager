@@ -10,7 +10,9 @@ export type Lang = 'en' | 'cs'
 export const LANGS: Lang[] = ['en', 'cs']
 
 const en = {
-  'toolbar.open': '+ Open',
+  'toolbar.newTab': '+ New tab',
+  'toolbar.newTab.title': 'New tab (Ctrl+T)',
+  'toolbar.open': 'Open file',
   'toolbar.open.title': 'Open a file (Ctrl+O)',
   'toolbar.shell': 'Shell',
   'toolbar.shell.title': 'Shell pane (Ctrl+`)',
@@ -115,7 +117,9 @@ const en = {
 export type StringKey = keyof typeof en
 
 const cs: Record<StringKey, string> = {
-  'toolbar.open': '+ Otevřít',
+  'toolbar.newTab': '+ Nový tab',
+  'toolbar.newTab.title': 'Nový tab (Ctrl+T)',
+  'toolbar.open': 'Otevřít soubor',
   'toolbar.open.title': 'Otevřít soubor (Ctrl+O)',
   'toolbar.shell': 'Shell',
   'toolbar.shell.title': 'Panel se shellem (Ctrl+`)',

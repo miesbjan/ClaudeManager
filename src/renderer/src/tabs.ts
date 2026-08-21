@@ -83,8 +83,6 @@ export type TabHandlers = {
   /** Empty means going back to being named after the file. */
   onRename: (index: number, name: string) => void
   onRenameCancel: () => void
-  /** A new place of its own, the same as Ctrl+T. */
-  onNew: () => void
   /** Dragging a tab sideways: move the one at `from` into the slot at `to`. */
   onReorder: (from: number, to: number) => void
 }
@@ -251,21 +249,6 @@ export function renderTabBar(
 
     container.append(el)
   })
-
-  /*
-   * The keyboard had this to itself, which is fine for anyone who knows the key and
-   * invisible to everyone else. It sits after the tabs, where every window with tabs
-   * puts it.
-   */
-  const add = document.createElement('button')
-  add.className = 'tab-new'
-  add.type = 'button'
-  add.textContent = '+'
-  add.title = translate(lang, 'tabbar.new')
-  add.addEventListener('click', handlers.onNew)
-  // Dragging starts on mousedown, and this is not a tab to drag.
-  add.addEventListener('mousedown', (event) => event.stopPropagation())
-  container.append(add)
 
   container.querySelector('.tab.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
 }

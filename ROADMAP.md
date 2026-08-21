@@ -763,8 +763,11 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   jinde, ale už jako informaci, ne jako slib skoku.
 - **21. 8. 2026** - Nový tab jde založit i myší a přichází s otevřeným shellem.
   `Ctrl+T` byla jediná cesta, což je v pořádku pro toho, kdo tu klávesu zná, a
-  neviditelné pro všechny ostatní — `+` sedí za posledním tabem, kde ho má každé okno
-  s taby. Shell je otevřený rovnou, protože místo se zakládá kvůli práci a nic jiného
+  neviditelné pro všechny ostatní. Nejdřív skončilo jako `+` za posledním tabem, kde ho
+  má každé okno s taby, ale hledalo se jinde: patří nahoru vedle otevírání souboru,
+  protože to jsou dvě poloviny téže otázky — kde pracovat a na čem. Tlačítko na soubor
+  se při té příležitosti přestalo jmenovat „+ Otevřít", což vedle „+ Nový tab" už
+  neznamenalo nic. Shell je otevřený rovnou, protože místo se zakládá kvůli práci a nic jiného
   v něm zatím není; startuje v domovském adresáři, dokud tab nepatří žádnému projektu.
   Při tom vylezla chyba, kterou předtím nemělo jak spustit: `render()` se v tabu bez
   dokumentu vracel dřív, než se shell vůbec nastartoval, takže panel byl otevřený a

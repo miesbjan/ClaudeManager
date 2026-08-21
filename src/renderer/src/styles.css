@@ -96,6 +96,11 @@ body.dragging::after {
   border-left: 1px solid var(--border);
 }
 
+.toolbar-first {
+  padding-left: 0;
+  border-left: none;
+}
+
 .toolbar-end {
   margin-left: auto;
 }
@@ -314,27 +319,6 @@ body.dragging::after {
 
 .tab-close:hover {
   background: var(--border);
-  color: var(--text);
-}
-
-/* Quieter than a tab: it is a way in, not one of the places. */
-.tab-new {
-  flex: 0 0 auto;
-  align-self: center;
-  margin-left: 4px;
-  padding: 2px 8px 4px;
-  font: inherit;
-  font-size: 15px;
-  line-height: 1;
-  border: none;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-}
-
-.tab-new:hover {
-  background: var(--bg-tab);
   color: var(--text);
 }
 
