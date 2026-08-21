@@ -1,7 +1,8 @@
-import { contextBridge, ipcRenderer, webUtils } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import type { PlanUsage } from '../shared/limits'
 import type { PaneCommand } from '../shared/shortcuts'
 import type {
+  AskRequest,
   FileEvent,
   FileListing,
   FileReadResult,
@@ -41,6 +42,13 @@ const api: ViewerApi = {
   listFiles: (root) => ipcRenderer.invoke('files:list', root) as Promise<FileListing>,
   resolveFiles: (root, candidates) =>
     ipcRenderer.invoke('files:resolve', root, candidates) as Promise<Array<string | null>>,
+  onAsk: (handler) => {
+    const listener = (_event: IpcRendererEvent, request: AskRequest): void => handler(request)
+    ipcRenderer.on('ask:show', listener)
+    return () => ipcRenderer.removeListener('ask:show', listener)
+  },
+  askDrawn: (id) => ipcRenderer.send('ask:drawn', id),
+  answerAsk: (id, answer) => ipcRenderer.send('ask:answer', id, answer),
   setTaskbarState: (state) => ipcRenderer.send('taskbar:set', state),
   setTaskbarBadge: (dataUrl, count) => ipcRenderer.send('taskbar:badge', dataUrl, count),
   setTray: (icon, text, tooltip, holds) =>

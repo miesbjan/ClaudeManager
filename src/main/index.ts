@@ -31,6 +31,7 @@ import { closeAction } from '../shared/closing'
 import { sanitisePane, sanitiseSession } from '../shared/session'
 import { paneCommand } from '../shared/shortcuts'
 import type {
+  AskKind,
   FileReadResult,
   FileWriteResult,
   SessionState,
@@ -95,6 +96,54 @@ function trayIcon(): Electron.NativeImage {
   return image.isEmpty() ? image : image.resize({ width: 16, height: 16 })
 }
 
+/**
+ * A question the window draws for us, in its own frame instead of the system's box.
+ *
+ * The system box is still here as a fallback, and it is not decoration: this is asked
+ * at the moment something is about to be lost, so a renderer that is reloading, wedged
+ * or gone must not turn the question into silence.
+ *
+ * What the fallback waits for is the window saying it has drawn the box - not the answer
+ * itself. A person reading the question takes as long as they take, and a timeout on
+ * that put a second, system-drawn copy of the question on the screen beside the first.
+ */
+let pendingAsk: { id: number; settle: (answer: number) => void; drawn: boolean } | null = null
+let nextAskId = 1
+
+/** How long the window gets to draw the box before the system box takes over. */
+const ASK_DRAW_MS = 1500
+
+function askWindow(kind: AskKind, fallback: { message: string; buttons: string[] }): Promise<number> {
+  if (!win || win.isDestroyed()) return Promise.resolve(systemAsk(fallback))
+
+  const id = nextAskId++
+  return new Promise<number>((resolve) => {
+    let settled = false
+    const settle = (answer: number): void => {
+      if (settled) return
+      settled = true
+      pendingAsk = null
+      clearTimeout(timer)
+      resolve(answer)
+    }
+    const timer = setTimeout(() => {
+      if (pendingAsk?.id === id && !pendingAsk.drawn) settle(systemAsk(fallback))
+    }, ASK_DRAW_MS)
+    pendingAsk = { id, settle, drawn: false }
+    win?.webContents.send('ask:show', { id, kind })
+  })
+}
+
+function systemAsk(fallback: { message: string; buttons: string[] }): number {
+  return dialog.showMessageBoxSync({
+    type: 'question',
+    buttons: fallback.buttons,
+    defaultId: fallback.buttons.length - 1,
+    cancelId: fallback.buttons.length - 1,
+    message: fallback.message
+  })
+}
+
 function showWindow(): void {
   if (!win || win.isDestroyed()) return
   if (win.isMinimized()) win.restore()
@@ -118,15 +167,14 @@ function quitNow(): void {
 }
 
 function askThenQuit(): void {
-  const answer = dialog.showMessageBoxSync({
-    type: 'question',
-    buttons: [trayText.quitConfirm, trayText.cancel],
-    defaultId: 1,
-    cancelId: 1,
-    message: trayText.quitAsk
+  // Shown before the question, because the question is drawn inside it.
+  showWindow()
+  void askWindow('quit', {
+    message: trayText.quitAsk,
+    buttons: [trayText.quitConfirm, trayText.cancel]
+  }).then((answer) => {
+    if (answer === 0) quitNow()
   })
-  if (answer !== 0) return
-  quitNow()
 }
 
 /** Out of the way, still running, and said once - see `announcedHiding`. */
@@ -384,17 +432,14 @@ function createWindow(): void {
       return
     }
     if (action === 'ask') {
-      const answer = dialog.showMessageBoxSync({
-        type: 'question',
-        buttons: [trayText.closeQuit, trayText.closeKeep],
-        defaultId: 1,
-        cancelId: 1,
-        message: trayText.closeAsk
+      void askWindow('close', {
+        message: trayText.closeAsk,
+        buttons: [trayText.closeQuit, trayText.closeKeep]
+      }).then((answer) => {
+        if (answer === 0) quitNow()
+        else hideWindow()
       })
-      if (answer !== 0) {
-        hideWindow()
-        return
-      }
+      return
     }
     quitNow()
   })
@@ -571,6 +616,15 @@ function registerIpc(): void {
    * states exactly. How many tabs are waiting is a separate signal, drawn onto the
    * icon itself - see `taskbar:icon` below.
    */
+  // Drawn: the question is on screen, so it is now waiting for a person, not for code.
+  ipcMain.on('ask:drawn', (_event, id: number) => {
+    if (pendingAsk?.id === id) pendingAsk.drawn = true
+  })
+
+  ipcMain.on('ask:answer', (_event, id: number, answer: number) => {
+    if (pendingAsk?.id === id) pendingAsk.settle(answer)
+  })
+
   ipcMain.on('taskbar:set', (_event, state: TaskbarState) => {
     if (!win || win.isDestroyed()) return
     const shown = TASKBAR[state] ?? TASKBAR.none

@@ -37,6 +37,15 @@ export type Theme = 'system' | 'light' | 'dark'
  * has to say. Crosses the IPC boundary, hence here rather than next to the renderer
  * logic that computes it.
  */
+/**
+ * A question the main process needs answered but the window should draw: closing the
+ * window with something running in it, and quitting from the tray. Which question it
+ * is travels, not its words - the window is the side that knows the language.
+ */
+export type AskKind = 'close' | 'quit'
+
+export type AskRequest = { id: number; kind: AskKind }
+
 export type TaskbarState = 'none' | 'working' | 'done' | 'permission' | 'alert'
 
 export type StartupPayload = {
@@ -167,6 +176,11 @@ export interface ViewerApi {
    * answer per candidate, in the same order, null for the ones that are not files.
    */
   resolveFiles(root: string, candidates: string[]): Promise<Array<string | null>>
+  /** Questions from the main process, drawn by the window and answered by index. */
+  onAsk(handler: (request: AskRequest) => void): () => void
+  /** The box is on screen: the wait is now for a person, not for the window. */
+  askDrawn(id: number): void
+  answerAsk(id: number, answer: number): void
   /**
    * Put the state of the busiest tab on the taskbar button, so it can be read without
    * finding the window first. The renderer decides what the aggregate is; the main
