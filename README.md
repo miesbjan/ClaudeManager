@@ -219,6 +219,20 @@ Files passed on the command line are opened too, so the app works as a handler f
   something to drop on the desktop or tear into a window of its own. Nothing leaves
   the bar. What moves is only the order they are shown in: the tab you were looking at
   stays the one you are looking at.
+- **Questions are asked in the window.** Every confirmation - a tab with something
+  running in it, unsaved edits, closing the window, quitting from the tray - is drawn by
+  the app in its own typeface and palette, not by a system message box with the name of
+  the executable in its title bar. They also no longer stop the world: `window.confirm`
+  and the native box both freeze the renderer, which meant the shell output stopped
+  arriving and a tab's light stopped moving exactly while somebody was deciding whether
+  something was still running.
+
+  The two questions the main process needs answered are still its own - it owns the
+  window and the shells - so it sends which question, and the window draws it and sends
+  back which button. The system box remains as a fallback for a renderer that cannot
+  draw: if the window has not reported the box on screen within a second and a half,
+  the system asks instead. That wait is for the drawing, never for the answer, or a
+  person reading the question would end up with two copies of it.
 - **Closing the window.** With an agent recognised in some tab the cross hides the
   window instead of ending the application, so a job halfway through is not killed by
   the click that tidies the desktop; the tray icon brings it back. With nothing running

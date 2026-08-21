@@ -834,3 +834,12 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   úpravy to zavření odmítnou - odmítnutý quit tak nechal okno na obrazovce s
   pozabíjenými agenty a bez live reloadu. `will-quit` je první moment, kdy už quit
   odmítnout nejde, takže tam patří všechno nevratné.
+- **21. 8. 2026** - Všechny otázky kreslí aplikace sama, ne systémový message box.
+  Důvod není jen vzhled: `window.confirm` i nativní box zastaví renderer, takže zrovna
+  ve chvíli, kdy se člověk rozhoduje, jestli něco běží, přestane tečka na tabu svítit a
+  výstup shellu se zastaví. Main proces zůstává vlastníkem okna a shellů, takže posílá,
+  *která* otázka to je, a okno ji nakreslí a vrátí index tlačítka.
+  Systémový box zůstal jako záložní cesta pro renderer, který kreslit nemůže - čeká se
+  ale na potvrzení, že je box na obrazovce, ne na odpověď. První verze čekala na
+  odpověď a po čtyřech sekundách postavila vedle vlastní otázky ještě systémovou;
+  ukázalo se to hned při prvním zavření okna.
