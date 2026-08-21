@@ -201,8 +201,9 @@ export function renderTabBar(
     label.className = 'tab-label'
     // A place with nothing open in it still has to be somewhere to click.
     const empty = !tab.name && !labels[index]
+    // A name given by hand reads as a plain name: it is what the place is called now,
+    // not a note about the file it came from.
     label.textContent = tab.name ?? (empty ? translate(lang, 'tab.empty') : labels[index])
-    if (tab.name) label.classList.add('named')
     if (empty) label.classList.add('unnamed')
     label.addEventListener('dblclick', (event) => {
       event.stopPropagation()

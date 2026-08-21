@@ -976,11 +976,6 @@ body.resizing {
   outline: none;
 }
 
-/* A name given by hand is the tab's own, not the file's, so it does not look derived. */
-.tab-label.named {
-  font-style: italic;
-}
-
 /*
  * The prompt buffer: a drawer at the bottom of the shell pane, because that is where
  * what you write in it ends up. Closed by default and given a fixed share of the

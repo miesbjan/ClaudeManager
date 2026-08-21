@@ -347,8 +347,9 @@ Files passed on the command line are opened too, so the app works as a handler f
   is `Ctrl+Shift+P`, because plain `Ctrl+P` there belongs to the shell.
 - **Naming a tab.** Double-click its label, or right-click it, and give the place a
   name of its own - what you are doing there usually describes it better than whichever
-  file is on screen. A named tab is shown in italics, an empty name goes back to being
-  named after the file, and the name is remembered with the rest of the place.
+  file is on screen. It is shown as a plain name - it is what the place is called now,
+  not a note about the file it came from. An empty name goes back to being named after
+  the file, and the name is remembered with the rest of the place.
 - **A tab that is busy is not closed on one click.** Closing one where something is
   running - output flowing, the program reporting work, or an agent stopped at a
   permission question - asks first. The cross sits a few pixels from where a tab is
