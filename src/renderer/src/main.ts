@@ -24,6 +24,7 @@ import {
 import { createDoc, indexAfterClose, isDirty, nextDocIndex, type Doc } from './docs'
 import { renderShortcuts } from './help'
 import { formatTokens } from '../../shared/usage'
+import { limitLevel, timeUntil } from '../../shared/limits'
 import { stepSelection, visibleEntries, type PaletteEntry } from './palette'
 import { detectEol, isMarkdown, toEditorText, toFileText } from './plaintext'
 import { sendable } from './prompt'
@@ -64,6 +65,7 @@ const raw = document.getElementById('raw') as HTMLTextAreaElement
 const empty = document.getElementById('empty') as HTMLElement
 const status = document.getElementById('status-text') as HTMLElement
 const usageLabel = document.getElementById('usage') as HTMLElement
+const limitsLabel = document.getElementById('limits') as HTMLElement
 const ctxmenu = document.getElementById('ctxmenu') as HTMLElement
 const findBar = document.getElementById('find') as HTMLElement
 const findInput = document.getElementById('find-input') as HTMLInputElement
@@ -753,6 +755,56 @@ async function refreshUsage(): Promise<void> {
 }
 
 window.setInterval(() => void refreshUsage(), USAGE_POLL_MS)
+
+/**
+ * How much of the subscription is gone. This belongs to the account rather than to
+ * any tab, so it is shown whatever is on screen - and it is what turns a refusal
+ * later in the day from a surprise into something you saw coming.
+ *
+ * Read through the main process, which holds the token; the renderer only ever sees
+ * the two percentages.
+ */
+const LIMITS_POLL_MS = 60000
+
+async function refreshLimits(): Promise<void> {
+  /*
+   * No focus check here, unlike the session readout. This is one cached call a
+   * minute, and the number matters most in the moment you come back to a window you
+   * left an agent working in - which is exactly when a focus-gated read would still
+   * be showing nothing.
+   */
+  const plan = await window.api.readPlanUsage()
+  if (!plan) return
+
+  const parts: string[] = []
+  if (plan.windowPercent !== null) parts.push('5h ' + Math.round(plan.windowPercent) + '%')
+  if (plan.weekPercent !== null) parts.push('7d ' + Math.round(plan.weekPercent) + '%')
+  if (parts.length === 0) return
+
+  const now = Date.now()
+  const lines: string[] = []
+  if (plan.windowPercent !== null) {
+    const left = timeUntil(plan.windowResetsAt, now)
+    lines.push(
+      'Five-hour window: ' + Math.round(plan.windowPercent) + '% used' + (left ? ', resets in ' + left : '')
+    )
+  }
+  if (plan.weekPercent !== null) {
+    const left = timeUntil(plan.weekResetsAt, now)
+    lines.push(
+      'Seven-day limit: ' + Math.round(plan.weekPercent) + '% used' + (left ? ', resets in ' + left : '')
+    )
+  }
+  lines.push('A spent window means requests are refused, not billed on top.')
+
+  limitsLabel.hidden = false
+  limitsLabel.textContent = parts.join('  ·  ')
+  limitsLabel.title = lines.join(String.fromCharCode(10))
+  limitsLabel.className = limitLevel(plan.windowPercent)
+}
+
+window.setInterval(() => void refreshLimits(), LIMITS_POLL_MS)
+void refreshLimits()
 
 /* ---------- tab activity ---------- */
 

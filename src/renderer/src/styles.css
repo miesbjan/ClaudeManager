@@ -139,8 +139,26 @@ body.dragging::after {
   font-variant-numeric: tabular-nums;
 }
 
-#usage[hidden] {
+#usage[hidden],
+#limits[hidden] {
   display: none;
+}
+
+/* What is left of the subscription, so a refusal is not a surprise. */
+#limits {
+  flex: 0 0 auto;
+  padding-left: 16px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+#limits.warn {
+  color: var(--change);
+}
+
+#limits.critical {
+  color: var(--danger);
+  font-weight: 600;
 }
 
 #tabbar {

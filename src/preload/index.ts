@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
+import type { PlanUsage } from '../shared/limits'
 import type { PaneCommand } from '../shared/shortcuts'
 import type {
   FileEvent,
@@ -41,6 +42,7 @@ const api: ViewerApi = {
     ipcRenderer.invoke('files:resolve', root, candidates) as Promise<Array<string | null>>,
   setTaskbarState: (state) => ipcRenderer.send('taskbar:set', state),
   readUsage: (cwd) => ipcRenderer.invoke('usage:read', cwd) as Promise<SessionUsage | null>,
+  readPlanUsage: () => ipcRenderer.invoke('limits:read') as Promise<PlanUsage | null>,
   readClipboard: () => ipcRenderer.invoke('clipboard:read') as Promise<string>,
   terminal: {
     create: (id, cwd) => ipcRenderer.invoke('terminal:create', id, cwd) as Promise<TerminalStart>,

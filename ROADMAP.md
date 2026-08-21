@@ -346,7 +346,7 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Základ  | panel s prostým textem a úprava s explicitním uložením               |
 | Základ  | `Ctrl+P` nad adresářem projektu, kliknutelné cesty ve výstupu        |
 | Šuplík  | feed změn, prompt buffer, tail logu                                  |
-| Extra   | usage session ve stavovém řádku                                      |
+| Extra   | usage session a vyčerpání limitů předplatného ve stavovém řádku      |
 | Extra   | zvýraznění změn, tečka aktivity, prompt buffer, `Ctrl+F`, paleta     |
 | Extra   | stav v hlavním panelu, agregovaný přes všechny taby                  |
 | Extra   | velikost a rodina fontu v terminálu                                  |
@@ -429,6 +429,15 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **21. 8. 2026** — Ve stavovém řádku je i **vyčerpání limitů předplatného** (pětihodinové
+   okno a sedmidenní limit), tedy to, co ukazuje `/usage`. Nejdřív jsem tvrdil, že to
+   nejde — hledal jsem to na disku a tam opravdu není. Cesta vede přes nezdokumentovaný
+   endpoint `api/oauth/usage`, který volá i samo Claude Code, s tokenem z přihlášení
+   uživatele; postup pochází ze SessionManageru.
+   Přijatá rizika: endpoint se může kdykoli změnit, proto je vše fail-soft — jakýkoli
+   problém znamená, že se prostě nic nezobrazí. Token se čte v main procesu, použije se
+   na jeden dotaz a nikdy se nikam nezapisuje ani nepředává rendereru, ten dostane jen
+   dvě procenta.
 - **21. 8. 2026** — Ve stavovém řádku vpravo je spotřeba běžící Claude session: kolik
    měl model minule v kontextu a kolik toho za session napsal. Čte se z transcriptu,
    který si Claude Code stejně vede, takže se session na nic neptáme a nic jí

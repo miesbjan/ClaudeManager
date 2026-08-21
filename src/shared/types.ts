@@ -1,5 +1,6 @@
 /** Types shared between main, preload and renderer. Type-only, no runtime code. */
 import type { TerminalFont } from './font'
+import type { PlanUsage } from './limits'
 import type { PaneCommand } from './shortcuts'
 
 export type FileReadResult =
@@ -170,6 +171,8 @@ export interface ViewerApi {
   setTaskbarState(state: TaskbarState): void
   /** How much the Claude session running in this directory has used, if any is. */
   readUsage(cwd: string): Promise<SessionUsage | null>
+  /** How much of the subscription is used - the same numbers `/usage` reports. */
+  readPlanUsage(): Promise<PlanUsage | null>
   /** Read the system clipboard, for pasting into a shell. */
   readClipboard(): Promise<string>
   /**

@@ -214,6 +214,21 @@ Files passed on the command line are opened too, so the app works as a handler f
   would type into the file instead of stepping. So the match is reported in words - the
   status bar says which line and what it says - and `Esc` puts the caret on it, where
   the selection becomes visible and editing carries on from there.
+- **Subscription usage.** The far right of the status bar reports how much of the
+  five-hour window and the seven-day limit is gone - the same numbers `/usage` shows
+  in Claude Code - and turns amber past three quarters, red past nine tenths. The
+  tooltip gives the reset times.
+
+  These come from an **undocumented endpoint**, `api/oauth/usage`, called with the
+  OAuth token the CLI logged in with. Nothing Claude Code writes to disk carries them:
+  transcripts hold per-session tokens and say nothing about the plan, so the only
+  other way would be typing `/usage` into the session and reading what comes back,
+  which would put a command in someone's conversation. Being undocumented, it can
+  change or disappear; every failure - no token, no network, a different shape - ends
+  as nothing shown rather than an error. The token is read in the main process, used
+  for that one request, and never logged or passed to the renderer, which only ever
+  receives two percentages.
+
 - **Session usage.** With a shell open, the right of the status bar reports what the
   Claude session in that project has used: the context it carried on its last turn and
   everything it has written this session. The numbers come from the transcript Claude

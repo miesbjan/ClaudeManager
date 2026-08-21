@@ -17,6 +17,7 @@ import { dirname, join, normalize, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { FileWatcher } from './fileWatcher'
 import { detectProject } from './project'
+import { readPlanUsage } from './limits'
 import { readUsage } from './usage'
 import { listFiles } from './listFiles'
 import { resolveFile } from './resolveFile'
@@ -409,6 +410,9 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('usage:read', (_event, cwd: string) => readUsage(cwd))
+
+  // The token this needs never leaves the main process; the renderer gets percentages.
+  ipcMain.handle('limits:read', () => readPlanUsage())
 
   ipcMain.handle('clipboard:read', () => clipboard.readText())
 
