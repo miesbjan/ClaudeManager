@@ -744,8 +744,9 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   z prvního ostrého zásahu do rate limitu: aplikace se restartovala, paměť byla
   prázdná, endpoint odmítal a lišta zůstala prázdná, i když číslo z doby před půl
   hodinou by bylo lepší než nic. Je to jen cache: nečitelná, poškozená i stará
-  znamenají to samé co žádná. Čtení navíc platí deset minut místo pěti — rate limit
-  se podělí s CLI, takže méně dotazů je lepší než přesnější číslo.
+  znamenají to samé co žádná. Čtení zůstává platné pět minut: odmítnutí
+  vzniklo z ladění, při kterém se aplikace restartovala každých pár minut, ne z běžného
+  používání. Kdyby při práci vadilo, je to jedno číslo.
   Uložený tvar čte vlastní funkce, ne `parsePlanUsage`: ta bere odpověď serveru, ne
   to, co už přes ni prošlo. Chyba, která by se tím zavřela potichu — cache, která se
   nikdy nenačte — je teď pokrytá testem.

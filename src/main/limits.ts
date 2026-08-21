@@ -23,9 +23,11 @@ const ENDPOINT = 'https://api.anthropic.com/api/oauth/usage'
 
 /**
  * Percentages do not move by the second, and the endpoint says so itself: asked once
- * a minute it starts answering 429. Five minutes is still current enough to steer by.
+ * a minute it starts answering 429. Five minutes is still current enough to steer by,
+ * and is what ordinary use costs - the refusals came from a day of restarting the app
+ * every few minutes, which is not what a day of working in it looks like.
  */
-const FRESH_MS = 10 * 60_000
+const FRESH_MS = 5 * 60_000
 
 /** After a plain failure - offline, a hiccup - it is worth another try soon. */
 const RETRY_MS = 60_000
