@@ -10,7 +10,9 @@
  *
  * So this is HTML, it answers with a promise, and the application carries on behind
  * it. What it borrows from the native dialog is the discipline: one default answer,
- * Escape means the safe one, and nothing outside the box can be clicked.
+ * Escape means the safe one, nothing outside the box can be clicked, and it is answered
+ * from the keyboard alone - the arrows move between the answers and Enter takes the one
+ * that is on.
  */
 export type ModalRequest = {
   message: string
@@ -65,7 +67,23 @@ function show(host: HTMLElement, request: ModalRequest): Promise<ModalAnswer> {
         event.preventDefault()
         event.stopPropagation()
         finish(safe)
+        return
       }
+
+      /*
+       * The arrows move between the answers, the way they do in a native message box.
+       * Tab does too, since the buttons are buttons - this is for the hand that never
+       * leaves the arrow keys, and for a question that appears while both hands are on
+       * the keyboard, which is every question this application asks.
+       */
+      const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
+      if (step === 0) return
+      event.preventDefault()
+      event.stopPropagation()
+      const buttons = [...row.querySelectorAll('button')]
+      const at = buttons.findIndex((button) => button === document.activeElement)
+      const next = at < 0 ? safe : (at + step + buttons.length) % buttons.length
+      buttons[next]?.focus()
     }
 
     request.buttons.forEach((label, index) => {
