@@ -31,7 +31,14 @@ import { formatTokens } from '../../shared/usage'
 import { limitLevel, timeUntil } from '../../shared/limits'
 import { stepSelection, visibleEntries, type PaletteEntry } from './palette'
 import { askModal } from './modal'
-import { chooseTarget, expandPath, matchDirs, splitTyped } from '../../shared/place'
+import {
+  chooseTarget,
+  expandPath,
+  matchDirs,
+  parentOf,
+  shorten,
+  splitTyped
+} from '../../shared/place'
 import { detectEol, isMarkdown, toEditorText, toFileText } from './plaintext'
 import { sendable } from './prompt'
 import { createUrlReader, nextRightMode, normalizeUrl } from './web'
@@ -1751,6 +1758,23 @@ async function enterPlace(): Promise<void> {
   await goToPlace(target)
 }
 
+/**
+ * One level up, so a tree can be walked rather than typed: down the list with the
+ * arrows, in with Tab, out with Shift+Tab. What is climbed is the directory being
+ * listed, so a half-typed name is simply left behind, which is what going up means.
+ */
+function upPlace(): void {
+  const base = placeBase(tabs[activeIndex])
+  const { parent } = splitTyped(placeInput.value)
+  const listed = expandPath(parent === '' ? '.' : parent, { home: placeHome, base })
+  if (listed === null) return
+  const above = parentOf(listed)
+  placeInput.value = shorten(above, placeHome).replace(/\/+$/, '') + '/'
+  placeIndex = 0
+  placeMoved = false
+  void refreshPlace()
+}
+
 async function goToPlace(path: string): Promise<void> {
   if (!(await window.api.isDirectory(path))) {
     placeNote.textContent = T('place.missing')
@@ -1777,7 +1801,8 @@ placeInput.addEventListener('keydown', (event) => {
   }
   if (event.key === 'Tab') {
     event.preventDefault()
-    completePlace()
+    if (event.shiftKey) upPlace()
+    else completePlace()
     return
   }
   if (event.key === 'Enter') {

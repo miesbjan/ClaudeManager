@@ -88,6 +88,32 @@ export function splitTyped(input: string): { parent: string; partial: string } {
 }
 
 /**
+ * One level up from a path, for walking a tree with the keyboard rather than typing it
+ * out. A root has nothing above it and stays where it is.
+ */
+export function parentOf(path: string): string {
+  const trimmed = slashes(path).replace(/\/+$/, '')
+  if (/^[A-Za-z]:$/.test(trimmed) || trimmed === '' || trimmed === '/') return path
+  const cut = trimmed.lastIndexOf('/')
+  if (cut < 0) return path
+  const parent = trimmed.slice(0, cut)
+  // A drive keeps its slash, so that `C:` never reads as a relative name.
+  return /^[A-Za-z]:$/.test(parent) ? parent + '/' : parent === '' ? '/' : parent
+}
+
+/**
+ * A path with the home directory written as `~`, which is how it was typed and how it
+ * reads. Only the prefix, and only on a boundary: `~/sourced` is not inside `~/source`.
+ */
+export function shorten(path: string, home: string): string {
+  const full = slashes(path)
+  const at = slashes(home).replace(/\/+$/, '')
+  if (at === '') return full
+  if (full.toLowerCase() === at.toLowerCase()) return '~'
+  return full.toLowerCase().startsWith(at.toLowerCase() + '/') ? '~' + full.slice(at.length) : full
+}
+
+/**
  * Where Enter goes, which is not simply what was typed.
  *
  * Three things can be meant at once - the text in the field, the row the keyboard is on,
