@@ -14,6 +14,8 @@ const en = {
   'toolbar.newTab.title': 'New tab (Ctrl+T)',
   'toolbar.open': 'Open file',
   'toolbar.open.title': 'Open a file (Ctrl+O)',
+  'toolbar.folder': 'Open folder',
+  'toolbar.folder.title': 'Open a folder as a place to work in',
   'toolbar.shell': 'Shell',
   'toolbar.shell.title': 'Shell pane (Ctrl+`)',
   'toolbar.web': 'Web',
@@ -26,7 +28,7 @@ const en = {
   'toolbar.help.title': 'Keyboard shortcuts',
 
   'empty.title': 'No document open.',
-  'empty.body': 'Press Ctrl+O, use + Open, or drop a file into this window.',
+  'empty.body': 'Open a folder to work in, or a file to read - by button, or by dropping either into this window.',
   'empty.intro': 'New here? The ? button in the toolbar says what this is for, in a few lines.',
 
   'status.noFile': 'No file open',
@@ -144,6 +146,8 @@ const cs: Record<StringKey, string> = {
   'toolbar.newTab.title': 'Nový tab (Ctrl+T)',
   'toolbar.open': 'Otevřít soubor',
   'toolbar.open.title': 'Otevřít soubor (Ctrl+O)',
+  'toolbar.folder': 'Otevřít adresář',
+  'toolbar.folder.title': 'Otevřít adresář jako místo, ve kterém pracuješ',
   'toolbar.shell': 'Shell',
   'toolbar.shell.title': 'Panel se shellem (Ctrl+`)',
   'toolbar.web': 'Web',
@@ -156,7 +160,7 @@ const cs: Record<StringKey, string> = {
   'toolbar.help.title': 'Klávesové zkratky',
 
   'empty.title': 'Nic není otevřené.',
-  'empty.body': 'Stiskni Ctrl+O, použij + Otevřít, nebo přetáhni soubor do okna.',
+  'empty.body': 'Otevři adresář, ve kterém chceš pracovat, nebo soubor ke čtení - tlačítkem, nebo přetažením do okna.',
   'empty.intro': 'Jsi tu poprvé? Tlačítko ? v liště na pár řádcích řekne, k čemu to je.',
 
   'status.noFile': 'Nic není otevřené',

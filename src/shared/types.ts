@@ -71,6 +71,11 @@ export type PaneState = {
   rightRatio: number
   /** The address was typed by hand rather than read from the output. */
   webManual: boolean
+  /**
+   * The directory this tab is a place over, chosen rather than derived. Null for a tab
+   * that only ever had a file opened in it, where the file's own directory is the place.
+   */
+  root: string | null
   /** The prompt being composed for this shell, and whether its drawer is open. */
   prompt: string
   promptOpen: boolean
@@ -169,6 +174,10 @@ export interface ViewerApi {
   getPathForFile(file: File): string
   /** Find the project a document belongs to; null when nothing is recognised. */
   detectProject(dir: string): Promise<ProjectInfo | null>
+  /** Pick a directory for a tab to be a place over. Null when nothing was chosen. */
+  openFolderDialog(): Promise<string | null>
+  /** Whether a dropped path is a directory rather than a file. */
+  isDirectory(path: string): Promise<boolean>
   /** Files under a directory, for the palette. Build output and dot-dirs are skipped. */
   listFiles(root: string): Promise<FileListing>
   /**

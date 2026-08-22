@@ -39,6 +39,8 @@ const api: ViewerApi = {
   reveal: (path) => ipcRenderer.invoke('shell:reveal', path) as Promise<void>,
   getPathForFile: (file) => webUtils.getPathForFile(file),
   detectProject: (dir) => ipcRenderer.invoke('project:detect', dir) as Promise<ProjectInfo | null>,
+  openFolderDialog: () => ipcRenderer.invoke('dialog:folder') as Promise<string | null>,
+  isDirectory: (path) => ipcRenderer.invoke('path:isDirectory', path) as Promise<boolean>,
   listFiles: (root) => ipcRenderer.invoke('files:list', root) as Promise<FileListing>,
   resolveFiles: (root, candidates) =>
     ipcRenderer.invoke('files:resolve', root, candidates) as Promise<Array<string | null>>,

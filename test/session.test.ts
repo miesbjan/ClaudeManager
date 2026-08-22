@@ -13,7 +13,8 @@ describe('sanitisePane', () => {
       rightRatio: 0.7,
       webManual: true,
       prompt: 'rewrite the reader',
-      promptOpen: true
+      promptOpen: true,
+      root: 'C:/proj'
     })
     assert.deepEqual(pane, {
       terminal: true,
@@ -24,8 +25,15 @@ describe('sanitisePane', () => {
       rightRatio: 0.7,
       webManual: true,
       prompt: 'rewrite the reader',
-      promptOpen: true
+      promptOpen: true,
+      root: 'C:/proj'
     })
+  })
+
+  it('has no place of its own until one is chosen', () => {
+    assert.equal(sanitisePane({}).root, null)
+    assert.equal(sanitisePane({ root: '' }).root, null)
+    assert.equal(sanitisePane({ root: 42 }).root, null)
   })
 
   /*
@@ -102,10 +110,25 @@ describe('sanitiseSession', () => {
     assert.equal(session.activeTab, 1, 'the document that was active becomes the active tab')
   })
 
-  it('drops a tab with no files rather than showing an empty one', () => {
+  it('drops a tab that is neither a file nor a place', () => {
     const session = sanitiseSession({ tabs: [{ files: [] }, { files: ['a.md'] }], activeTab: 0 })
     assert.equal(session.tabs.length, 1)
     assert.deepEqual(session.tabs[0].files, ['a.md'])
+  })
+
+  /*
+   * A tab opened over a directory holds nothing yet and is still the place you were
+   * working in - dropping it on restart would lose the one thing it was.
+   */
+  it('keeps a tab that is a directory with nothing open in it', () => {
+    const session = sanitiseSession({
+      tabs: [{ files: [], pane: { root: 'C:/proj', terminal: true } }],
+      activeTab: 0
+    })
+    assert.equal(session.tabs.length, 1)
+    assert.deepEqual(session.tabs[0].files, [])
+    assert.equal(session.tabs[0].active, null)
+    assert.equal(session.tabs[0].pane.root, 'C:/proj')
   })
 
   it('points the active tab at one that exists', () => {

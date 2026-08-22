@@ -50,6 +50,7 @@ const THEME_LABELS: Record<Theme, StringKey> = {
 }
 
 const openButton = document.getElementById('open-btn') as HTMLButtonElement
+const folderButton = document.getElementById('folder-btn') as HTMLButtonElement
 const newTabButton = document.getElementById('new-tab-btn') as HTMLButtonElement
 const shellButton = document.getElementById('shell-btn') as HTMLButtonElement
 const themeButton = document.getElementById('theme-btn') as HTMLButtonElement
@@ -221,6 +222,7 @@ function createTab(): Tab {
     project: null,
     runCommand: null,
     webUrl: null,
+    root: null,
     prompt: '',
     promptOpen: false,
     rightMode: 'doc',
@@ -550,7 +552,8 @@ function renderStatus(tab: Tab, doc: Doc): void {
 function persistSession(): void {
   window.api.saveSession({
     tabs: tabs
-      .filter((tab) => tab.docs.length > 0)
+      // A place is worth remembering even with nothing open in it; an empty box is not.
+      .filter((tab) => tab.docs.length > 0 || tab.root !== null)
       .map((tab) => ({
         files: tab.docs.map((doc) => doc.path),
         active: shownDoc(tab)?.path ?? null,
@@ -564,7 +567,8 @@ function persistSession(): void {
           rightRatio: tab.rightRatio,
           webManual: tab.webManual,
           prompt: tab.prompt,
-          promptOpen: tab.promptOpen
+          promptOpen: tab.promptOpen,
+          root: tab.root
         }
       })),
     activeTab: Math.max(activeIndex, 0)
@@ -1266,7 +1270,8 @@ function ensureShell(): void {
 async function openShell(tab: Tab): Promise<void> {
   let pane = shells.get(tab.id)
   if (!pane) {
-    const cwd = tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
+    // The chosen place first: a file opened in it does not move the tab somewhere else.
+    const cwd = tab.root ?? tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
     pane = new TerminalPane(tab.id, cwd, darkQuery.matches, terminalFont, (path, line) =>
       void openFromTerminal(path, line)
     )
@@ -1648,7 +1653,7 @@ let paletteIndex = 0
 
 /** The place a palette search happens in: the project, or where the file sits. */
 function paletteRoot(tab: Tab): string {
-  return tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
+  return tab.root ?? tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
 }
 
 const forwardSlashes = (path: string): string => path.split('\\').join('/')
@@ -1935,6 +1940,8 @@ function applyLanguage(): void {
   newTabButton.title = T('toolbar.newTab.title')
   openButton.textContent = T('toolbar.open')
   openButton.title = T('toolbar.open.title')
+  folderButton.textContent = T('toolbar.folder')
+  folderButton.title = T('toolbar.folder.title')
   shellButton.textContent = T('toolbar.shell')
   shellButton.title = T('toolbar.shell.title')
   webButton.textContent = T('toolbar.web')
@@ -1947,7 +1954,7 @@ function applyLanguage(): void {
   webUrlInput.placeholder = T('web.placeholder')
   const emptyTitle = empty.querySelector('strong')
   if (emptyTitle) emptyTitle.textContent = T('empty.title')
-  const emptyBody = empty.querySelectorAll('p')[1]
+  const emptyBody = document.getElementById('empty-body')
   if (emptyBody) emptyBody.textContent = T('empty.body')
   // The first thing a new pair of eyes sees, and the only pointer to the panel.
   const emptyIntro = document.getElementById('empty-intro')
@@ -1990,6 +1997,32 @@ langButton.addEventListener('click', () => setLang(nextLang(lang)))
 
 /* ---------- input ---------- */
 
+/**
+ * A tab over a directory: the place first, the files later or never. It is what the
+ * shell starts in and what `Ctrl+P` searches, so it answers the one thing an empty tab
+ * could not - where am I.
+ *
+ * The tab you are in is used when it is empty and belongs nowhere yet; anything else
+ * gets a place of its own rather than being moved out from under you.
+ */
+async function openFolder(): Promise<void> {
+  const root = await window.api.openFolderDialog()
+  if (root === null) return
+  await useFolder(root)
+}
+
+async function useFolder(root: string): Promise<void> {
+  const current = tabs[activeIndex]
+  const tab = current && current.docs.length === 0 && current.root === null ? current : createTab()
+  tab.root = root
+  activeIndex = tabs.indexOf(tab)
+  // The place decides what Run offers, exactly as a document's directory used to.
+  tab.project = await window.api.detectProject(root)
+  render()
+  persistSession()
+  status.textContent = root
+}
+
 async function pickFiles(): Promise<void> {
   const paths = await window.api.openDialog()
   if (paths.length > 0) await openFiles(paths)
@@ -1997,6 +2030,7 @@ async function pickFiles(): Promise<void> {
 
 newTabButton.addEventListener('click', newTab)
 openButton.addEventListener('click', () => void pickFiles())
+folderButton.addEventListener('click', () => void openFolder())
 
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !palette.hidden) {
@@ -2124,8 +2158,22 @@ window.addEventListener('drop', (event) => {
    * inside a document, which stays limited to Markdown on purpose.
    */
   const paths = dropped.map((file) => window.api.getPathForFile(file)).filter(Boolean)
-  if (paths.length > 0) void openFiles(paths)
+  if (paths.length > 0) void openDropped(paths)
 })
+
+/**
+ * A directory dropped in is a place, a file is a file. Windows hands both over the same
+ * way, so which it is has to be asked - and a folder dropped into a viewer used to end
+ * up as a document that could not be read.
+ */
+async function openDropped(paths: string[]): Promise<void> {
+  const files: string[] = []
+  for (const path of paths) {
+    if (await window.api.isDirectory(path)) await useFolder(path)
+    else files.push(path)
+  }
+  if (files.length > 0) await openFiles(files)
+}
 
 /* ---------- startup ---------- */
 
@@ -2152,10 +2200,22 @@ async function start(): Promise<void> {
     tab.webManual = saved.pane.webManual
     tab.prompt = saved.pane.prompt
     tab.promptOpen = saved.pane.promptOpen
+    tab.root = saved.pane.root
+    /*
+     * A tab that is a directory has no document to detect a project from, so the place
+     * is asked directly - otherwise Run would be there before a restart and gone after.
+     */
+    if (tab.root !== null && !tab.project) tab.project = await window.api.detectProject(tab.root)
   }
 
-  // A place whose every file has vanished is not worth restoring as an empty one.
-  for (let i = tabs.length - 1; i >= 0; i--) if (tabs[i].docs.length === 0) tabs.splice(i, 1)
+  /*
+   * A place whose every file has vanished is not worth restoring as an empty one - but a
+   * tab opened over a directory holds nothing by design, and the directory is the thing
+   * it was. Only a tab that is neither goes.
+   */
+  for (let i = tabs.length - 1; i >= 0; i--) {
+    if (tabs[i].docs.length === 0 && tabs[i].root === null) tabs.splice(i, 1)
+  }
   activeIndex = tabs.length === 0 ? -1 : Math.min(startup.activeTab, tabs.length - 1)
   render()
   persistSession()

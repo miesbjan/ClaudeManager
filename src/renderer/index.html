@@ -17,6 +17,9 @@
         <button id="open-btn" class="toolbar-btn" type="button" title="Open a file (Ctrl+O)">
           Open file
         </button>
+        <button id="folder-btn" class="toolbar-btn" type="button" title="Open a folder">
+          Open folder
+        </button>
       </div>
 
       <div class="toolbar-group" role="group" aria-label="Panes">
@@ -75,7 +78,7 @@
           <textarea id="raw" hidden spellcheck="false" wrap="off"></textarea>
           <div id="empty">
             <p><strong>No document open.</strong></p>
-            <p>Press <kbd>Ctrl</kbd>+<kbd>O</kbd>, use <em>+ Open</em>, or drop a file into this window.</p>
+            <p id="empty-body"></p>
             <p id="empty-intro" class="muted"></p>
           </div>
         </section>

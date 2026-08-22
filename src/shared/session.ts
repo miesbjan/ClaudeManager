@@ -45,7 +45,8 @@ export function sanitisePane(raw: unknown): PaneState {
      * grew without limit would be a surprise nobody asked for.
      */
     prompt: typeof value.prompt === 'string' ? value.prompt.slice(0, MAX_PROMPT) : '',
-    promptOpen: value.promptOpen === true
+    promptOpen: value.promptOpen === true,
+    root: typeof value.root === 'string' && value.root !== '' ? value.root : null
   }
 }
 
@@ -59,13 +60,19 @@ function readTabs(raw: unknown): SessionTab[] {
   for (const entry of raw) {
     if (!entry || typeof entry !== 'object') continue
     const files = paths((entry as { files?: unknown }).files)
-    if (files.length === 0) continue
+    const pane = sanitisePane((entry as { pane?: unknown }).pane)
+    /*
+     * A tab is a place, and a place can be a directory with nothing open in it yet -
+     * that is the whole point of opening a tab over a folder. What is worth nothing is a
+     * tab that is neither: no files and no directory is an empty box.
+     */
+    if (files.length === 0 && pane.root === null) continue
     const active = (entry as { active?: unknown }).active
     const name = (entry as { name?: unknown }).name
     tabs.push({
       files,
-      active: typeof active === 'string' && files.includes(active) ? active : files[0],
-      pane: sanitisePane((entry as { pane?: unknown }).pane),
+      active: typeof active === 'string' && files.includes(active) ? active : (files[0] ?? null),
+      pane,
       name: typeof name === 'string' && name.trim() !== '' ? name.trim() : null
     })
   }

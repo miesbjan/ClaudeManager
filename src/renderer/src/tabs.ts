@@ -5,6 +5,12 @@ import type { Doc } from './docs'
 import type { ProjectInfo } from '../../shared/types'
 import type { RightMode } from './web'
 
+/** The last part of a path, which is what a directory is called. */
+const baseName = (path: string): string => {
+  const trimmed = path.replace(/[\\/]+$/, '')
+  return trimmed.split(/[\\/]/).pop() ?? path
+}
+
 /** What the dot on a tab says, and what it means when you hover it. */
 const ACTIVITY_TITLE = {
   working: 'activity.working',
@@ -39,6 +45,12 @@ export type Tab = {
   name: string | null
   /** Whether this tab shows a shell next to the document. */
   terminalOpen: boolean
+  /**
+   * The directory this tab is a place over, when it was chosen rather than derived from
+   * a file. It is what the shell starts in, what the palette searches, and what the tab
+   * is called while nothing is open in it.
+   */
+  root: string | null
   /** The prompt being composed for this shell, and whether its drawer is open. */
   prompt: string
   promptOpen: boolean
@@ -160,8 +172,11 @@ export function renderTabBar(
      * open files anywhere - a tooltip costs no pixels and is the one place the whole
      * list can be seen without adding a row of chrome for it.
      */
-    const listed = tab.docs
-      .map((entry, i) => (i === tab.docIndex ? '> ' : '  ') + entry.path)
+    const listed = [
+      tab.root,
+      ...tab.docs.map((entry, i) => (i === tab.docIndex ? '> ' : '  ') + entry.path)
+    ]
+      .filter((line): line is string => typeof line === 'string' && line !== '')
       .join('\n')
     el.title = doc?.error ? `${listed}\n\n${doc.error}` : listed
 
@@ -199,11 +214,16 @@ export function renderTabBar(
 
     const label = document.createElement('span')
     label.className = 'tab-label'
-    // A place with nothing open in it still has to be somewhere to click.
-    const empty = !tab.name && !labels[index]
+    /*
+     * With nothing open, a tab opened over a directory is called after the directory -
+     * that is what the place is. Only a tab that is neither falls back to a word.
+     */
+    const place = tab.root === null ? '' : baseName(tab.root)
+    const empty = !tab.name && !labels[index] && place === ''
     // A name given by hand reads as a plain name: it is what the place is called now,
     // not a note about the file it came from.
-    label.textContent = tab.name ?? (empty ? translate(lang, 'tab.empty') : labels[index])
+    label.textContent =
+      tab.name ?? (labels[index] || place || translate(lang, 'tab.empty'))
     if (empty) label.classList.add('unnamed')
     label.addEventListener('dblclick', (event) => {
       event.stopPropagation()

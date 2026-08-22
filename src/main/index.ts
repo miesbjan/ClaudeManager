@@ -604,6 +604,29 @@ function registerIpc(): void {
 
   ipcMain.handle('project:detect', (_event, dir: string) => detectProject(normalize(dir)))
 
+  /**
+   * A directory, for a tab that is a place rather than a file. Separate from the file
+   * dialog because Windows has no picker that offers both, and pretending otherwise
+   * means a folder chosen in a file dialog, which cannot be done.
+   */
+  ipcMain.handle('dialog:folder', async (): Promise<string | null> => {
+    if (!win) return null
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Open folder',
+      properties: ['openDirectory']
+    })
+    return result.canceled ? null : (result.filePaths[0] ?? null)
+  })
+
+  /** Whether a path dropped into the window is a directory, so it can become the place. */
+  ipcMain.handle('path:isDirectory', (_event, path: string) => {
+    try {
+      return statSync(normalize(path)).isDirectory()
+    } catch {
+      return false
+    }
+  })
+
   ipcMain.handle('files:list', (_event, root: string) => listFiles(normalize(root)))
 
   ipcMain.handle('files:resolve', (_event, root: string, candidates: string[]) =>
