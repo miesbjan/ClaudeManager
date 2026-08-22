@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
+import type { RememberedFile } from '../shared/history'
 import type { PlanUsage } from '../shared/limits'
 import type { PaneCommand } from '../shared/shortcuts'
 import type {
@@ -44,6 +45,9 @@ const api: ViewerApi = {
   isDirectory: (path) => ipcRenderer.invoke('path:isDirectory', path) as Promise<boolean>,
   suggestPlaces: (parent, term) =>
     ipcRenderer.invoke('places:suggest', parent, term) as Promise<PlaceSuggestions>,
+  rememberedFiles: (root) =>
+    ipcRenderer.invoke('history:list', root) as Promise<RememberedFile[]>,
+  noteOpenedFile: (root, path) => ipcRenderer.send('history:note', root, path),
   listFiles: (root) => ipcRenderer.invoke('files:list', root) as Promise<FileListing>,
   resolveFiles: (root, candidates) =>
     ipcRenderer.invoke('files:resolve', root, candidates) as Promise<Array<string | null>>,

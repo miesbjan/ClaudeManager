@@ -1,5 +1,6 @@
 /** Types shared between main, preload and renderer. Type-only, no runtime code. */
 import type { TerminalFont } from './font'
+import type { RememberedFile } from './history'
 import type { Lang } from './i18n'
 import type { PlanUsage } from './limits'
 import type { PaneCommand } from './shortcuts'
@@ -187,6 +188,10 @@ export interface ViewerApi {
   isDirectory(path: string): Promise<boolean>
   /** Directories to offer for a half-typed path, plus whatever zoxide would suggest. */
   suggestPlaces(parent: string, term: string): Promise<PlaceSuggestions>
+  /** The files this place keeps, most recent first: what has been opened here before. */
+  rememberedFiles(root: string): Promise<RememberedFile[]>
+  /** A file was opened in a place, which is what makes it remembered there. */
+  noteOpenedFile(root: string, path: string): void
   /** Files under a directory, for the palette. Build output and dot-dirs are skipped. */
   listFiles(root: string): Promise<FileListing>
   /**

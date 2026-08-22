@@ -1,11 +1,12 @@
 /**
  * Getting to a file without a dialog, and seeing what this place holds.
  *
- * Two things are in the list and nothing else: the files open in this tab, and the
- * files of its project. Files open in *other* tabs are not offered - the palette works
- * inside the place you are in. One does appear if you search for it, because a file is
- * only ever open in one place and going to it means going there; the row says so, so
- * that is a choice rather than a surprise.
+ * Three things are in the list and nothing else: the files open in this tab, the files
+ * this place keeps - the ones opened here before, which outlive the session the way the
+ * place does - and the files of its project. Files open in *other* tabs are not offered:
+ * the palette works inside the place you are in. One does appear if you search for it,
+ * because a file is only ever open in one place and going to it means going there; the
+ * row says so, so that is a choice rather than a surprise.
  */
 export type PaletteEntry = {
   /** Absolute path, as the app opens it. */
@@ -14,6 +15,8 @@ export type PaletteEntry = {
   rel: string
   /** Open in the tab this palette belongs to. */
   here: boolean
+  /** Opened in this place before, whether or not it is open now. */
+  remembered: boolean
   /** Open in another place, named so that going there is not a surprise. */
   elsewhere: string | null
 }
@@ -40,13 +43,15 @@ export function matches(entry: PaletteEntry, query: string): boolean {
 }
 
 /**
- * What the palette shows. With nothing typed it answers "what do I have open here",
- * which is the one place that list exists at all - the tab bar deliberately has no
- * strip of open files. Typing widens it to the project.
+ * What the palette shows. With nothing typed it answers "what do I work on here": the
+ * files open in this tab and the ones this place keeps. That list is the reason the tab
+ * bar has no strip of open files, and remembering it per place is what makes a project
+ * opened next week start where it left off. Typing widens it to the whole project.
  *
- * Open files come first either way. Beyond that the shortest path wins, so a file near
- * the root beats one buried in it, and ties are alphabetical rather than in whatever
- * order the disk gave them.
+ * Open files come first either way, then what the place remembers - both are answers
+ * about this place, while the rest of the project is only a possibility. Beyond that the
+ * shortest path wins, so a file near the root beats one buried in it, and ties are
+ * alphabetical rather than in whatever order the disk gave them.
  */
 export function visibleEntries(
   entries: readonly PaletteEntry[],
@@ -54,11 +59,14 @@ export function visibleEntries(
   limit = MAX_SHOWN
 ): PaletteEntry[] {
   const empty = query.trim() === ''
-  const pool = entries.filter((entry) => (empty ? entry.here : matches(entry, query)))
+  const pool = entries.filter((entry) =>
+    empty ? entry.here || entry.remembered : matches(entry, query)
+  )
 
   return [...pool]
     .sort((a, b) => {
       if (a.here !== b.here) return a.here ? -1 : 1
+      if (a.remembered !== b.remembered) return a.remembered ? -1 : 1
       if (a.rel.length !== b.rel.length) return a.rel.length - b.rel.length
       return a.rel.localeCompare(b.rel)
     })

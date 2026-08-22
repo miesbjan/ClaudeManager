@@ -190,6 +190,10 @@ const EN_NOTES: HelpNote[] = [
     body: 'appears only where an agent is running - a shell over a directory gets none. A ring that turns while it works, green once finished or quiet, amber while it is asking for permission, red when it rang the bell or its shell fell over.'
   },
   {
+    title: 'A place keeps its files',
+    body: 'whatever you open in a directory is offered by Ctrl+P the next time you are there, without anything being typed - most recent first, and nothing has to be starred by hand. It outlives the tab and the session, the way the place does.'
+  },
+  {
     title: 'The document reloads itself',
     body: 'whoever writes the file - you, an editor, an agent - the view follows, and what changed is marked for a moment.'
   },
@@ -224,6 +228,10 @@ const CS_NOTES: HelpNote[] = [
   {
     title: 'Tečka na tabu',
     body: 'objeví se jen tam, kde běží agent - nad samotným shellem v adresáři nesvítí nic. Kroužek se točí, dokud se pracuje, zelená, když je hotovo nebo je ticho, oranžová, když se ptá na povolení, červená, když zazvonil nebo mu spadl shell.'
+  },
+  {
+    title: 'Místo si pamatuje své soubory',
+    body: 'co v adresáři otevřeš, ti Ctrl+P nabídne, až tam budeš příště, bez psaní - od naposledy otevřeného, a nic se nemusí označovat ručně. Přežije to tab i session, stejně jako to místo.'
   },
   {
     title: 'Dokument se načítá sám',

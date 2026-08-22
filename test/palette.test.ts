@@ -7,10 +7,16 @@ import {
   type PaletteEntry
 } from '../src/renderer/src/palette.ts'
 
-const entry = (rel: string, here = false, elsewhere: string | null = null): PaletteEntry => ({
+const entry = (
+  rel: string,
+  here = false,
+  elsewhere: string | null = null,
+  remembered = false
+): PaletteEntry => ({
   path: 'C:/proj/' + rel,
   rel,
   here,
+  remembered,
   elsewhere
 })
 
@@ -55,6 +61,29 @@ describe('visibleEntries', () => {
    */
   it('shows what is open here when nothing is typed', () => {
     assert.deepEqual(rels(visibleEntries(entries, '')), ['notes.md', 'docs/plan.md'])
+  })
+
+  /*
+   * A place outlives the tab, so what was opened here before is offered without anything
+   * being typed - that is what makes opening a project again start where it left off.
+   */
+  it('shows what the place keeps, not only what is open now', () => {
+    const kept = [
+      entry('open.md', true),
+      entry('kept.md', false, null, true),
+      entry('src/deep/other.md')
+    ]
+    assert.deepEqual(rels(visibleEntries(kept, '')), ['open.md', 'kept.md'])
+  })
+
+  it('puts what is open above what is merely remembered', () => {
+    const kept = [entry('zzz-open.md', true), entry('aaa-kept.md', false, null, true)]
+    assert.deepEqual(rels(visibleEntries(kept, '')), ['zzz-open.md', 'aaa-kept.md'])
+  })
+
+  it('puts what the place keeps above the rest of the project when searching', () => {
+    const kept = [entry('a/b/plan.md', false, null, true), entry('plan.md')]
+    assert.deepEqual(rels(visibleEntries(kept, 'plan')), ['a/b/plan.md', 'plan.md'])
   })
 
   it('widens to the project once something is typed', () => {

@@ -271,10 +271,24 @@ async function openFiles(paths: string[], activate = true, into?: Tab): Promise<
     if (activate) activeIndex = tabs.indexOf(tab)
     await loadDoc(tab, doc)
     void window.api.watch(doc.path)
+    /*
+     * The place keeps what is opened in it, so `Ctrl+P` in this project offers these
+     * files again next week. Only a file that actually opened: a path that turned out
+     * not to be there is not something to come back to.
+     */
+    if (!doc.error) window.api.noteOpenedFile(placeOf(tab), doc.path)
   }
   if (activeIndex < 0 && tabs.length > 0) activeIndex = 0
   render()
   persistSession()
+}
+
+/**
+ * The directory a tab counts as being in: what it was opened over, what its project
+ * turned out to be, or - for a tab that is only a file - where that file lives.
+ */
+function placeOf(tab: Tab | undefined): string {
+  return tab?.root ?? tab?.project?.root ?? shownDoc(tab)?.dir ?? tab?.docs[0]?.dir ?? ''
 }
 
 /**
@@ -1876,11 +1890,6 @@ function goToLine(line: number): void {
 let paletteEntries: PaletteEntry[] = []
 let paletteIndex = 0
 
-/** The place a palette search happens in: the project, or where the file sits. */
-function paletteRoot(tab: Tab): string {
-  return tab.root ?? tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
-}
-
 const forwardSlashes = (path: string): string => path.split('\\').join('/')
 
 /** Shown relative to the root, or in full when it lives outside it. */
@@ -1893,7 +1902,8 @@ function relativeTo(root: string, path: string): string {
 
 /** How a place is named when a row has to say a file is open in another one. */
 function tabLabel(tab: Tab): string {
-  return tab.name ?? baseName(shownDoc(tab)?.path ?? '')
+  // The same order the bar uses: a name given by hand, the file on screen, the place.
+  return tab.name ?? baseName(shownDoc(tab)?.path ?? tab.root ?? '')
 }
 
 /** Where focus was when the palette took it, so closing it puts it back. */
@@ -1902,7 +1912,7 @@ let paletteReturn: HTMLElement | null = null
 async function openPalette(): Promise<void> {
   const tab = tabs[activeIndex]
   if (!tab) return
-  const root = paletteRoot(tab)
+  const root = placeOf(tab)
   paletteReturn = document.activeElement as HTMLElement | null
 
   // What is open here is known already, so the list is never empty while the disk is
@@ -1913,6 +1923,7 @@ async function openPalette(): Promise<void> {
       path: doc.path,
       rel: relativeTo(root, doc.path),
       here: true,
+      remembered: false,
       elsewhere: null
     })
   }
@@ -1925,6 +1936,31 @@ async function openPalette(): Promise<void> {
   paletteInput.focus()
 
   if (root === '') return
+
+  /*
+   * What the place keeps comes before the walk of the disk, because it is the answer to
+   * an empty query and the walk is not: a project opened again shows its usual files
+   * immediately, without waiting for its tree to be counted.
+   */
+  const kept = new Set<string>()
+  for (const entry of await window.api.rememberedFiles(root)) {
+    if (palette.hidden) return
+    kept.add(entry.path.toLowerCase())
+    const open = here.get(entry.path.toLowerCase())
+    if (open) {
+      open.remembered = true
+      continue
+    }
+    paletteEntries.push({
+      path: entry.path,
+      rel: relativeTo(root, entry.path),
+      here: false,
+      remembered: true,
+      elsewhere: null
+    })
+  }
+  renderPalette()
+
   const listing = await window.api.listFiles(root)
   // Still the same palette? Opening and closing quickly must not repopulate it.
   if (palette.hidden) return
@@ -1937,13 +1973,19 @@ async function openPalette(): Promise<void> {
 
   for (const file of listing.files) {
     const key = file.toLowerCase()
-    if (here.has(key)) continue
+    if (here.has(key) || kept.has(key)) continue
     paletteEntries.push({
       path: file,
       rel: relativeTo(root, file),
       here: false,
+      remembered: false,
       elsewhere: elsewhere.get(key) ?? null
     })
+  }
+  // A file open in another tab is worth saying so about even when this place keeps it.
+  for (const entry of paletteEntries) {
+    if (entry.here || entry.elsewhere !== null) continue
+    entry.elsewhere = elsewhere.get(entry.path.toLowerCase()) ?? null
   }
   paletteNote.textContent = listing.truncated
     ? root + '  ·  first ' + listing.files.length + ' files only'

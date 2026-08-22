@@ -23,6 +23,7 @@ import { detectProject } from './project'
 import { readPlanUsage } from './limits'
 import { readUsage } from './usage'
 import { listFiles } from './listFiles'
+import { noteOpened, rememberedIn } from './history'
 import { homeDirectory, listDirectories, queryZoxide } from './places'
 import { resolveFile } from './resolveFile'
 import { TerminalManager } from './terminal'
@@ -637,6 +638,16 @@ function registerIpc(): void {
     } catch {
       return false
     }
+  })
+
+  /**
+   * The files this place keeps: what has been opened here before, so a project opened
+   * again offers the same few files rather than an empty list.
+   */
+  ipcMain.handle('history:list', (_event, root: string) => rememberedIn(normalize(root)))
+
+  ipcMain.on('history:note', (_event, root: string, path: string) => {
+    noteOpened(normalize(root), normalize(path))
   })
 
   ipcMain.handle('files:list', (_event, root: string) => listFiles(normalize(root)))
