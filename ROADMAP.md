@@ -882,3 +882,12 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 - **22. 8. 2026** - Otázky se dají odpovědět z klávesnice: šipky mezi odpověďmi, `Enter`
   bere vybranou, `Esc` bezpečnou. Vyplynulo z používání - každá otázka téhle aplikace
   padne ve chvíli, kdy jsou obě ruce na klávesnici, protože tam se tu pracuje.
+- **22. 8. 2026** - `Ctrl+P` nabízí soubory podle **místa**, ne podle session tabu.
+  Vyplynulo z používání: co je otevřené v tabu zmizí s tabem, takže projekt otevřený
+  příště začínal prázdným seznamem a ty tři soubory se hledaly znova.
+  Nic se neoznačuje ručně: oblíbený soubor, který se musí označit, je špatně poprvé,
+  kdy to někdo zapomene. Pamatuje se, co bylo otevřeno, od naposledy, dvacet souborů
+  na místo; smazaný nebo přejmenovaný soubor ze seznamu vypadne, protože nabízet
+  neexistující soubor je horší než kratší seznam.
+  Je to `places.json` vedle session, ne v ní: session je „co je otevřené teď" a přepisuje
+  se při každém pohybu, tohle je „co tu bývá otevřené" a jen roste.

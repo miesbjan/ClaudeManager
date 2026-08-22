@@ -405,8 +405,17 @@ Files passed on the command line are opened too, so the app works as a handler f
   exist are offered: shape cannot tell `Node.js` from `app.js`, so the disk is asked
   before anything is underlined, and relative paths are resolved against the directory
   the shell was started in. A URL is left alone; addresses belong in the web pane.
-- **Go to file.** `Ctrl+P` offers what is open in this tab, and once you type
-  anything, every file in the project. An empty query is therefore also the answer to
+- **Go to file.** `Ctrl+P` offers what is open in this tab and what this place keeps -
+  the files opened in this directory before - and once you type anything, every file in
+  the project.
+
+  The kept list is what makes a project opened next week start where it left off: nothing
+  is starred by hand, because a favourite that has to be marked is wrong the first time
+  somebody forgets to mark it. What was opened here is remembered, most recent first,
+  twenty files per place, and a file that has since been deleted or renamed is dropped
+  rather than offered. It lives in `places.json` beside the session and not in it: the
+  session is what is open now, this is what has been open here, and losing one should
+  never mean losing the other. An empty query is therefore also the answer to
   "what do I have open here", which is why the tab bar has no second row listing them.
   A file open in another tab still shows up - it is a file of the project - but its row
   says so and `Enter` goes there instead of opening a second copy of it. Matching is a
