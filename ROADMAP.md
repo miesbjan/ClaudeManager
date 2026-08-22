@@ -84,8 +84,15 @@ Proces žije, dokud žije tab: schování panelu ani přepnutí tabu ho nezabije
 tabu ano. Zkratky aplikace se při fokusu v terminálu stahují na `Ctrl+Shift+…`, aby
 `Ctrl+W` a `Ctrl+D` patřily shellu.
 
-Zbývá k modelu „tab = adresář“: tab je pořád dokument a adresář se z něj odvozuje.
-Otevřít tab nad adresářem samotným, bez dokumentu, zatím nejde.
+**Tab nad adresářem** (hotovo). Tab se dá otevřít nad adresářem, bez jediného souboru:
+tlačítko *Otevřít adresář*, nebo adresář přetažený do okna. Ten adresář je pak to, v čem
+startuje shell, co prohledává `Ctrl+P`, z čeho se pozná projekt pro tlačítko Run, a jak
+se tab jmenuje. Tím je model „tab = adresář" hotový v obou směrech: adresář se dá zvolit
+a soubor se dá otevřít, aniž by to místo přestěhoval.
+
+Místo se pamatuje i bez souborů, což je jediná netriviální část: session dřív zahazovala
+každý tab bez souborů, a to na dvou místech - při čtení souboru a při obnově v rendereru.
+Tab, který je adresář, drží záměrně nic, a přesto je to to jediné, čím je.
 
 **Víc souborů v jednom tabu** (hotovo). Tab je místo a drží seznam souborů, jeden je
 vidět. Otevřený soubor padne do tabu, ve kterém jsi; nový tab si vyžádáš přes `Ctrl+T`.
@@ -843,3 +850,13 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   ale na potvrzení, že je box na obrazovce, ne na odpověď. První verze čekala na
   odpověď a po čtyřech sekundách postavila vedle vlastní otázky ještě systémovou;
   ukázalo se to hned při prvním zavření okna.
+- **22. 8. 2026** - Tab se dá otevřít nad adresářem, čímž je model „tab = adresář"
+  dokončený. Do teď byl tab vždycky dokument a adresář se z něj odvozoval: `Ctrl+T`
+  udělal prázdný tab, jehož shell neměl kde začít a spadl na `USERPROFILE` - takže
+  člověk, který si to poprvé otevřel, skončil v domovské složce, ne v projektu.
+  Zvolený adresář má přednost před adresářem souboru všude, protože je to volba, ne
+  odvození; otevřený soubor tedy místo nepřestěhuje.
+  Netriviální bylo jen pamatování: tab bez souborů se zahazoval na dvou místech, při
+  čtení session i při obnově v rendereru. Adresář přetažený do okna se rozpozná dotazem
+  do main procesu - Windows předává soubor i adresář stejně, a adresář předtím skončil
+  jako dokument, který se nedá přečíst.

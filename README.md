@@ -95,6 +95,7 @@ else closes it. It speaks whichever interface language is selected.
 | Input                     | Action                                    |
 | ------------------------- | ----------------------------------------- |
 | `Ctrl+O`                  | open Markdown file(s)                     |
+| *Open folder*             | open a directory as a place to work in    |
 | `Ctrl+P`                  | go to a file: open here, or in the project |
 | `Ctrl+W`                  | close the current tab                     |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | next / previous tab                   |
@@ -345,6 +346,16 @@ Files passed on the command line are opened too, so the app works as a handler f
   if the file reappears.
 - **Duplicate names.** Tabs show the file name, extended with as many parent
   directories as needed to stay unambiguous.
+- **A tab over a directory.** *Open folder* - or a folder dropped into the window -
+  makes a tab that is a place with nothing open in it yet. The directory is what the
+  shell starts in, what `Ctrl+P` searches, what Run detects a project from, and what the
+  tab is called. Opening a file into that tab does not move it: the place was chosen, not
+  derived, so it outranks the file's own directory everywhere.
+
+  Such a tab is remembered with nothing in it, which is the part that had to change in
+  two places: a tab with no files used to be dropped both when reading the session file
+  and when restoring it in the window. A tab that is a directory holds nothing by design,
+  and the directory is the one thing it is.
 - **Where you were.** Each file remembers its scroll position, and remembers it twice:
   once for the rendered document and once for the plain-text pane. They measure different
   things - a place in a layout and a place in the text - so keeping one number would land
