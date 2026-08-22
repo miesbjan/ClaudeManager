@@ -55,7 +55,7 @@ const EN: HelpSection[] = [
         keys: 'Ctrl+P / Ctrl+O',
         action: 'go to a file: in the project / anywhere'
       },
-      { keys: 'Ctrl+T', action: 'new tab, for another place' },
+      { keys: 'Ctrl+T / Ctrl+G', action: 'another place, here / typed out' },
       { keys: 'Ctrl+W', action: 'close the file; the last one closes the tab' },
       {
         keys: 'Ctrl+PageUp / PageDown',
@@ -123,7 +123,7 @@ const CS: HelpSection[] = [
         keys: 'Ctrl+P / Ctrl+O',
         action: 'skok na soubor: v projektu / kdekoli'
       },
-      { keys: 'Ctrl+T', action: 'nový tab, pro jiné místo' },
+      { keys: 'Ctrl+T / Ctrl+G', action: 'další místo, zde / napsané' },
       { keys: 'Ctrl+W', action: 'zavřít soubor; poslední zavře tab' },
       {
         keys: 'Ctrl+PageUp / PageDown',

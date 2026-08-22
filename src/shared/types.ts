@@ -46,6 +46,13 @@ export type AskKind = 'close' | 'quit'
 
 export type AskRequest = { id: number; kind: AskKind }
 
+/**
+ * What could be meant by what has been typed into the place prompt: the directories
+ * inside the one already named, and - where zoxide is installed - the ones this person
+ * actually goes to. Home travels with it so the window need not know the platform.
+ */
+export type PlaceSuggestions = { home: string; dirs: string[]; frecent: string[] }
+
 export type TaskbarState = 'none' | 'working' | 'done' | 'permission' | 'alert'
 
 export type StartupPayload = {
@@ -178,6 +185,8 @@ export interface ViewerApi {
   openFolderDialog(): Promise<string | null>
   /** Whether a dropped path is a directory rather than a file. */
   isDirectory(path: string): Promise<boolean>
+  /** Directories to offer for a half-typed path, plus whatever zoxide would suggest. */
+  suggestPlaces(parent: string, term: string): Promise<PlaceSuggestions>
   /** Files under a directory, for the palette. Build output and dot-dirs are skipped. */
   listFiles(root: string): Promise<FileListing>
   /**

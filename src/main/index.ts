@@ -23,6 +23,7 @@ import { detectProject } from './project'
 import { readPlanUsage } from './limits'
 import { readUsage } from './usage'
 import { listFiles } from './listFiles'
+import { homeDirectory, listDirectories, queryZoxide } from './places'
 import { resolveFile } from './resolveFile'
 import { TerminalManager } from './terminal'
 import { loadState, saveState, terminalFont, type AppState } from './store'
@@ -617,6 +618,17 @@ function registerIpc(): void {
     })
     return result.canceled ? null : (result.filePaths[0] ?? null)
   })
+
+  /**
+   * Where a tab could be, for the prompt that is typed instead of clicked: the
+   * directories inside the one named so far, and what zoxide would jump to for a bare
+   * word. Home comes along because the renderer has no business knowing the platform.
+   */
+  ipcMain.handle('places:suggest', async (_event, parent: string, term: string) => ({
+    home: homeDirectory(),
+    dirs: listDirectories(normalize(parent)),
+    frecent: term === '' ? [] : await queryZoxide(term)
+  }))
 
   /** Whether a path dropped into the window is a directory, so it can become the place. */
   ipcMain.handle('path:isDirectory', (_event, path: string) => {

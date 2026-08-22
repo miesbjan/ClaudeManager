@@ -1116,6 +1116,7 @@ body.resizing {
  * Go to file. The same overlay idea as the shortcut panel: out of the flow, so opening
  * it never moves what is being read, and gone the moment it is not needed.
  */
+#place,
 #palette {
   position: fixed;
   top: 64px;
@@ -1130,10 +1131,12 @@ body.resizing {
   box-shadow: 0 14px 36px rgb(0 0 0 / 32%);
 }
 
+#place[hidden],
 #palette[hidden] {
   display: none;
 }
 
+#place-input,
 #palette-input {
   font: inherit;
   width: 100%;
@@ -1145,10 +1148,12 @@ body.resizing {
   outline: none;
 }
 
+#place-input:focus,
 #palette-input:focus {
   border-color: var(--accent);
 }
 
+#place-list,
 #palette-list {
   list-style: none;
   margin: 6px 0 0;
@@ -1191,6 +1196,7 @@ body.resizing {
   color: var(--text-muted);
 }
 
+#place-note,
 #palette-note {
   margin: 6px 0 0;
   padding: 0 8px;

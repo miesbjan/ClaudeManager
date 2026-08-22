@@ -3,6 +3,7 @@ import type { PlanUsage } from '../shared/limits'
 import type { PaneCommand } from '../shared/shortcuts'
 import type {
   AskRequest,
+  PlaceSuggestions,
   FileEvent,
   FileListing,
   FileReadResult,
@@ -41,6 +42,8 @@ const api: ViewerApi = {
   detectProject: (dir) => ipcRenderer.invoke('project:detect', dir) as Promise<ProjectInfo | null>,
   openFolderDialog: () => ipcRenderer.invoke('dialog:folder') as Promise<string | null>,
   isDirectory: (path) => ipcRenderer.invoke('path:isDirectory', path) as Promise<boolean>,
+  suggestPlaces: (parent, term) =>
+    ipcRenderer.invoke('places:suggest', parent, term) as Promise<PlaceSuggestions>,
   listFiles: (root) => ipcRenderer.invoke('files:list', root) as Promise<FileListing>,
   resolveFiles: (root, candidates) =>
     ipcRenderer.invoke('files:resolve', root, candidates) as Promise<Array<string | null>>,

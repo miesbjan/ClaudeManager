@@ -31,6 +31,7 @@ import { formatTokens } from '../../shared/usage'
 import { limitLevel, timeUntil } from '../../shared/limits'
 import { stepSelection, visibleEntries, type PaletteEntry } from './palette'
 import { askModal } from './modal'
+import { expandPath, matchDirs, splitTyped } from '../../shared/place'
 import { detectEol, isMarkdown, toEditorText, toFileText } from './plaintext'
 import { sendable } from './prompt'
 import { createUrlReader, nextRightMode, normalizeUrl } from './web'
@@ -84,6 +85,10 @@ const help = document.getElementById('help') as HTMLElement
 const promptPane = document.getElementById('prompt-pane') as HTMLElement
 const promptInput = document.getElementById('prompt-input') as HTMLTextAreaElement
 const promptSend = document.getElementById('prompt-send') as HTMLButtonElement
+const place = document.getElementById('place') as HTMLElement
+const placeInput = document.getElementById('place-input') as HTMLInputElement
+const placeList = document.getElementById('place-list') as HTMLUListElement
+const placeNote = document.getElementById('place-note') as HTMLElement
 const modal = document.getElementById('modal') as HTMLElement
 const palette = document.getElementById('palette') as HTMLElement
 const paletteInput = document.getElementById('palette-input') as HTMLInputElement
@@ -415,9 +420,17 @@ function reorderTab(from: number, to: number): void {
  * in the tab, the shell is the only thing there is to do. It starts in the home
  * directory, since an empty tab belongs to no project yet.
  */
+/**
+ * Another place, which starts as the one you are in - a shell in a directory is what a
+ * second tab is usually wanted for, and a tab that is nowhere has no shell worth having
+ * and nothing for `Ctrl+P` to search. `Ctrl+G` is how you go elsewhere.
+ */
 function newTab(): void {
+  const here = tabs[activeIndex]
   const tab = createTab()
   tab.terminalOpen = true
+  tab.root = here ? (here.root ?? shownDoc(here)?.dir ?? null) : null
+  tab.project = here?.project ?? null
   activeIndex = tabs.indexOf(tab)
   render()
   persistSession()
@@ -1117,6 +1130,7 @@ helpButton.addEventListener('click', toggleHelp)
 window.addEventListener('mousedown', (event) => {
   const target = event.target as Node
   if (!help.hidden && !help.contains(target) && target !== helpButton) toggleHelp()
+  if (!place.hidden && !place.contains(target)) closePlace()
   if (!palette.hidden && !palette.contains(target)) closePalette()
 })
 
@@ -1591,6 +1605,166 @@ promptInput.addEventListener('keydown', (event) => {
 
 promptSend.addEventListener('click', () => void sendPrompt())
 
+/* ---------- typing where a tab should be ---------- */
+
+/**
+ * The place prompt: `~/source/project` typed in two seconds rather than clicked through
+ * three panels of a system dialog. Directories are how projects are named out loud, so
+ * naming them is the fast path; the folder picker stays for the times you are looking
+ * rather than remembering.
+ */
+type PlaceRow = { path: string; label: string; note: string | null }
+
+let placeRows: PlaceRow[] = []
+let placeIndex = 0
+let placeHome = ''
+/** Which request the rows belong to, so a slow answer cannot overwrite a fast one. */
+let placeQuery = 0
+
+function placeBase(tab: Tab | undefined): string {
+  return tab?.root ?? shownDoc(tab)?.dir ?? ''
+}
+
+function openPlace(): void {
+  const tab = tabs[activeIndex]
+  placeInput.value = ''
+  placeInput.placeholder = T('place.placeholder')
+  placeRows = []
+  placeIndex = 0
+  place.hidden = false
+  placeNote.textContent = placeBase(tab) || T('place.title')
+  renderPlace()
+  placeInput.focus()
+  void refreshPlace()
+}
+
+function closePlace(): void {
+  place.hidden = true
+  placeList.textContent = ''
+  placeRows = []
+}
+
+/**
+ * What has been typed, as rows to choose from: the directories inside the part of the
+ * path that is already named, and - for a bare word - what zoxide would jump to.
+ */
+async function refreshPlace(): Promise<void> {
+  const tab = tabs[activeIndex]
+  const typed = placeInput.value
+  const { parent, partial } = splitTyped(typed)
+  const base = placeBase(tab)
+  const ticket = ++placeQuery
+
+  const parentPath = expandPath(parent === '' ? '.' : parent, { home: placeHome, base }) ?? base
+  const suggestions = await window.api.suggestPlaces(parentPath, parent === '' ? partial : '')
+  if (place.hidden || ticket !== placeQuery) return
+  placeHome = suggestions.home
+
+  const inside = matchDirs(suggestions.dirs, partial).map((name) => ({
+    path: parentPath + '/' + name,
+    label: name,
+    note: null
+  }))
+  /*
+   * zoxide is asked only for a bare word, because that is the case it answers: once a
+   * path has a slash in it, what is meant is that path and nothing else.
+   */
+  const frecent = suggestions.frecent
+    .map((path) => path.split('\\').join('/'))
+    .filter((path) => !inside.some((row) => row.path.toLowerCase() === path.toLowerCase()))
+    .map((path) => ({ path, label: path, note: T('place.frecent') }))
+
+  placeRows = [...inside, ...frecent].slice(0, 40)
+  placeIndex = Math.min(placeIndex, Math.max(placeRows.length - 1, 0))
+  renderPlace()
+}
+
+function renderPlace(): void {
+  placeList.textContent = ''
+  const target = expandPath(placeInput.value, { home: placeHome, base: placeBase(tabs[activeIndex]) })
+  placeNote.textContent = target ?? T('place.hint')
+
+  placeRows.forEach((row, index) => {
+    const item = document.createElement('li')
+    item.className = 'palette-row'
+    if (index === placeIndex) item.classList.add('selected')
+
+    const name = document.createElement('span')
+    name.className = 'palette-name'
+    name.textContent = row.label
+    item.append(name)
+
+    if (row.note) {
+      const note = document.createElement('span')
+      note.className = 'palette-where'
+      note.textContent = row.note
+      item.append(note)
+    }
+
+    item.addEventListener('mousedown', (event) => {
+      event.preventDefault()
+      void goToPlace(row.path)
+    })
+    placeList.append(item)
+  })
+}
+
+/** Tab completes to the highlighted directory and keeps typing from there. */
+function completePlace(): void {
+  const row = placeRows[placeIndex]
+  if (!row) return
+  const { parent } = splitTyped(placeInput.value)
+  placeInput.value = (parent === '' ? '' : parent) + row.label + '/'
+  placeIndex = 0
+  void refreshPlace()
+}
+
+async function goToPlace(path: string): Promise<void> {
+  if (!(await window.api.isDirectory(path))) {
+    placeNote.textContent = T('place.missing')
+    return
+  }
+  closePlace()
+  await useFolder(path)
+}
+
+placeInput.addEventListener('input', () => {
+  placeIndex = 0
+  void refreshPlace()
+})
+
+placeInput.addEventListener('keydown', (event) => {
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault()
+    placeIndex = stepSelection(placeRows.length, placeIndex, event.key === 'ArrowDown' ? 1 : -1)
+    renderPlace()
+    return
+  }
+  if (event.key === 'Tab') {
+    event.preventDefault()
+    completePlace()
+    return
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    /*
+     * What was typed wins over what is highlighted: a full path typed out is an answer,
+     * and the rows are only there to save the typing.
+     */
+    const typed = expandPath(placeInput.value, {
+      home: placeHome,
+      base: placeBase(tabs[activeIndex])
+    })
+    const chosen = typed ?? placeRows[placeIndex]?.path
+    if (chosen) void goToPlace(chosen)
+    return
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closePlace()
+  }
+})
+
 /* ---------- following a path out of the terminal ---------- */
 
 /**
@@ -2033,6 +2207,12 @@ openButton.addEventListener('click', () => void pickFiles())
 folderButton.addEventListener('click', () => void openFolder())
 
 window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !place.hidden) {
+    event.preventDefault()
+    closePlace()
+    return
+  }
+
   if (event.key === 'Escape' && !palette.hidden) {
     event.preventDefault()
     closePalette()
@@ -2117,6 +2297,10 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault()
     if (palette.hidden) void openPalette()
     else closePalette()
+  } else if (event.code === 'KeyG') {
+    event.preventDefault()
+    if (place.hidden) openPlace()
+    else closePlace()
   } else if (key === 'w') {
     event.preventDefault()
     void closeDoc()
