@@ -221,6 +221,10 @@ Files passed on the command line are opened too, so the app works as a handler f
   something to drop on the desktop or tear into a window of its own. Nothing leaves
   the bar. What moves is only the order they are shown in: the tab you were looking at
   stays the one you are looking at.
+- **Questions are answered from the keyboard.** The arrows move between the answers, the
+  way they do in a native message box, `Enter` takes the one that is on, `Esc` takes the
+  safe one - which is where the keyboard starts, since Enter on a question nobody read is
+  a refusal.
 - **Questions are asked in the window.** Every confirmation - a tab with something
   running in it, unsaved edits, closing the window, quitting from the tray - is drawn by
   the app in its own typeface and palette, not by a system message box with the name of
@@ -352,6 +356,13 @@ Files passed on the command line are opened too, so the app works as a handler f
   relative to where the tab is now, and the directories inside whatever has been named so
   far are listed as you type - `Tab` completes to the highlighted one. The resolved path
   is shown at the bottom, so what will happen is visible before Enter.
+
+  It doubles as a very light file browser, because an arrow and a key sometimes beat
+  typing a name out: the arrows walk the list, `Tab` goes into the highlighted directory,
+  `Shift+Tab` goes back up, and `Enter` is for when you have arrived. `Enter` deliberately
+  does not descend - it means the same thing here as in every other field in the app - and
+  what `Shift+Tab` climbs is the directory being listed, so a half-typed name is left
+  behind, which is what going up means.
 
   A bare word with no slash in it is also handed to `zoxide`, if the machine has it, and
   its answers are listed as *often visited* - so `atlas` finds `C:/work/ATLAS` without

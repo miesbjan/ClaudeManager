@@ -872,3 +872,13 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   v terminálu. Tab, který není nikde, měl shell v domovské složce a `Ctrl+P` neměl co
   prohledávat, takže se musel hned poslat dál dalším klikem. Tím zbyla jasná dělba:
   `Ctrl+T` je „další místo tady", `Ctrl+G` je „chci jinam".
+- **22. 8. 2026** - `Ctrl+G` je zároveň velmi lehký prohlížeč souborů: šipky po
+  seznamu, `Tab` dovnitř vybraného adresáře, `Shift+Tab` o úroveň výš, `Enter` až když
+  jsi tam. Existují dvě konvence a rozděluje je, jestli je ta věc navigátor, nebo výběr:
+  v Průzkumníkovi, rangeru nebo ido jde `Enter` dovnitř, v doplňování shellu a ve fzf
+  bere `Enter` to vybrané a dovnitř se chodí Tabem. Tohle je výběr, takže `Enter`
+  znamená to samé jako ve všech ostatních polích aplikace, a nejčastější případ
+  (napsat cestu a jít tam) nestojí o klávesu víc.
+- **22. 8. 2026** - Otázky se dají odpovědět z klávesnice: šipky mezi odpověďmi, `Enter`
+  bere vybranou, `Esc` bezpečnou. Vyplynulo z používání - každá otázka téhle aplikace
+  padne ve chvíli, kdy jsou obě ruce na klávesnici, protože tam se tu pracuje.
