@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { expandPath, matchDirs, splitTyped } from '../src/shared/place.ts'
+import { chooseTarget, expandPath, matchDirs, splitTyped } from '../src/shared/place.ts'
 
 const context = { home: 'C:/Users/me', base: 'C:/Users/me/source/thing' }
 
@@ -50,6 +50,44 @@ describe('expandPath', () => {
 
   it('keeps a network path whole', () => {
     assert.equal(expandPath('\\\\server\\share\\dir', context), '//server/share/dir')
+  })
+})
+
+/*
+ * Both bugs this exists for came from one wrong order: the text in the field was
+ * preferred over the row the keyboard was on. Arrowing onto a directory then went
+ * somewhere else, and a half-typed name was refused as "no such directory".
+ */
+describe('chooseTarget', () => {
+  it('takes the row the keyboard was moved to, whatever the field says', () => {
+    assert.equal(
+      chooseTarget({ typed: 'C:/work', typedIsDirectory: true, row: 'C:/work/transit-feed', moved: true }),
+      'C:/work/transit-feed'
+    )
+  })
+
+  // A trailing slash names that directory, not the first thing inside it.
+  it('takes a path named in full when the selection was not touched', () => {
+    assert.equal(
+      chooseTarget({ typed: 'C:/work', typedIsDirectory: true, row: 'C:/work/ATLAS', moved: false }),
+      'C:/work'
+    )
+  })
+
+  it('completes a half-typed name to what it matched', () => {
+    assert.equal(
+      chooseTarget({ typed: 'C:/work/bra', typedIsDirectory: false, row: 'C:/work/bravocore', moved: false }),
+      'C:/work/bravocore'
+    )
+  })
+
+  it('has nowhere to go when the text is not a directory and nothing matched', () => {
+    assert.equal(chooseTarget({ typed: 'C:/nope', typedIsDirectory: false, row: null, moved: false }), null)
+    assert.equal(chooseTarget({ typed: null, typedIsDirectory: false, row: null, moved: true }), null)
+  })
+
+  it('falls back to the text when the list is empty', () => {
+    assert.equal(chooseTarget({ typed: 'C:/work', typedIsDirectory: true, row: null, moved: true }), 'C:/work')
   })
 })
 

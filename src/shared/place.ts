@@ -87,6 +87,32 @@ export function splitTyped(input: string): { parent: string; partial: string } {
   return { parent: typed.slice(0, cut + 1), partial: typed.slice(cut + 1) }
 }
 
+/**
+ * Where Enter goes, which is not simply what was typed.
+ *
+ * Three things can be meant at once - the text in the field, the row the keyboard is on,
+ * and a half-typed name with one obvious completion - and getting the order wrong is
+ * felt immediately: preferring the text meant that arrowing onto a directory and
+ * pressing Enter went somewhere else, or refused a name that was only half typed.
+ */
+export function chooseTarget(state: {
+  /** What the field says, resolved to a path; null when it says nothing. */
+  typed: string | null
+  /** Whether that path is a directory that exists. */
+  typedIsDirectory: boolean
+  /** The row the keyboard is on, if any. */
+  row: string | null
+  /** Whether the selection was moved by hand since the last keystroke in the field. */
+  moved: boolean
+}): string | null {
+  // Pointing at a row is the most deliberate answer there is.
+  if (state.moved && state.row !== null) return state.row
+  // A path named in full is the next: a trailing slash means this directory, not a child.
+  if (state.typed !== null && state.typedIsDirectory) return state.typed
+  // Otherwise the text is a prefix, and the match is what it was a prefix of.
+  return state.row
+}
+
 /** Directories worth offering for what has been typed so far, in reading order. */
 export function matchDirs(names: string[], partial: string): string[] {
   const needle = partial.toLowerCase()

@@ -31,7 +31,7 @@ import { formatTokens } from '../../shared/usage'
 import { limitLevel, timeUntil } from '../../shared/limits'
 import { stepSelection, visibleEntries, type PaletteEntry } from './palette'
 import { askModal } from './modal'
-import { expandPath, matchDirs, splitTyped } from '../../shared/place'
+import { chooseTarget, expandPath, matchDirs, splitTyped } from '../../shared/place'
 import { detectEol, isMarkdown, toEditorText, toFileText } from './plaintext'
 import { sendable } from './prompt'
 import { createUrlReader, nextRightMode, normalizeUrl } from './web'
@@ -1618,6 +1618,8 @@ type PlaceRow = { path: string; label: string; note: string | null }
 let placeRows: PlaceRow[] = []
 let placeIndex = 0
 let placeHome = ''
+/** Whether the selection was moved by hand, which makes the row the deliberate answer. */
+let placeMoved = false
 /** Which request the rows belong to, so a slow answer cannot overwrite a fast one. */
 let placeQuery = 0
 
@@ -1631,6 +1633,7 @@ function openPlace(): void {
   placeInput.placeholder = T('place.placeholder')
   placeRows = []
   placeIndex = 0
+  placeMoved = false
   place.hidden = false
   placeNote.textContent = placeBase(tab) || T('place.title')
   renderPlace()
@@ -1714,9 +1717,38 @@ function completePlace(): void {
   const row = placeRows[placeIndex]
   if (!row) return
   const { parent } = splitTyped(placeInput.value)
-  placeInput.value = (parent === '' ? '' : parent) + row.label + '/'
+  /*
+   * A row from zoxide is a whole path of its own, not a name inside what was typed, so
+   * it replaces the field rather than being appended to it.
+   */
+  const absolute = row.note !== null
+  placeInput.value = absolute ? row.path + '/' : (parent === '' ? '' : parent) + row.label + '/'
   placeIndex = 0
+  placeMoved = false
   void refreshPlace()
+}
+
+/**
+ * Enter: the row if it was pointed at, the field if it names a directory, and otherwise
+ * whatever the field was a prefix of. `chooseTarget` holds the order and the reasons.
+ */
+async function enterPlace(): Promise<void> {
+  const typed = expandPath(placeInput.value, {
+    home: placeHome,
+    base: placeBase(tabs[activeIndex])
+  })
+  const target = chooseTarget({
+    typed,
+    typedIsDirectory: typed !== null && (await window.api.isDirectory(typed)),
+    row: placeRows[placeIndex]?.path ?? null,
+    moved: placeMoved
+  })
+  if (place.hidden) return
+  if (target === null) {
+    placeNote.textContent = T('place.missing')
+    return
+  }
+  await goToPlace(target)
 }
 
 async function goToPlace(path: string): Promise<void> {
@@ -1730,6 +1762,8 @@ async function goToPlace(path: string): Promise<void> {
 
 placeInput.addEventListener('input', () => {
   placeIndex = 0
+  // Typing means the field is the answer again, until the selection is moved by hand.
+  placeMoved = false
   void refreshPlace()
 })
 
@@ -1737,6 +1771,7 @@ placeInput.addEventListener('keydown', (event) => {
   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
     event.preventDefault()
     placeIndex = stepSelection(placeRows.length, placeIndex, event.key === 'ArrowDown' ? 1 : -1)
+    placeMoved = placeIndex >= 0
     renderPlace()
     return
   }
@@ -1747,16 +1782,7 @@ placeInput.addEventListener('keydown', (event) => {
   }
   if (event.key === 'Enter') {
     event.preventDefault()
-    /*
-     * What was typed wins over what is highlighted: a full path typed out is an answer,
-     * and the rows are only there to save the typing.
-     */
-    const typed = expandPath(placeInput.value, {
-      home: placeHome,
-      base: placeBase(tabs[activeIndex])
-    })
-    const chosen = typed ?? placeRows[placeIndex]?.path
-    if (chosen) void goToPlace(chosen)
+    void enterPlace()
     return
   }
   if (event.key === 'Escape') {
