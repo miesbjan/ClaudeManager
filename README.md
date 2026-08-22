@@ -95,6 +95,7 @@ else closes it. It speaks whichever interface language is selected.
 | Input                     | Action                                    |
 | ------------------------- | ----------------------------------------- |
 | `Ctrl+O`                  | open Markdown file(s)                     |
+| `Ctrl+G`                  | type where to go: a directory, by path     |
 | *Open folder*             | open a directory as a place to work in    |
 | `Ctrl+P`                  | go to a file: open here, or in the project |
 | `Ctrl+W`                  | close the current tab                     |
@@ -346,6 +347,21 @@ Files passed on the command line are opened too, so the app works as a handler f
   if the file reappears.
 - **Duplicate names.** Tabs show the file name, extended with as many parent
   directories as needed to stay unambiguous.
+- **Typing where to go.** `Ctrl+G` is the keyboard way to the same thing as *Open
+  folder*: type `~/source/project` and press Enter. `~` is home, a bare name or `../` is
+  relative to where the tab is now, and the directories inside whatever has been named so
+  far are listed as you type - `Tab` completes to the highlighted one. The resolved path
+  is shown at the bottom, so what will happen is visible before Enter.
+
+  A bare word with no slash in it is also handed to `zoxide`, if the machine has it, and
+  its answers are listed as *often visited* - so `atlas` finds `C:/work/ATLAS` without
+  the path being typed at all. It is asked, never told: nothing is ever written to its
+  database, which belongs to the shell. A machine without zoxide simply gets the
+  directory listing, which is the whole feature anyway.
+
+  `Ctrl+T` needs none of this: a new tab starts in the place you were in, the way a new
+  terminal tab does. A tab that is nowhere has a shell in the home directory and nothing
+  for `Ctrl+P` to search, which was the one thing left that made an empty tab useless.
 - **A tab over a directory.** *Open folder* - or a folder dropped into the window -
   makes a tab that is a place with nothing open in it yet. The directory is what the
   shell starts in, what `Ctrl+P` searches, what Run detects a project from, and what the

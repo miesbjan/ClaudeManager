@@ -860,3 +860,15 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   čtení session i při obnově v rendereru. Adresář přetažený do okna se rozpozná dotazem
   do main procesu - Windows předává soubor i adresář stejně, a adresář předtím skončil
   jako dokument, který se nedá přečíst.
+- **22. 8. 2026** - Kam má tab jít se dá napsat, ne jen vyklikat: `Ctrl+G` a
+  `~/source/projekt`. Systémový dialog jsou tři kliknutí a scrollování pro cestu, která
+  se napíše za dvě sekundy - a takhle se ty adresáře i pojmenovávají nahlas.
+  Doplňuje se `Tab` z výpisu podadresářů toho, co je napsané, a výsledná absolutní cesta
+  je vidět dřív, než se stiskne Enter.
+  Jednoslovný dotaz jde navíc do `zoxide`, pokud je na stroji - jeho odpovědi jsou
+  označené jako často navštěvované. Je to jednosměrné: do jeho databáze se nikdy nic
+  nezapisuje, ta patří shellu. Bez zoxide zbyde výpis adresářů, což je celá funkce.
+- **22. 8. 2026** - `Ctrl+T` dědí místo aktivního tabu, jako to dělá nový tab
+  v terminálu. Tab, který není nikde, měl shell v domovské složce a `Ctrl+P` neměl co
+  prohledávat, takže se musel hned poslat dál dalším klikem. Tím zbyla jasná dělba:
+  `Ctrl+T` je „další místo tady", `Ctrl+G` je „chci jinam".
