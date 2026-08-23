@@ -831,10 +831,11 @@ function registerIpc(): void {
    * cannot answer is what the program in the pane said as it went: a program that draws
    * a screen clears up after itself on the way out, and its last words go with it.
    */
-  ipcMain.handle('terminal:dump', async (): Promise<string[]> => {
+  ipcMain.handle('terminal:dump', async (_event, label?: string): Promise<string[]> => {
     const written: string[] = []
+    const suffix = typeof label === 'string' && /^[a-z-]{1,20}$/.test(label) ? '-' + label : ''
     for (const shell of terminals?.dump() ?? []) {
-      const file = join(app.getPath('userData'), 'shell-' + shell.id + '.txt')
+      const file = join(app.getPath('userData'), 'shell-' + shell.id + suffix + '.txt')
       const head = 'shell ' + shell.id + ' in ' + shell.cwd + ' (asked for ' + shell.asked + ')'
       try {
         await writeFile(file, head + '\n\n' + shell.text, 'utf8')

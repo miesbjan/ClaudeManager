@@ -249,8 +249,12 @@ export interface ViewerApi {
    * the half of the story that happens up here gets into it.
    */
   note(line: string): void
-  /** Write what every shell has printed to a file each, and answer with the paths. */
-  dumpShells(): Promise<string[]>
+  /**
+   * Write what every shell has printed to a file each, and answer with the paths. The
+   * label distinguishes one dump from the next, so a pair taken around one event can be
+   * compared instead of overwriting each other.
+   */
+  dumpShells(label?: string): Promise<string[]>
   /**
    * Shell panes. The renderer never names an executable - it asks for a shell in a
    * directory and the main process decides what to run.
