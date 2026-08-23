@@ -891,3 +891,15 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   neexistující soubor je horší než kratší seznam.
   Je to `places.json` vedle session, ne v ní: session je „co je otevřené teď" a přepisuje
   se při každém pohybu, tohle je „co tu bývá otevřené" a jen roste.
+- **23. 8. 2026** - Číslo na ikoně počítá jen běhy, o které někdo požádal, a maže se po
+  tabech. Vyplynulo z používání: číslo se po kliknutí na ikonu ztratilo a po minimalizaci
+  se do dvou sekund vrátilo, protože heuristika ticha nerozliší doběhlý úkol od
+  překreslené obrazovky - TUI si překreslí vstupní pole, prompt se po změně velikosti
+  vykreslí znovu, a oba vypadají jako „chvíli teklo a pak bylo ticho".
+  Důkazy jsou teď tři, podle toho, kolik váží: vlastní hlášení programu se věří vždycky,
+  běhu po odeslaném příkazu taky (Enter v shellu je záměr, který překreslení neumí
+  napodobit) a všemu ostatnímu jen tehdy, když to trvalo dýl než překreslení.
+  Odeslaný příkaz platí pět minut a nespotřebuje ho běh, který skončil před tvýma očima:
+  shell nikdy neřekne, že je hotovo, a jeden příkaz je dva běhy, kdykoli uprostřed mlčí.
+  Mazání je po tabech, protože číslo znamená „kolik míst musím obejít": pohled na okno
+  dřív odepsal všechny taby, i když jsi se koukl jen na jeden.

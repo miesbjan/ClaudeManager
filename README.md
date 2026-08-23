@@ -314,6 +314,21 @@ Files passed on the command line are opened too, so the app works as a handler f
   which is right unless two sessions share a directory. A read that finds nothing new
   leaves the last number on screen rather than blanking it, and a transcript nobody
   has written to for a quarter of an hour is treated as a session that has ended.
+- **The number on the taskbar button.** How many tabs are waiting for you, coloured by
+  the most urgent of them. It is a counter rather than a notification, so it is true
+  whether or not the window is in front of you, and it drops by one as you visit them:
+  being in a tab is the acknowledgement, and looking at the window is not - a glance at
+  one tab says nothing about the other two.
+
+  What counts as a finish is deliberately narrow, because the badge is worthless the
+  moment it cries wolf. A program's own report is believed outright. A run that followed
+  a command somebody submitted is believed too - pressing Enter in a shell is a statement
+  of intent that no repaint can imitate, and it keeps vouching for five minutes, since a
+  shell never says when it is done and one command is two runs whenever it is quiet in
+  the middle. Everything else has to have lasted longer than a redraw does. A TUI
+  repainting its input box, a prompt redrawing after a resize, or oh-my-posh printing on
+  return are none of the three, and they used to put the number back seconds after every
+  acknowledgement.
 - **Activity dot.** A tab you are not looking at shows a dot: muted while output is
   flowing, green once it has finished, amber while the agent is asking for permission
   and can go no further, red when it rang the bell, failed or its shell fell over.
