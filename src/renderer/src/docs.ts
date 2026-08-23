@@ -8,6 +8,15 @@
  * file moves neither the shell nor the project.
  */
 export type Doc = {
+  /**
+   * Which read of this file is the current one.
+   *
+   * A file being rewritten by an agent can be read twice at once - the watcher notices
+   * again while the first read is still in flight - and the older answer arriving last
+   * wrote the older content in, with the status bar saying "updated" over it and the
+   * change highlight measured against the wrong version.
+   */
+  reading: number
   path: string
   dir: string
   /** Rendered Markdown, empty for anything shown as written. */
@@ -43,6 +52,7 @@ export type Doc = {
 export function createDoc(path: string, raw: boolean): Doc {
   return {
     path,
+    reading: 0,
     dir: '',
     html: '',
     error: null,

@@ -376,7 +376,10 @@ function placeOf(tab: Tab | undefined): string {
  * diff is against what the user last saw, not against nothing.
  */
 async function loadDoc(tab: Tab, doc: Doc, diff = false): Promise<void> {
+  const reading = ++doc.reading
   const result = await window.api.readFile(doc.path)
+  // A newer read of the same file has already been asked for; that one has the truth.
+  if (doc.reading !== reading) return
   doc.path = result.path
   doc.dir = result.dir
   if (result.ok) {
@@ -2142,10 +2145,17 @@ async function enterPlace(): Promise<void> {
     home: placeHome,
     base: placeBase(tabs[activeIndex])
   })
+  /*
+   * Read before the question below, not inside the object it belongs to: the properties
+   * of a literal are worked out in order, so the row was being read after the await -
+   * long enough for a slower list of suggestions to arrive and put a different path at
+   * the same index. Then Enter opened a directory the cursor had never been on.
+   */
+  const row = placeRows[placeIndex]?.path ?? null
   const target = chooseTarget({
     typed,
     typedIsDirectory: typed !== null && (await window.api.isDirectory(typed)),
-    row: placeRows[placeIndex]?.path ?? null,
+    row,
     moved: placeMoved
   })
   if (place.hidden) return
@@ -2221,7 +2231,14 @@ placeInput.addEventListener('keydown', (event) => {
  * you are in, because the shell you clicked belongs to that tab.
  */
 async function openFromTerminal(path: string, line: number | null): Promise<void> {
+  const into = tabs[activeIndex]
   await openFiles([path])
+  /*
+   * Only if that tab is still the one on screen. Scrolling to a line is done to whatever
+   * document is up, so switching tabs while the file was being read sent another tab's
+   * document to that line number and said so in the status bar.
+   */
+  if (tabs[activeIndex] !== into) return
   const doc = shownDoc(tabs[activeIndex])
   if (!doc || doc.error) return
   if (line === null) return
@@ -2293,10 +2310,21 @@ function tabLabel(tab: Tab): string {
 /** Where focus was when the palette took it, so closing it puts it back. */
 let paletteReturn: HTMLElement | null = null
 
+/**
+ * Which opening of the palette the answers coming back belong to.
+ *
+ * Walking a project takes long enough to switch tabs or close and open the palette
+ * again, and what arrives afterwards used to be poured into whatever was on screen: the
+ * files of one project offered under the name of another, twice over if it had been
+ * opened twice - and choosing one of them opened it in the tab you had moved to.
+ */
+let paletteQuery = 0
+
 async function openPalette(): Promise<void> {
   const tab = tabs[activeIndex]
   if (!tab) return
   const root = placeOf(tab)
+  const ticket = ++paletteQuery
   paletteReturn = document.activeElement as HTMLElement | null
 
   // What is open here is known already, so the list is never empty while the disk is
@@ -2327,8 +2355,9 @@ async function openPalette(): Promise<void> {
    * immediately, without waiting for its tree to be counted.
    */
   const kept = new Set<string>()
+  const gone = (): boolean => palette.hidden || ticket !== paletteQuery || tabs[activeIndex] !== tab
   for (const entry of await window.api.rememberedFiles(root)) {
-    if (palette.hidden) return
+    if (gone()) return
     kept.add(entry.path.toLowerCase())
     const open = here.get(entry.path.toLowerCase())
     if (open) {
@@ -2346,8 +2375,8 @@ async function openPalette(): Promise<void> {
   renderPalette()
 
   const listing = await window.api.listFiles(root)
-  // Still the same palette? Opening and closing quickly must not repopulate it.
-  if (palette.hidden) return
+  // Still the same palette, over the same place? Anything else is somebody else's answer.
+  if (gone()) return
 
   const elsewhere = new Map<string, string>()
   for (const other of tabs) {
