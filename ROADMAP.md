@@ -481,6 +481,22 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **23. 8. 2026** — Revize kódu na jednu třídu chyb, po zkušenosti s "Claude spadl": stav se
+   změnil mezi zahájením operace a jejím dokončením, nebo existovaly dvě pravdy o jedné věci.
+   Prošlo se to v pěti nezávislých průchodech (asynchronní pořadí, tiché selhání, rozcházející
+   se stav, životní cyklus, terminál a webový panel) a opravilo se všechno nalezené.
+   Co z toho stojí za zapamatování jako pravidlo:
+   **identita, ne pozice** - tab drží svoje jméno v session, protože podle něj mu patří shell,
+   a zavírání pracuje s tím, o co se ptalo, ne s indexem, který mezitím ukazuje jinam;
+   **kdo se ptá naposled, ten vyhrává** - čtení dokumentu, palety a spotřeby má ticket, takže
+   starší odpověď nepřepíše novější;
+   **ticho je chyba** - zahozený vstup, odmítnutá velikost, neuložená session i chyba v okně se
+   zapisují do logu, protože přesně tohle stálo den hledání;
+   **panel patří svému tabu** - element je jeden pro všechny taby, takže ho smí měnit jen ten,
+   na který se právě koukáš.
+   Přijatý náklad: víc kódu na hlídání pořadí (tickety, `started`, `restoring`) a jeden nový
+   kanál pro uvolnění watcherů. Za to zmizela celá rodina chyb, které se projevovaly jako
+   "aplikace se chová divně" a nedaly se reprodukovat.
 - **23. 8. 2026** — Panel se po dostartování shellu zobrazí jen tehdy, když jeho tab je pořád
    ten na obrazovce.
    Důvod: tohle byl ten hlášený "Claude spadl" ve své druhé polovině. Spuštění shellu je
