@@ -903,3 +903,16 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   shell nikdy neřekne, že je hotovo, a jeden příkaz je dva běhy, kdykoli uprostřed mlčí.
   Mazání je po tabech, protože číslo znamená „kolik míst musím obejít": pohled na okno
   dřív odepsal všechny taby, i když jsi se koukl jen na jeden.
+- **23. 8. 2026** - `Ctrl+T` a `Ctrl+G` si bere aplikace i za fokusu v shellu, přes to,
+  že je Claude Code obsazené. Ověřeno, ne odhadnuto: v jeho binárce sedí `ctrl+g` na
+  `chat:externalEditor` a `ctrl+t` na `app:toggleTodos`, a když jsem je do běžící session
+  poslal, `Ctrl+G` otevřel Notepad („Save and close editor to continue...") a `Ctrl+T`
+  neudělal nic viditelného - nejspíš neměl co přepnout.
+  Cena je tedy externí editor v Claudovi a přepínač todo listu. Rozhodnutí je vědomé:
+  „jít na jiné místo" je to, k čemu tahle aplikace je, a přepínat kvůli tomu fokus ji
+  popírá; prompt buffer (`Alt+P`) navíc pokrývá stejnou potřebu jako ten editor.
+  Technicky to nešlo udělat jen v okně: `Ctrl+T` a `Ctrl+G` jsou na drátě řídicí znaky
+  0x14 a 0x07, takže je xterm spolkne, pošle do shellu a událost zastaví. `Ctrl+``
+  a font fungovaly „samy" jen proto, že pro ně xterm žádné mapování nemá. Musí se tedy
+  odmítnout i na straně terminálu, a ta podmínka je v `shared/shortcuts.ts`, aby se obě
+  strany nemohly rozejít.
