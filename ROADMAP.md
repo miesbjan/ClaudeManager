@@ -481,6 +481,19 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **23. 8. 2026** — Shell startuje ve velikosti panelu, který si o něj řekl, a panel velikost
+   po vzniku shellu vždy zopakuje.
+   Důvod: tohle byl ten hlášený "Claude spadl". Panel se měří, jakmile je na obrazovce, což
+   je dřív, než se stihne nastartovat shell - měření je synchronní, spuštění procesu ne.
+   Ta velikost se zahodila, protože nebylo komu ji dát, a panel ji už neposlal znovu, jelikož
+   z jeho pohledu poslána byla. Shell tak zůstal na náhradních 80×24, i když terminál kolem
+   něj měl 94×40: Claude kreslil rámečky do jiné šířky, než v jaké byly vidět, a první
+   pozdější změna velikosti - třeba když se v panelu načetla stránka z jiného portu - ho
+   donutila překreslit obrazovku, čímž zmizelo všechno nad ní. Vypadalo to jako pád, přičemž
+   žádný proces neumřel; proto o tom log nic neříkal a proto to nešlo reprodukovat, dokud
+   nezačal zapisovat velikosti.
+   Přijatý náklad: shell založený nad skrytým panelem se pořád rodí v 80×24, protože skrytý
+   panel se nemá jak změřit; správnou velikost dostane, jakmile ho někdo poprvé zobrazí.
 - **23. 8. 2026** — Aplikace si píše `log.txt` do userData: přestavěné okno, spuštěný,
    převzatý nebo ukončený shell i s důvodem, spadlá stránka v panelu.
    Důvod: "Claude vlevo spadl" je hlášení, ke kterému neexistuje žádný důkaz, a

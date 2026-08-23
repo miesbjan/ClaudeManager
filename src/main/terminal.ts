@@ -5,6 +5,11 @@ import { note } from './log'
 import { Trail } from '../shared/trail'
 import type { TerminalData, TerminalExit, TerminalStart } from '../shared/types'
 
+/**
+ * The size a shell starts at when nobody has said how big its pane is yet. Only a
+ * fallback: a pane measures itself and says so, and that answer usually arrives before
+ * the shell does - see `pending`.
+ */
 const DEFAULT_COLS = 80
 const DEFAULT_ROWS = 24
 
@@ -86,6 +91,19 @@ function shellEnv(): Record<string, string> {
 
 export class TerminalManager {
   private terminals = new Map<string, Live>()
+  /**
+   * Sizes that arrived before the shell they describe.
+   *
+   * A pane measures itself as soon as it is on screen, which is before the shell it
+   * asked for has finished starting - the measuring is synchronous and starting one is
+   * not. That size used to be dropped for want of anywhere to put it, and the pane never
+   * sent it again, since as far as it was concerned it already had: so the shell kept the
+   * fallback 80x24 for the rest of its life while the terminal drawing it was a different
+   * shape entirely. Anything that draws a screen - which is every agent - then drew it to
+   * the wrong width, and the first later resize made it repaint and appear to lose
+   * everything above.
+   */
+  private pending = new Map<string, { cols: number; rows: number }>()
 
   constructor(
     private readonly onData: (event: TerminalData) => void,
@@ -104,10 +122,12 @@ export class TerminalManager {
 
     const shell = resolveShell()
     try {
+      const size = this.pending.get(id)
+      this.pending.delete(id)
       const term = spawn(shell.file, shell.args, {
         name: 'xterm-256color',
-        cols: DEFAULT_COLS,
-        rows: DEFAULT_ROWS,
+        cols: size?.cols ?? DEFAULT_COLS,
+        rows: size?.rows ?? DEFAULT_ROWS,
         cwd: workingDir,
         env: shellEnv()
       })
@@ -125,7 +145,9 @@ export class TerminalManager {
       note(
         'shell ' +
           id +
-          ' started in ' +
+          ' started at ' +
+          (size ? size.cols + 'x' + size.rows : DEFAULT_COLS + 'x' + DEFAULT_ROWS + ' by default') +
+          ' in ' +
           workingDir +
           (workingDir === cwd ? '' : ' (asked for ' + cwd + ', which is not a directory)')
       )
@@ -187,10 +209,14 @@ export class TerminalManager {
   }
 
   resize(id: string, cols: number, rows: number): void {
-    const live = this.terminals.get(id)
-    if (!live) return
     // A zero dimension happens while a pane is hidden and would upset ConPTY.
     if (cols < 1 || rows < 1) return
+    const live = this.terminals.get(id)
+    if (!live) {
+      // The pane is ready before its shell is. Kept, so the shell can start this size.
+      this.pending.set(id, { cols, rows })
+      return
+    }
     try {
       live.pty.resize(cols, rows)
     } catch {

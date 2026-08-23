@@ -216,7 +216,11 @@ Files passed on the command line are opened too, so the app works as a handler f
 - **Shell pane.** ``Ctrl+` `` splits the tab: a shell on the left, the document on
   the right, with a divider that moves by mouse or by keyboard. Either pane can be
   zoomed to the whole tab and back. The shell starts in the document's own
-  directory, so builds and agents run where the file lives. One shell per tab, kept
+  directory, so builds and agents run where the file lives. A shell also starts at the
+  size of the pane that asked for it, which matters more than it sounds: everything an
+  agent draws is drawn to the width the shell believes in, and a shell that believes the
+  wrong one draws a screen that does not fit and repaints - losing what was above - the
+  moment anything corrects it. One shell per tab, kept
   alive while the tab is open — hiding the pane or switching tabs does not disturb a
   process running inside it; closing the tab kills it. Whether the pane is open and
   how wide it is are remembered per document.

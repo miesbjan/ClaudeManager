@@ -121,6 +121,14 @@ export class TerminalPane {
     }
 
     const result = await window.api.terminal.create(this.id, this.cwd)
+    /*
+     * Whatever was measured while the shell was still starting was measured for a shell
+     * that did not exist yet, so it counts for nothing and has to be said again. Without
+     * dropping the record of it, the check inside resize() sees the same numbers, decides
+     * there is nothing to report, and leaves the shell at the size it was born with.
+     */
+    this.cols = 0
+    this.rows = 0
     if (!result.ok) {
       this.exited = true
       this.term.write(`\x1b[31mCould not start a shell: ${result.error}\x1b[0m\r\n`)
