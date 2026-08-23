@@ -20,6 +20,15 @@ import type {
   ViewerApi
 } from '../shared/types'
 
+/*
+ * Every shell pane listens for the output of its own shell, so the number of listeners
+ * on this channel is the number of tabs. Node's default ceiling is ten, past which it
+ * writes a warning about a leak that is not one - and in a packaged application that
+ * warning goes nowhere, which makes it noise with no reader. Named rather than removed,
+ * because a number this size is still worth noticing if it is ever passed.
+ */
+ipcRenderer.setMaxListeners(64)
+
 /**
  * The only channel between the sandboxed renderer and Node/Electron.
  * Every method is an explicit, narrow operation - the rendered Markdown itself

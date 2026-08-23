@@ -896,7 +896,11 @@ function registerIpc(): void {
     'terminal:attach',
     (_event, id: string, cwd: string) => terminals?.attach(id, cwd) ?? null
   )
-  ipcMain.on('terminal:keep', (_event, ids: string[]) => terminals?.keepOnly(ids))
+  ipcMain.on('terminal:keep', (_event, ids: string[]) => {
+    terminals?.keepOnly(ids)
+    // The sizes last reported belong to the shells that are left, and to no others.
+    for (const id of [...lastSize.keys()]) if (!ids.includes(id)) lastSize.delete(id)
+  })
   /*
    * Write down what every shell has printed, on request. The one question a screenshot
    * cannot answer is what the program in the pane said as it went: a program that draws

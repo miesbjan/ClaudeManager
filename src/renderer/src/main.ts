@@ -672,6 +672,11 @@ function renderError(doc: Doc): void {
  * are all things you must be able to see without a new row of chrome.
  */
 function renderStatus(tab: Tab, doc: Doc): void {
+  /*
+   * Something has been said that a repaint must not wipe. A file event repaints on its
+   * own, so a message about a save that did not happen could be gone before it was read.
+   */
+  if (holdStatus) return
   if (doc.error) {
     status.textContent = doc.path + '  ·  ' + T('status.unavailable')
     return
@@ -709,6 +714,19 @@ function renderStatus(tab: Tab, doc: Doc): void {
  * moment wrote that over the real thing. Nothing is saved until the window is whole.
  */
 let restoring = false
+
+/**
+ * While true, the status bar keeps what it has been told rather than being redrawn from
+ * the document. Cleared by the next thing a person does, since that is when they have
+ * seen it - a timer would either be too short to read or long enough to lie.
+ */
+let holdStatus = false
+
+/** Say something the next repaint must not take away. */
+function insist(message: string): void {
+  status.textContent = message
+  holdStatus = true
+}
 
 function persistSession(): void {
   if (restoring) return
@@ -2541,7 +2559,7 @@ async function saveDraft(): Promise<void> {
       doc.forceSave = true
       status.textContent = T('save.stale')
     } else {
-      status.textContent = T('save.failed', { error: '' }) + result.error
+      insist(T('save.failed', { error: '' }) + result.error)
     }
     return
   }
@@ -2742,6 +2760,8 @@ openButton.addEventListener('click', () => void pickFiles())
 folderButton.addEventListener('click', () => void openFolder())
 
 window.addEventListener('keydown', (event) => {
+  // Whatever was being insisted on has now been read, or at least been given the chance.
+  holdStatus = false
   if (event.key === 'Escape' && !place.hidden) {
     event.preventDefault()
     closePlace()

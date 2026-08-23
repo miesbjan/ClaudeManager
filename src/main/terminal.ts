@@ -204,12 +204,19 @@ export class TerminalManager {
    */
   keepOnly(ids: string[]): void {
     const wanted = new Set(ids)
-    note('the window has ' + (ids.join(', ') || 'no panes') + '; running: ' + ([...this.terminals.keys()].join(', ') || 'none'))
+    note(
+      'the window has ' +
+        (ids.join(', ') || 'no panes') +
+        '; running: ' +
+        ([...this.terminals.keys()].join(', ') || 'none')
+    )
     for (const id of [...this.terminals.keys()]) {
       if (wanted.has(id)) continue
       note('shell ' + id + ' belongs to no pane - ending it')
       this.kill(id)
     }
+    // A size kept for a shell that never arrived belongs to nobody either.
+    for (const id of [...this.pending.keys()]) if (!wanted.has(id)) this.pending.delete(id)
   }
 
   write(id: string, data: string): void {
