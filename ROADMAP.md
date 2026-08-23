@@ -467,6 +467,29 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 - **Skutečným rizikem je rozlézání rozsahu**, ne nic z výše uvedeného. Disciplína je
   ten produkt; kód je ta snadná část.
 
+## Otevřené otázky
+
+Věci, u kterých neznáme odpověď, ne věci, které bychom chtěli udělat. Každá se dá zavřít
+jen měřením na běžící aplikaci; do té doby se o ně nic neopírá.
+
+- **Blokuje `beforeunload` programový reload?** Okno se po pádu rendereru samo přestavuje
+  (`webContents.reload()`) a v devu ho přestavuje HMR. Zároveň máme `beforeunload`, který
+  má zabránit zavření s neuloženým draftem. Jestli ten handler zruší i tenhle reload, je
+  reload s neuloženým draftem tiše zablokovaný; jestli ne, draft se tiše ztratí. Obojí je
+  špatně a nevíme, které z toho platí.
+- **Uvolní `win.hide()` globální `Alt+W`?** Registruje se na `focus`, ruší na `blur`.
+  Když schování okna `blur` nevyvolá, drží schovaná aplikace globální zkratku a bere ji
+  celému systému.
+- **Co má dělat druhá instance, když okno neexistuje?** Dnes neudělá nic - ani okno, ani
+  otevření souborů, které jí kdo předal. Není jasné, jestli se do toho stavu dá dostat
+  (`window-all-closed` aplikaci ukončuje), takže není jasné, jestli je co opravovat.
+- **Vzít shellu i `Ctrl+O`?** `Ctrl+T`, `Ctrl+G` a `Ctrl+P` už bereme. `Ctrl+O` je v
+  Claude Code přepínač transcriptu; otázka je, jestli otevírání souboru z terminálu
+  převáží tuhle jednu ztrátu, nebo jestli má zůstat u `Ctrl+Shift+O`.
+- **Má `scripts/desktop-if-changed.mjs` pojmenovat instanci, která blokuje build?** Build
+  padá na běžící aplikaci, typicky schované v traye, a hlášení to neřekne. Drobnost, ale
+  stála už několik minut hledání.
+
 ## Pravidla údržby
 
 - Electron je zamčený na verzi a povyšuje se vědomě dvakrát ročně, ne při každém
