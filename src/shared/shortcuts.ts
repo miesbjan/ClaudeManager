@@ -47,19 +47,27 @@ export function tabDigit(event: KeyLike): number | null {
  * therefore never see.
  *
  * Most of what the app claims needs no announcement here, because xterm has no meaning
- * for it: `Ctrl+``, `Ctrl+=` and the rest simply fall through to the window. These three
- * are different - Ctrl+T, Ctrl+G and Ctrl+P are control characters on the wire (0x14,
- * 0x07 and 0x10), so xterm swallows them, sends them to the shell and stops the event.
- * Refusing them in the terminal is what lets them reach the window at all.
+ * for it: `Ctrl+``, `Ctrl+=` and the rest simply fall through to the window. These are
+ * different - Ctrl+T, Ctrl+G and Ctrl+P are control characters on the wire (0x14, 0x07
+ * and 0x10), and Ctrl+Tab and Ctrl+PageUp/PageDown are a tab and two escape sequences,
+ * so xterm swallows them, sends them to the shell and stops the event. Refusing them in
+ * the terminal is what lets them reach the window at all.
  *
- * All three are bound in Claude Code, and taken anyway: another place, which place, and
- * which file are the three questions this application exists to answer, and having to
- * leave the shell to ask one of them defeats the point. What each costs is in the
- * decision log; Ctrl+P costs the least of them, since it recalls history there and the
- * up arrow does the same thing.
+ * The first three are bound in Claude Code, and taken anyway: another place, which place,
+ * and which file are the three questions this application exists to answer, and having to
+ * leave the shell to ask one of them defeats the point. What each costs is in the decision
+ * log; Ctrl+P costs the least of them, since it recalls history there and the up arrow
+ * does the same thing.
+ *
+ * The other two are moving between tabs and between the files in one. They were listed as
+ * working from inside the shell and did not: xterm turned Ctrl+Tab into a tab character -
+ * which starts completion in an agent - and Ctrl+PageDown into an escape sequence, and
+ * stopped the event either way. A shell you cannot leave by keyboard is the thing this
+ * list exists to prevent.
  */
 export function claimedFromShell(event: KeyLike): boolean {
   if (!event.ctrlKey || event.altKey || event.metaKey) return false
+  if (event.code === 'Tab' || event.code === 'PageUp' || event.code === 'PageDown') return true
   return event.code === 'KeyT' || event.code === 'KeyG' || event.code === 'KeyP'
 }
 

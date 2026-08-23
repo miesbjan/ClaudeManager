@@ -45,7 +45,7 @@ import type { WebviewTag } from 'electron'
 import { createUrlReader, nextRightMode, normalizeUrl, WEB_PARTITION } from '../../shared/web'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { MAX_PROMPT } from '../../shared/session'
-import { paneCommand, tabDigit, type PaneCommand } from '../../shared/shortcuts'
+import { claimedFromShell, paneCommand, tabDigit, type PaneCommand } from '../../shared/shortcuts'
 import { TerminalPane } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
 import { activeAfterMove } from '../../shared/tabs'
@@ -581,6 +581,13 @@ function render(): void {
 
   const tab = tabs[activeIndex]
   const doc = shownDoc(tab)
+  /*
+   * Before the branch below, because the branch returns. A tab over a directory has no
+   * document and used to leave the field showing the last tab's half-written prompt -
+   * which Ctrl+Enter then sent to this tab's agent, and the first keystroke afterwards
+   * saved over whatever this tab had been composing.
+   */
+  if (tab && promptInput.value !== tab.prompt) promptInput.value = tab.prompt
   if (!tab || !doc) {
     content.hidden = true
     content.textContent = ''
@@ -622,7 +629,6 @@ function render(): void {
     content.innerHTML = doc.html
   }
 
-  if (promptInput.value !== tab.prompt) promptInput.value = tab.prompt
   if (showRaw) raw.scrollTop = doc.rawScrollTop
   else viewer.scrollTop = doc.scrollTop
   if (!findBar.hidden) refreshFind(false)
@@ -1281,7 +1287,17 @@ window.api.terminal.onData(({ id, data }) => {
 
 window.api.terminal.onExit(({ id, exitCode }) => {
   const index = indexOfId(id)
-  if (index >= 0) applyActivity(tabs[index], { type: 'exit', code: exitCode })
+  if (index < 0) return
+  const tab = tabs[index]
+  /*
+   * Whatever was speaking for itself in there has stopped speaking. Left standing, this
+   * flag told the main process an agent was still in the window - and an agent in the
+   * window means closing it hides it instead, so the application could no longer be
+   * closed by its own cross for the rest of the session.
+   */
+  tab.reporting = false
+  applyActivity(tab, { type: 'exit', code: exitCode })
+  reportTaskbar()
 })
 
 /* ---------- shortcut help ---------- */
@@ -2645,6 +2661,14 @@ window.addEventListener('keydown', (event) => {
   }
 
   if (!(event.ctrlKey || event.metaKey)) return
+  /*
+   * AltGr arrives as left Ctrl plus right Alt, so every Ctrl shortcut read from the
+   * physical key was also a character on a keyboard that has a third level. On a Czech
+   * layout AltGr+G is `]`: it opened the place dialog and the bracket was never typed,
+   * anywhere in the application. Nothing here is bound to Ctrl+Alt - the pane keys use
+   * Alt on its own - so refusing the combination costs nothing.
+   */
+  if (event.altKey) return
 
   if (event.code === 'Backquote') {
     event.preventDefault()
@@ -2704,11 +2728,11 @@ window.addEventListener('keydown', (event) => {
 
   /*
    * Keys typed into a shell belong to the shell - Ctrl+W deletes a word there and
-   * Ctrl+D means end of input. So while the terminal has focus the app answers only
-   * to the shifted variants, plus Ctrl+Tab and the tab digits, which no shell uses
-   * for anything anyone types deliberately.
+   * Ctrl+D means end of input. So while the terminal has focus the app answers only to
+   * the shifted variants and to what `claimedFromShell` takes by name, which is the
+   * list the terminal itself refuses so that these arrive here at all.
    */
-  if (terminalHasFocus() && !event.shiftKey && event.key !== 'Tab' && digit === 0) return
+  if (terminalHasFocus() && !event.shiftKey && !claimedFromShell(event) && digit === 0) return
 
   const key = event.key.toLowerCase()
 

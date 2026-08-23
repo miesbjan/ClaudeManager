@@ -18,10 +18,27 @@ function press(overrides: Partial<KeyLike>): KeyLike {
  * window never hears about them. They have to be refused in the terminal by name.
  */
 describe('claimedFromShell', () => {
-  it('takes the three keys the app needs from inside the shell', () => {
+  it('takes the keys the app needs from inside the shell', () => {
     assert.equal(claimedFromShell(press({ code: 'KeyT', altKey: false, ctrlKey: true })), true)
     assert.equal(claimedFromShell(press({ code: 'KeyG', altKey: false, ctrlKey: true })), true)
     assert.equal(claimedFromShell(press({ code: 'KeyP', altKey: false, ctrlKey: true })), true)
+  })
+
+  /*
+   * Moving between tabs and between the files in one. xterm turns these into a tab
+   * character and two escape sequences and stops the event, so without being named here
+   * they never reach the window - which is what "works from inside the shell" needs.
+   */
+  it('takes moving between tabs and documents as well', () => {
+    assert.equal(claimedFromShell(press({ code: 'Tab', altKey: false, ctrlKey: true })), true)
+    assert.equal(claimedFromShell(press({ code: 'PageUp', altKey: false, ctrlKey: true })), true)
+    assert.equal(claimedFromShell(press({ code: 'PageDown', altKey: false, ctrlKey: true })), true)
+  })
+
+  it('leaves those keys alone without Ctrl, since then they are the shell\'s own', () => {
+    assert.equal(claimedFromShell(press({ code: 'Tab', altKey: false, ctrlKey: false })), false)
+    assert.equal(claimedFromShell(press({ code: 'PageUp', altKey: false, ctrlKey: false })), false)
+    assert.equal(claimedFromShell(press({ code: 'Tab', altKey: true, ctrlKey: true })), false)
   })
 
   it('leaves everything else to the shell', () => {
