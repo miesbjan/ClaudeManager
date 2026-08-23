@@ -12,6 +12,17 @@ import { DEFAULT_FAMILY, DEFAULT_SIZE, type TerminalFont } from '../../shared/fo
  */
 let windowsPty: { backend: 'conpty'; buildNumber: number } | undefined
 
+/**
+ * The size the last pane measured itself at.
+ *
+ * Every shell pane occupies the same piece of the window, one at a time, so this is also
+ * the size a pane that cannot measure itself is going to be. A pane belonging to a tab
+ * that is not on screen has no size at all - and a shell started behind one was born at
+ * the fallback 80x24 and stayed there until somebody looked at it, with whatever was
+ * running inside drawing to a width that was not the one it would be seen at.
+ */
+let lastMeasured: { cols: number; rows: number } | null = null
+
 export function usePty(build: number | null): void {
   windowsPty = build === null ? undefined : { backend: 'conpty', buildNumber: build }
 }
@@ -203,11 +214,24 @@ export class TerminalPane {
 
   /** Re-measure after the pane becomes visible or the split moves. */
   resize(): void {
-    if (this.disposed || this.host.clientWidth === 0 || this.host.clientHeight === 0) return
+    if (this.disposed) return
+    if (this.host.clientWidth === 0 || this.host.clientHeight === 0) {
+      /*
+       * Nothing to measure, because this pane is not the one on screen. The shell still
+       * has to be told something, and the size of whichever pane was measured last is
+       * exactly the size this one will have when it is shown.
+       */
+      if (lastMeasured === null || this.cols !== 0 || this.rows !== 0) return
+      this.cols = lastMeasured.cols
+      this.rows = lastMeasured.rows
+      window.api.terminal.resize(this.id, this.cols, this.rows)
+      return
+    }
     this.fit.fit()
     if (this.term.cols === this.cols && this.term.rows === this.rows) return
     this.cols = this.term.cols
     this.rows = this.term.rows
+    lastMeasured = { cols: this.cols, rows: this.rows }
     window.api.terminal.resize(this.id, this.cols, this.rows)
   }
 

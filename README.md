@@ -153,7 +153,8 @@ Files passed on the command line are opened too, so the app works as a handler f
   the first place to look when an agent disappears - "it just crashed" is otherwise
   a report with no evidence behind it. It also records the half of the story only the
   window can see: a terminal built or thrown away, a size sent to a shell, an address
-  typed into the pane.
+  typed into the pane, and anything the window itself failed at - an error or a dropped
+  promise has nowhere else to go in a packaged application.
 
   `Ctrl+Shift+L` adds what each shell has printed, one file per shell beside the log.
   That is the one thing a screenshot cannot show: a program that draws a screen clears
@@ -182,7 +183,10 @@ Files passed on the command line are opened too, so the app works as a handler f
   else is a command you type into the shell that is already there.
 - **Web pane.** When a dev server prints its address, the app picks it up from the
   shell output - Vite's `Local: http://localhost:5173/` and the rest - and shows that
-  page beside the document. A run started from the Run button opens it by itself,
+  page beside the document. A different address printed later, when a page from this tab
+  is already on screen, is mentioned in the status bar rather than taken: a server
+  announces itself once and everything after that is an agent or a log mentioning a URL,
+  which used to throw away the running application to show a path nobody asked for. A run started from the Run button opens it by itself,
   since starting something means wanting to look at it; `Alt+W` then cycles the right
   side through document, dev server, and both at once - three columns with a divider
   between each pair, each remembered per document.
@@ -228,7 +232,16 @@ Files passed on the command line are opened too, so the app works as a handler f
   A shell also outlives the window it is shown in. It runs in the main process, so
   when the window has to be rebuilt - a saved file in development, a renderer that
   died - the pane takes its shell back by tab id and replays what it printed in the
-  meantime, and an agent mid-conversation comes back where it was. Shells that no tab
+  meantime, and an agent mid-conversation comes back where it was. That id is written
+  into the session file rather than handed out again in file order, because a name given
+  out in order points at a different tab as soon as one is closed or two are reordered -
+  and the shell would follow the name.
+
+  A shell that ends stays on the screen it left behind, since the last thing it printed
+  is usually why it ended; asking for a shell again - the pane key, Run, sending a
+  prompt - starts a new one in its place. And the shell follows its place: taking over
+  an empty tab with a directory restarts the shell there, unless something is running in
+  it, which is nobody's to end. Shells that no tab
   claims afterwards are ended, which is the part that used to be done by killing all
   of them. A rebuilt window says so in the status bar rather than quietly
   rearranging itself, and what happened is in the log described below.

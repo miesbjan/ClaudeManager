@@ -111,6 +111,14 @@ export class TerminalManager {
   ) {}
 
   create(id: string, cwd: string): TerminalStart {
+    /*
+     * Read before anything else, because ending the previous shell under this name drops
+     * the size waiting for it - and this is the shell it was waiting for. Getting that
+     * order wrong is how a shell that had just been told how big its pane was started at
+     * the fallback size anyway.
+     */
+    const size = this.pending.get(id)
+    this.pending.delete(id)
     this.kill(id)
 
     let workingDir = cwd
@@ -122,8 +130,6 @@ export class TerminalManager {
 
     const shell = resolveShell()
     try {
-      const size = this.pending.get(id)
-      this.pending.delete(id)
       const term = spawn(shell.file, shell.args, {
         name: 'xterm-256color',
         cols: size?.cols ?? DEFAULT_COLS,
