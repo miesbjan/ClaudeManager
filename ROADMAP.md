@@ -128,8 +128,9 @@ decision log z 19. 8. 2026.
 
 Pravý panel umí místo dokumentu ukázat běžící dev server. Adresu si vezme z výpisu
 shellu, když ji server vypíše, takže není co nastavovat; jde ji i napsat ručně.
-Povolený je jen tenhle stroj, iframe je v sandboxu a CSP pouští do rámu pouze
-localhost. `Alt+W` přepíná.
+Povolený je jen tenhle stroj.
+Stránka běží ve vlastní session, a tím i ve vlastním procesu, bez preloadu a v sandboxu.
+`Alt+W` přepíná.
 
 Spuštění přes tlačítko panel otevře samo — kdo něco spustí, chce se na to podívat.
 Shell navíc dostává `BROWSER=none`, aby si projekt neotevřel systémový prohlížeč.
@@ -438,15 +439,25 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   lokálních hostů a `frame-src` v CSP ten seznam opakuje pro prohlížeč, přičemž soulad
   obou hlídá test.
   Schránka se čte jen při vložení do shellu.
-- **Sandbox vloženého rámu je vědomý kompromis.** Rám má `allow-scripts` i
-  `allow-same-origin` a Chromium na to vypisuje varování, že z takového sandboxu se dá
-  uniknout.
-  Bez `allow-same-origin` ale vložená aplikace nemá vlastní origin, takže jí nefunguje
-  `localStorage` ani vlastní `fetch`, a panel by byl k ničemu.
-  V praxi je stránka jiného originu než tahle, takže na ni nedosáhne.
-  Jediná výjimka je `npm run dev`: kdyby panel ukazoval vlastní dev server aplikace na
-  portu 5173, je stejného originu a dostane se na `window.api`. Zabalené aplikace se to
-  netýká, tam je rodič `file://`.
+- **Vložená stránka je v cizím procesu, a to bylo potřeba vynutit.** Jako iframe byla
+  se aplikací same-site (obojí localhost), takže ji Chromium pustil do našeho procesu.
+  Dev server, kterému došla paměť, tím zabil celou konzoli včetně běžících agentů;
+  reprodukováno stránkou, která si paměť sežere schválně.
+  Teď je to `webview` s vlastní `partition`, což je ta podmínka, kvůli které Chromium
+  proces nikdy nesdílí. Zároveň nemá preload, Node ani přístup mimo tenhle stroj.
+  Přijatý náklad: `webview` je v Electronu označené jako nestabilní API a jednu ostrou
+  hranu má - přiřadit `src` elementu, jehož proces umřel, shodí celou aplikaci
+  (`FATAL: Check failed` v hlavním procesu, bez výjimky, kterou by šlo odchytit).
+  Proto se mrtvý element zahodí a postaví nový, a adresa se sama znovu nenačítá, dokud
+  o to člověk nepožádá - jinak by stránka, která umírá při načtení, umírala pořád.
+- **Shelly přežívají okno.** Renderer, který zmizí, si bral všechny PTY s sebou, protože
+  jinak by po něm zůstaly bez vlastníka; v developmentu to znamenalo zabitého agenta
+  při každém uloženém souboru.
+  Vlastnictví se místo toho po přestavění okna obnovuje: panel si řekne o shell podle id
+  tabu, dostane k němu i to, co shell mezitím vypsal, a co si nikdo nevyzvedl, se ukončí.
+  Přijatý náklad: v paměti hlavního procesu leží posledních 256 kB výstupu na shell,
+  a replay může začít uprostřed escape sekvence - celoobrazovkový program se překreslí,
+  takže se to nepozná.
 - **Kolize kláves — vyřešeno v L2.** `Ctrl+O/W/D` patří shellu ve chvíli, kdy má
   terminál fokus; zkratky aplikace se tehdy stahují na `Ctrl+Shift+…`. Průchozí
   zůstávají ``Ctrl+` `` a `Ctrl+Tab`, které žádný shell nepoužívá.
@@ -470,6 +481,17 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **23. 8. 2026** — Panel s dev serverem dostal vlastní proces (`webview` s vlastní
+   `partition` místo iframe) a shelly přežívají smrt okna.
+   Důvod: obojí je jedna a ta samá stížnost - "vpravo jsem přepnul port a Claude spadl".
+   Stránka v panelu byla se aplikací same-site, takže běžela v našem procesu a mohla ji
+   vzít s sebou; a když renderer zmizel, naše vlastní úklidová rutina zabila všechny
+   shelly. Ani jedno nešlo spravit bez toho druhého: izolace zabrání pádu, přežití
+   shellů zajistí, že ani pád okna z jiného důvodu nestojí rozdělanou práci.
+   Přijatá rizika: `webview` je nestabilní API a přiřazení `src` mrtvému elementu shodí
+   celou aplikaci, takže se element po pádu stránky zahazuje; a shell teď může běžet
+   o chvíli dýl než okno, které ho ukazovalo, dokud si ho nový renderer nevyzvedne nebo
+   neřekne, že ho nechce.
 - **21. 8. 2026** — Ve stavovém řádku je i **vyčerpání limitů předplatného** (pětihodinové
    okno a sedmidenní limit), tedy to, co ukazuje `/usage`. Nejdřív jsem tvrdil, že to
    nejde — hledal jsem to na disku a tam opravdu není. Cesta vede přes nezdokumentovaný

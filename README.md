@@ -174,11 +174,16 @@ Files passed on the command line are opened too, so the app works as a handler f
   side through document, dev server, and both at once - three columns with a divider
   between each pair, each remembered per document.
 
-  A page shown here is a frame of its own, handled by its own process: once you click
-  inside it, it keeps every key you press, and no shortcut of this app reaches it.
-  Keyboard navigation therefore stops at the edge of the frame - `Alt+3` focuses the
-  pane, not the page - and `Alt+W` is additionally held as a system accelerator while
-  the window has focus, so there is always one key back out.
+  A page shown here runs in a process of its own, in a session of its own, and that is
+  deliberate: as a frame of this document it was same-site with the app, shared this
+  window's process, and a dev server that ran out of memory took the whole console down
+  with it - terminals, running agents and all. Now the page dying is a message in the
+  status bar and a `↻` away from being back.
+
+  Its own process also means its own keyboard: once you click inside it, it keeps every
+  key you press. Keyboard navigation therefore stops at the edge of the pane - `Alt+3`
+  focuses the pane, not the page - and `Alt+W` is additionally held as a system
+  accelerator while the window has focus, so there is always one key back out.
 
   Nothing to configure, and nothing has to have announced itself: `Alt+W` opens the pane
   even with no address, with the cursor in its bar, which is the way to show a server
@@ -191,8 +196,10 @@ Files passed on the command line are opened too, so the app works as a handler f
   is the one place this pane exists to avoid. Run `$env:BROWSER = ''` in the shell to
   get that behaviour back.
   Only addresses on this machine are accepted: a pane that could load any URL would
-  be a different application. The frame is sandboxed and the CSP allows framing
-  `localhost` alone.
+  be a different application. The page is sandboxed, has no preload and no Node, is
+  refused an address that is not local - both when the pane attaches it and when the
+  page tries to navigate itself - and anything it opens in a window goes to the system
+  browser rather than into the pane.
 - **Shell pane.** ``Ctrl+` `` splits the tab: a shell on the left, the document on
   the right, with a divider that moves by mouse or by keyboard. Either pane can be
   zoomed to the whole tab and back. The shell starts in the document's own
@@ -200,6 +207,13 @@ Files passed on the command line are opened too, so the app works as a handler f
   alive while the tab is open — hiding the pane or switching tabs does not disturb a
   process running inside it; closing the tab kills it. Whether the pane is open and
   how wide it is are remembered per document.
+
+  A shell also outlives the window it is shown in. It runs in the main process, so
+  when the window has to be rebuilt - a saved file in development, a renderer that
+  died - the pane takes its shell back by tab id and replays what it printed in the
+  meantime, and an agent mid-conversation comes back where it was. Shells that no tab
+  claims afterwards are ended, which is the part that used to be done by killing all
+  of them.
 - **Pasting into the shell.** `Ctrl+V` pastes, and so does the right button - which
   copies instead when something is selected, the way a Windows console does. `Ctrl+C`
   is left alone, because in a terminal it means interrupt, so copying is
@@ -558,14 +572,15 @@ Markdown is untrusted display content, so:
   `dotnet run`, never the body of that script, and the path inside it is quoted for
   PowerShell with single quotes: in double quotes a directory named `$(something)`
   would be run rather than opened
-- the web pane frames this machine and nothing else. The address is checked against a
-  fixed list of local hostnames, and `frame-src` in the CSP repeats that list for the
-  browser to enforce; `test/web.test.ts` fails if the two ever drift apart
-- the framed page keeps `allow-scripts allow-same-origin`, which Chromium warns about.
-  A dev server needs its own origin to have storage and same-origin requests at all,
-  and being cross-origin to this page it cannot reach into it. The exception is
-  `npm run dev`: pointing the pane at the app's own dev server on port 5173 makes it
-  same-origin and hands the framed page the preload API
+- the web pane shows this machine and nothing else. The address is checked against a
+  fixed list of local hostnames in the renderer, and again in the main process when the
+  pane attaches the page and whenever that page tries to navigate; `frame-src` in the
+  CSP repeats the list as a third fence and `test/web.test.ts` fails if it drifts
+- the page is not part of the application. It is attached with no preload, no Node
+  integration and a sandbox, in a storage partition of its own - which is also what
+  puts it in a process of its own, so it can neither reach into this window nor take it
+  down. Pointing the pane at the app's own dev server on port 5173 is no longer a way
+  to be handed the preload API
 - the clipboard is read on one occasion only, when you paste into the shell
 
 ## Layout

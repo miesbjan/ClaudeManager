@@ -7,8 +7,32 @@ import {
   isLocalUrl,
   nextRightMode,
   normalizeUrl,
-  sniffLocalUrl
-} from '../src/renderer/src/web.ts'
+  sniffLocalUrl,
+  WEB_PARTITION
+} from '../src/shared/web.ts'
+
+/*
+ * The pane's page must be in a session of its own, because that is what puts it in a
+ * process of its own: a page sharing this application's process can take it down, and
+ * one did - a dev server that ran out of memory killed the console and every shell in
+ * it. The element says which session in static HTML and the renderer says it again when
+ * it has to build a replacement, so the two are held together here.
+ */
+describe('the web pane element', () => {
+  const html = readFileSync(new URL('../src/renderer/index.html', import.meta.url), 'utf8')
+
+  it('is a webview rather than a frame', () => {
+    assert.match(html, /<webview id="web-frame"/)
+    assert.ok(!html.includes('<iframe'), 'a frame would share this process with the page')
+  })
+
+  it('puts the page in the session the renderer also names', () => {
+    assert.ok(
+      html.includes('partition="' + WEB_PARTITION + '"'),
+      'index.html must give the webview partition ' + WEB_PARTITION
+    )
+  })
+})
 
 describe('isLocalUrl', () => {
   it('accepts the local machine', () => {

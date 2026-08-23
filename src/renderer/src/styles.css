@@ -683,6 +683,9 @@ body.resizing {
   width: 100%;
   border: none;
   background: #fff;
+  /* A webview is inline-flex by default, which leaves it a line box tall. */
+  display: flex;
+  min-height: 0;
 }
 
 #viewer {

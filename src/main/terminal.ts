@@ -1,10 +1,38 @@
 import { spawn, type IPty } from 'node-pty'
 import { accessSync, constants, statSync } from 'node:fs'
 import { delimiter, join } from 'node:path'
+import { Trail } from '../shared/trail'
 import type { TerminalData, TerminalExit, TerminalStart } from '../shared/types'
 
 const DEFAULT_COLS = 80
 const DEFAULT_ROWS = 24
+
+/**
+ * How much of each shell's output is kept for a window that has to be rebuilt.
+ *
+ * Generous, because the thing being put back is usually an agent mid-conversation and
+ * the screen it draws is most of this on its own; still bounded, because a shell can
+ * print for hours and nobody is going to read the beginning of that.
+ */
+const TRAIL_LIMIT = 256 * 1024
+
+/** A running shell, and what it has said. */
+type Live = {
+  pty: IPty
+  /** Where it was started. What an adopting pane has to agree with. */
+  cwd: string
+  trail: Trail
+}
+
+/**
+ * Two paths naming the same directory, as far as deciding whether a shell belongs to a
+ * pane goes. Windows says C:\Dev and C:\dev are the same place and so does this.
+ */
+function samePlace(a: string, b: string): boolean {
+  const normal = (p: string): string =>
+    (process.platform === 'win32' ? p.toLowerCase() : p).replace(/[\\/]+$/, '')
+  return normal(a) === normal(b)
+}
 
 /**
  * Shells are resolved here, never named by the renderer: a pane asks for "a shell
@@ -48,7 +76,7 @@ function shellEnv(): Record<string, string> {
 }
 
 export class TerminalManager {
-  private terminals = new Map<string, IPty>()
+  private terminals = new Map<string, Live>()
 
   constructor(
     private readonly onData: (event: TerminalData) => void,
@@ -74,12 +102,16 @@ export class TerminalManager {
         cwd: workingDir,
         env: shellEnv()
       })
-      term.onData((data) => this.onData({ id, data }))
+      const live: Live = { pty: term, cwd: workingDir, trail: new Trail(TRAIL_LIMIT) }
+      term.onData((data) => {
+        live.trail.add(data)
+        this.onData({ id, data })
+      })
       term.onExit(({ exitCode }) => {
         this.terminals.delete(id)
         this.onExit({ id, exitCode })
       })
-      this.terminals.set(id, term)
+      this.terminals.set(id, live)
       return { ok: true, shell: shell.file }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -87,28 +119,63 @@ export class TerminalManager {
     }
   }
 
+  /**
+   * Hand a shell that is already running back to a pane that is asking for one, and
+   * with it everything it has printed so far.
+   *
+   * This is what makes a window disposable. The shells are here, not in the window, so
+   * a reload - development saving a file, a renderer that died, a page in the web pane
+   * that took the process with it - is a redraw rather than the end of whatever was
+   * running. Null means there is nothing to take over and the pane should start a shell
+   * of its own.
+   *
+   * A pane that asks about a different directory than the shell was started in is not
+   * the pane that owns it: ids are handed out in order, so a stale session file can
+   * point the same id at a different tab. That shell is nobody's and is ended here,
+   * rather than adopted into a place it does not belong to.
+   */
+  attach(id: string, cwd: string): string | null {
+    const live = this.terminals.get(id)
+    if (!live) return null
+    if (!samePlace(live.cwd, cwd)) {
+      this.kill(id)
+      return null
+    }
+    return live.trail.text()
+  }
+
+  /**
+   * End every shell that is not in the list. The window says what it has once it knows,
+   * and everything else running is by definition nobody's - which is how a shell whose
+   * tab did not come back gets cleaned up, now that a reload no longer kills them all.
+   */
+  keepOnly(ids: string[]): void {
+    const wanted = new Set(ids)
+    for (const id of [...this.terminals.keys()]) if (!wanted.has(id)) this.kill(id)
+  }
+
   write(id: string, data: string): void {
-    this.terminals.get(id)?.write(data)
+    this.terminals.get(id)?.pty.write(data)
   }
 
   resize(id: string, cols: number, rows: number): void {
-    const term = this.terminals.get(id)
-    if (!term) return
+    const live = this.terminals.get(id)
+    if (!live) return
     // A zero dimension happens while a pane is hidden and would upset ConPTY.
     if (cols < 1 || rows < 1) return
     try {
-      term.resize(cols, rows)
+      live.pty.resize(cols, rows)
     } catch {
       // The process may have exited between the check and the call.
     }
   }
 
   kill(id: string): void {
-    const term = this.terminals.get(id)
-    if (!term) return
+    const live = this.terminals.get(id)
+    if (!live) return
     this.terminals.delete(id)
     try {
-      term.kill()
+      live.pty.kill()
     } catch {
       // Already gone.
     }

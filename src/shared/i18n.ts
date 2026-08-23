@@ -97,6 +97,7 @@ const en = {
   'run.ways': '{count} ways to run',
 
   'web.onlyLocal': 'Only addresses on this machine can be shown here.',
+  'web.gone': 'The page in the pane stopped. Press ↻ to load it again.',
   'web.reload': 'Reload',
   'web.placeholder': 'localhost:3000',
 
@@ -229,6 +230,7 @@ const cs: Record<StringKey, string> = {
   'run.ways': '{count} způsobů spuštění',
 
   'web.onlyLocal': 'Zobrazit lze jen adresu na tomto stroji.',
+  'web.gone': 'Stránka v panelu skončila. Znovu ji načteš tlačítkem ↻.',
   'web.reload': 'Načíst znovu',
   'web.placeholder': 'localhost:3000',
 

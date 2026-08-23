@@ -11,7 +11,8 @@ import {
   net,
   protocol,
   shell,
-  Tray
+  Tray,
+  type Input
 } from 'electron'
 import { existsSync, statSync } from 'node:fs'
 import { readFile, stat, writeFile } from 'node:fs/promises'
@@ -30,6 +31,7 @@ import { TerminalManager } from './terminal'
 import { loadState, saveState, terminalFont, type AppState } from './store'
 import { clampSize } from '../shared/font'
 import { closeAction } from '../shared/closing'
+import { isLocalUrl } from '../shared/web'
 import { sanitisePane, sanitiseSession } from '../shared/session'
 import { paneCommand } from '../shared/shortcuts'
 import type {
@@ -326,6 +328,27 @@ function openExternal(url: string): void {
   if (/^(https?|mailto):/i.test(url)) void shell.openExternal(url)
 }
 
+/**
+ * Pane keys are claimed in the main process rather than in the renderer alone.
+ *
+ * A page in the web pane runs in a process of its own: once it has focus it swallows
+ * every key, and Alt+W - the way back out - would never arrive. Taking them before the
+ * page sees them keeps the panes reachable from wherever the cursor happens to be.
+ */
+function claimPaneKey(event: { preventDefault: () => void }, input: Input): void {
+  const command = paneCommand({
+    key: input.key,
+    code: input.code,
+    altKey: input.alt,
+    ctrlKey: input.control,
+    shiftKey: input.shift,
+    metaKey: input.meta
+  })
+  if (!command) return
+  event.preventDefault()
+  win?.webContents.send('pane:command', command)
+}
+
 function createWindow(): void {
   win = new BrowserWindow({
     width: state.bounds?.width ?? 900,
@@ -342,7 +365,14 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      spellcheck: false
+      spellcheck: false,
+      /*
+       * The dev server in the right-hand pane. As an iframe it was same-site with the
+       * app, so Chromium ran it in this window's process: a page that spun or ran out
+       * of memory killed the console around it, along with every shell and every agent
+       * running in one. A webview with its own partition cannot be in our process.
+       */
+      webviewTag: true
     }
   })
 
@@ -361,13 +391,22 @@ function createWindow(): void {
     openExternal(url)
   })
   /*
-   * A renderer that goes away takes the knowledge of which shell belonged to which
-   * pane with it, but not the shells themselves: nothing calls dispose on the way out,
-   * so every PTY it had open would be left running with no owner. A reload is exactly
-   * that, and in development it happens on every saved file.
+   * A renderer that goes away takes the knowledge of which shell belonged to which pane
+   * with it, but not the shells themselves - they run here. That knowledge is now
+   * rebuilt instead of being written off: the window asks for its shells back by tab id
+   * (`terminal:attach`) and then says which ones it claimed (`terminal:keep`), and the
+   * ones nobody claimed are ended there.
+   *
+   * It used to kill every shell on a main-frame navigation, which is correct about
+   * ownership and far too expensive to be right: a reload happens on every saved file
+   * in development, and it took running agents with it every time. Being able to lose
+   * the window without losing the work is worth more than the simplicity was.
    */
-  win.webContents.on('did-start-navigation', (details) => {
-    if (details.isMainFrame && !details.isSameDocument) terminals?.disposeAll()
+  win.webContents.on('render-process-gone', (_event, details) => {
+    console.error('the window went away: ' + details.reason)
+    if (details.reason === 'clean-exit') return
+    // The shells are still running; a window is the one part of this that is cheap.
+    win?.webContents.reload()
   })
 
   win.webContents.on('before-input-event', (event, input) => {
@@ -376,24 +415,44 @@ function createWindow(): void {
       win?.webContents.toggleDevTools()
       return
     }
+    claimPaneKey(event, input)
+  })
 
-    /*
-     * Pane keys are claimed here rather than in the renderer alone. A page shown in
-     * the web pane is a frame of its own: once it has focus it swallows every key,
-     * and Alt+W - the way back out - would never arrive. Taking them before the page
-     * sees them keeps the panes reachable from wherever the cursor happens to be.
-     */
-    const command = paneCommand({
-      key: input.key,
-      code: input.code,
-      altKey: input.alt,
-      ctrlKey: input.control,
-      shiftKey: input.shift,
-      metaKey: input.meta
+  /*
+   * The embedded page is content, not part of the application, so it is given as
+   * little as possible: no preload, no Node, sandboxed, and an address it is allowed
+   * to be at. This is the gate the pane's rules are actually enforced at - the CSP in
+   * index.html no longer governs a page that is not a frame of this document.
+   */
+  win.webContents.on('will-attach-webview', (event, preferences, params) => {
+    delete preferences.preload
+    preferences.nodeIntegration = false
+    preferences.contextIsolation = true
+    preferences.sandbox = true
+    if (!isLocalUrl(params.src)) event.preventDefault()
+  })
+
+  win.webContents.on('did-attach-webview', (_event, guest) => {
+    // Its own process means its own keys: pane keys have to be claimed here as well.
+    guest.on('before-input-event', (event, input) => {
+      if (input.type === 'keyDown') claimPaneKey(event, input)
     })
-    if (!command) return
-    event.preventDefault()
-    win?.webContents.send('pane:command', command)
+    /*
+     * Nothing here is a shell, so the page dying is now a message rather than a
+     * disaster - which is the entire point of it living somewhere else.
+     */
+    guest.on('render-process-gone', (_e, details) => {
+      console.error('the page in the web pane went away: ' + details.reason)
+      win?.webContents.send('web:gone')
+    })
+    // A page must not be able to navigate itself somewhere off the machine.
+    guest.on('will-navigate', (event, url) => {
+      if (!isLocalUrl(url)) event.preventDefault()
+    })
+    guest.setWindowOpenHandler(({ url }) => {
+      openExternal(url)
+      return { action: 'deny' }
+    })
   })
 
   /*
@@ -732,6 +791,11 @@ function registerIpc(): void {
   ipcMain.on('terminal:resize', (_event, id: string, cols: number, rows: number) =>
     terminals?.resize(id, cols, rows)
   )
+  ipcMain.handle(
+    'terminal:attach',
+    (_event, id: string, cwd: string) => terminals?.attach(id, cwd) ?? null
+  )
+  ipcMain.on('terminal:keep', (_event, ids: string[]) => terminals?.keepOnly(ids))
   ipcMain.on('terminal:kill', (_event, id: string) => terminals?.kill(id))
 
   ipcMain.handle('shell:external', (_event, url: string) => {

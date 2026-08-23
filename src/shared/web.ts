@@ -5,6 +5,11 @@
  * this app rests on displayed content having no way out; a pane that could load any
  * URL would be a different app. A dev server on localhost is content you started
  * yourself, from a project you opened yourself.
+ *
+ * These rules live in shared rather than in the renderer because the main process
+ * enforces them too: it is the one that decides whether the pane may attach a page
+ * at all, and a security rule written down twice is a security rule that will
+ * eventually disagree with itself.
  */
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '[::1]'])
 
@@ -17,8 +22,21 @@ const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '[::1]'])
  * literal: Chromium answers `http://[::1]:*` with "contains an invalid source. It
  * will be ignored." Anything that cannot be written here has to be normalised into
  * something that can.
+ *
+ * The page is no longer a frame of this document, so CSP is a second fence rather
+ * than the fence - `will-attach-webview` in the main process is what actually
+ * refuses an address. It stays because a rule that costs nothing to keep should not
+ * be removed on the strength of an argument about which layer is load-bearing.
  */
 export const FRAMED_HOSTS = ['localhost', '127.0.0.1'] as const
+
+/**
+ * The session the page in the pane is put in, which is what buys it a process of its
+ * own: Chromium never shares a renderer process across storage partitions. Named here
+ * because `index.html` writes it on the element and the renderer writes it again when
+ * it has to build a replacement; `test/web.test.ts` holds the two together.
+ */
+export const WEB_PARTITION = 'persist:preview'
 
 /** Loopback names that CSP cannot name, and what to call them instead. */
 const REWRITE_TO_LOCALHOST = new Set(['0.0.0.0', '[::1]'])

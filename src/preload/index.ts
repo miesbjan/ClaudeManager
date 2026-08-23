@@ -67,6 +67,8 @@ const api: ViewerApi = {
   readClipboard: () => ipcRenderer.invoke('clipboard:read') as Promise<string>,
   terminal: {
     create: (id, cwd) => ipcRenderer.invoke('terminal:create', id, cwd) as Promise<TerminalStart>,
+    attach: (id, cwd) => ipcRenderer.invoke('terminal:attach', id, cwd) as Promise<string | null>,
+    keep: (ids) => ipcRenderer.send('terminal:keep', ids),
     write: (id, data) => ipcRenderer.send('terminal:write', id, data),
     resize: (id, cols, rows) => ipcRenderer.send('terminal:resize', id, cols, rows),
     kill: (id) => ipcRenderer.send('terminal:kill', id),
@@ -95,6 +97,11 @@ const api: ViewerApi = {
     const handler = (_event: unknown, paths: string[]): void => cb(paths)
     ipcRenderer.on('files:open', handler)
     return () => ipcRenderer.off('files:open', handler)
+  },
+  onWebGone: (cb) => {
+    const handler = (): void => cb()
+    ipcRenderer.on('web:gone', handler)
+    return () => ipcRenderer.off('web:gone', handler)
   }
 }
 

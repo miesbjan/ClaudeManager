@@ -88,11 +88,15 @@
             <input id="web-url" type="text" spellcheck="false" placeholder="localhost:3000" />
             <button id="web-reload" class="find-btn" type="button" title="Reload">↻</button>
           </div>
-          <iframe
-            id="web-frame"
-            title="Local preview"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          ></iframe>
+          <!--
+            A webview rather than an iframe, and with a partition of its own, because
+            those two things are what buy the page a process of its own: Chromium never
+            shares a renderer across storage partitions. As a frame it was same-site
+            with the app - localhost either way - so it shared this window's process,
+            and a dev server that ran out of memory took the whole console down with
+            it, terminals and running agents included.
+          -->
+          <webview id="web-frame" title="Local preview" partition="persist:preview"></webview>
         </section>
       </div>
 

@@ -89,11 +89,29 @@ export class TerminalPane {
     this.observer = new ResizeObserver(() => this.resize())
   }
 
-  /** Attach to the DOM and start the shell. Safe to call once. */
+  /**
+   * Attach to the DOM and take over the shell for this pane, starting one only if there
+   * is nothing to take over. Safe to call once.
+   *
+   * The shell lives in the main process, so it survives this window: a reload in
+   * development, or a renderer that died and was rebuilt. What does not survive is the
+   * screen, so whatever it printed while nobody was watching is replayed into the fresh
+   * terminal before it is shown - an agent mid-conversation comes back where it was
+   * rather than as an empty pane.
+   */
   async start(container: HTMLElement): Promise<string | null> {
     container.append(this.host)
     this.term.open(this.host)
     this.observer.observe(this.host)
+
+    const trail = await window.api.terminal.attach(this.id, this.cwd)
+    if (trail !== null) {
+      // Sized before the replay, so what is redrawn is redrawn at the right width.
+      this.resize()
+      this.term.write(trail)
+      this.term.focus()
+      return null
+    }
 
     const result = await window.api.terminal.create(this.id, this.cwd)
     if (!result.ok) {

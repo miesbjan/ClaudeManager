@@ -3,7 +3,7 @@ import { computeLabels, slotAt } from '../../shared/tabs'
 import { shownActivity, type ActivityState } from './activity'
 import type { Doc } from './docs'
 import type { ProjectInfo } from '../../shared/types'
-import type { RightMode } from './web'
+import type { RightMode } from '../../shared/web'
 
 /** The last part of a path, which is what a directory is called. */
 const baseName = (path: string): string => {
@@ -94,6 +94,14 @@ export type Tab = {
   webManual: boolean
   /** A run was just started here, so the address it prints should open the pane. */
   awaitingServer: boolean
+  /**
+   * The page at this address died in its own process, so it is not put back on screen
+   * until somebody asks for it - by reloading, or by giving another address.
+   *
+   * Without this the pane would load it again on the very next repaint, and a page that
+   * dies on load would be reloaded for as long as the tab existed.
+   */
+  webBroken: boolean
 }
 
 export type TabHandlers = {

@@ -41,7 +41,8 @@ import {
 } from '../../shared/place'
 import { detectEol, isMarkdown, toEditorText, toFileText } from './plaintext'
 import { sendable } from './prompt'
-import { createUrlReader, nextRightMode, normalizeUrl } from './web'
+import type { WebviewTag } from 'electron'
+import { createUrlReader, nextRightMode, normalizeUrl, WEB_PARTITION } from '../../shared/web'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { MAX_PROMPT } from '../../shared/session'
 import { paneCommand, tabDigit, type PaneCommand } from '../../shared/shortcuts'
@@ -72,7 +73,27 @@ const webButton = document.getElementById('web-btn') as HTMLButtonElement
 const webPane = document.getElementById('web-pane') as HTMLElement
 const rightArea = document.getElementById('right-area') as HTMLElement
 const rightSplitter = document.getElementById('right-splitter') as HTMLElement
-const webFrame = document.getElementById('web-frame') as HTMLIFrameElement
+/*
+ * A webview, not an iframe: the page runs in a process of its own, which is what keeps a
+ * dev server that misbehaves from taking this window - and every shell in it - with it.
+ * The type comes from Electron, but only as a type; nothing here talks to Electron.
+ *
+ * Not a constant, because a webview whose process has died cannot be reused: giving one
+ * an address kills the application outright, in the browser process, with a check
+ * failure and no exception to catch. The dead element is thrown away and a new one takes
+ * its place instead.
+ */
+let webFrame = document.getElementById('web-frame') as WebviewTag
+
+/**
+ * The address the element was last told to load.
+ *
+ * Kept here rather than read back off the element: a webview rewrites what it is given
+ * into a canonical URL - `localhost:3000` comes back as `http://localhost:3000/` - so
+ * comparing against the attribute never matches and the page would reload on every
+ * repaint. Null means nothing has been loaded, which is also true of a fresh element.
+ */
+let webFrameUrl: string | null = null
 const webUrlInput = document.getElementById('web-url') as HTMLInputElement
 const splitter = document.getElementById('splitter') as HTMLElement
 const tabbar = document.getElementById('tabbar') as HTMLElement
@@ -242,7 +263,8 @@ function createTab(): Tab {
     rightMode: 'doc',
     rightRatio: DEFAULT_RATIO,
     webManual: false,
-    awaitingServer: false
+    awaitingServer: false,
+    webBroken: false
   }
   tabs.push(tab)
   return tab
@@ -1291,6 +1313,23 @@ function applyLayout(): void {
 }
 
 /**
+ * Throw away the element and put a fresh one in its place, with nothing loaded in it.
+ *
+ * This is the only way back from a page that died: the crashed element cannot be given
+ * an address again, and it cannot be repaired. Everything about the pane other than the
+ * page - the address bar, the layout, which tab is showing - is untouched by it.
+ */
+function replaceWebFrame(): void {
+  const fresh = document.createElement('webview') as WebviewTag
+  fresh.id = 'web-frame'
+  fresh.title = webFrame.title
+  fresh.setAttribute('partition', WEB_PARTITION)
+  webFrame.replaceWith(fresh)
+  webFrame = fresh
+  webFrameUrl = null
+}
+
+/**
  * The right slot holds one of two things. The address is sniffed from what the dev
  * server printed when it started, so there is nothing to configure - and it can be
  * typed by hand for a server that was started elsewhere.
@@ -1299,12 +1338,22 @@ function renderWebFrame(): void {
   const tab = tabs[activeIndex]
   if (!tab) return
   if (document.activeElement !== webUrlInput) webUrlInput.value = tab.webUrl ?? ''
-  // Only assign src when it really changes; otherwise every render reloads the page.
-  if (!webPane.hidden && tab.webUrl && webFrame.getAttribute('src') !== tab.webUrl) {
-    webFrame.setAttribute('src', tab.webUrl)
+
+  /*
+   * No address in this tab means nothing to show; a page from the last one would lie.
+   * Emptying it means throwing the element away, because dropping the attribute leaves
+   * a webview showing whatever it already had - a frame would have gone blank.
+   */
+  if (tab.webUrl === null) {
+    if (webFrameUrl !== null) replaceWebFrame()
+    return
   }
-  // No address in this tab means nothing to show; a page from the last one would lie.
-  if (!tab.webUrl && webFrame.hasAttribute('src')) webFrame.removeAttribute('src')
+
+  // Only load when the address really changes; otherwise every repaint reloads the page.
+  if (!webPane.hidden && !tab.webBroken && webFrameUrl !== tab.webUrl) {
+    webFrame.setAttribute('src', tab.webUrl)
+    webFrameUrl = tab.webUrl
+  }
 }
 
 function setWebUrl(tab: Tab, url: string | null, manual = false): void {
@@ -1316,6 +1365,8 @@ function setWebUrl(tab: Tab, url: string | null, manual = false): void {
    */
   if (!manual && tab.webManual) return
   if (manual) tab.webManual = true
+  // An address given on purpose is a request to see it, whatever happened here before.
+  if (manual) tab.webBroken = false
   const isNew = tab.webUrl !== url
   tab.webUrl = url
 
@@ -1328,10 +1379,12 @@ function setWebUrl(tab: Tab, url: string | null, manual = false): void {
    */
   if (tab.awaitingServer) {
     tab.awaitingServer = false
+    // A fresh run is a fresh page; whatever the last one did to itself is history.
+    tab.webBroken = false
     if (tab.rightMode === 'doc') tab.rightMode = 'web'
     tab.zoom = null
-    // A fresh run means a fresh server; do not leave the previous page in the frame.
-    webFrame.removeAttribute('src')
+    // A fresh run means a fresh server; do not leave the previous page in the pane.
+    replaceWebFrame()
   } else if (!isNew) {
     return
   }
@@ -1358,8 +1411,41 @@ function cycleRight(): void {
 webButton.addEventListener('click', cycleRight)
 
 document.getElementById('web-reload')?.addEventListener('click', () => {
-  const url = tabs[activeIndex]?.webUrl
-  if (url) webFrame.setAttribute('src', url + (url.includes('?') ? '&' : '?') + 'reload=' + Date.now())
+  const tab = tabs[activeIndex]
+  const url = tab?.webUrl
+  if (!tab || !url) return
+  // Asking for it again is the way back from a page that died in its own process.
+  tab.webBroken = false
+  /*
+   * A real reload, which a frame had no way to ask for: the address used to be given a
+   * changing query parameter to force one, so every reload showed the dev server a URL
+   * it had never seen. This asks the page to load again, and puts it back when the page
+   * is not there any more - after a crash, or before it was ever shown.
+   */
+  if (webFrameUrl === url) webFrame.reload()
+  else {
+    webFrame.setAttribute('src', url)
+    webFrameUrl = url
+  }
+})
+
+/*
+ * The page died in its own process. Nothing here is broken by that, which is the whole
+ * point of the arrangement - but the pane goes white, and a white pane that says nothing
+ * is the kind of thing that gets blamed on the application around it.
+ */
+window.api.onWebGone(() => {
+  /*
+   * The element is dead from here on: it is thrown away at once, because the next
+   * repaint would otherwise hand it an address and take the application with it. The
+   * tab it was showing is marked so the page is not loaded again until asked for -
+   * a page that dies on load would otherwise be reloaded for as long as the tab lived.
+   */
+  const dead = webFrame.getAttribute('src')
+  const tab = tabs.find((candidate) => candidate.webUrl === dead) ?? tabs[activeIndex]
+  if (tab) tab.webBroken = true
+  replaceWebFrame()
+  status.textContent = T('web.gone')
 })
 
 webUrlInput.addEventListener('keydown', (event) => {
@@ -2611,6 +2697,13 @@ async function start(): Promise<void> {
     if (tabs[i].docs.length === 0 && tabs[i].root === null) tabs.splice(i, 1)
   }
   activeIndex = tabs.length === 0 ? -1 : Math.min(startup.activeTab, tabs.length - 1)
+  /*
+   * These are the panes that exist. Shells outlive the window they are shown in, so
+   * after a reload some of them are already running and waiting to be taken over; the
+   * ones belonging to a tab that did not come back are nobody's, and saying so here is
+   * what ends them.
+   */
+  window.api.terminal.keep(tabs.map((tab) => tab.id))
   render()
   persistSession()
 }

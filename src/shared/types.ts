@@ -241,6 +241,22 @@ export interface ViewerApi {
    */
   terminal: {
     create(id: string, cwd: string): Promise<TerminalStart>
+    /**
+     * Take over the shell this pane had before the window was reloaded, if it is still
+     * running in the main process. Answers with what has been printed in it so far, or
+     * null when there is nothing to take over and a new shell has to be started.
+     *
+     * The directory is part of the question rather than decoration: tab ids are handed
+     * out in order and a stale session file could hand the same id to a different tab,
+     * and a shell adopted into the wrong place is worse than a new one.
+     */
+    attach(id: string, cwd: string): Promise<string | null>
+    /**
+     * These are the panes that exist; anything else running is nobody's. Sent once the
+     * window knows what it has, which is how a shell whose tab is gone gets cleaned up
+     * now that a reload no longer kills them all.
+     */
+    keep(ids: string[]): void
     write(id: string, data: string): void
     resize(id: string, cols: number, rows: number): void
     kill(id: string): void
@@ -256,4 +272,10 @@ export interface ViewerApi {
   onFileEvent(cb: (event: FileEvent) => void): () => void
   /** Files pushed by the main process (second instance / file association). */
   onOpenFiles(cb: (paths: string[]) => void): () => void
+  /**
+   * The page in the web pane died. It runs in a process of its own, so this is news
+   * rather than the end of the application - but the pane goes blank, and a blank pane
+   * with no explanation is the kind of thing that gets blamed on the app around it.
+   */
+  onWebGone(cb: () => void): () => void
 }
