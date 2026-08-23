@@ -530,6 +530,13 @@ Files passed on the command line are opened too, so the app works as a handler f
 - **Unsaved edits cannot be lost quietly.** Closing a file, a tab or the window asks
   first. The window is refused rather than asked, because a dialog raised while the
   window is already closing proved unreliable; the status bar says what to do.
+
+  They also survive the window itself. A draft is kept in the session file as it is
+  typed, the way a half-written prompt is, and comes back with a note saying it is still
+  unsaved. That guard does not stop the window being rebuilt - measured, not assumed -
+  and after a crash there is nobody left to ask, so the only way to keep an edit is to
+  have written it down before. One longer than 200 kB stays on screen only: losing the
+  end of an edit quietly would be worse than not keeping it.
 - **Terminal font.** `Ctrl+=` and `Ctrl+-` change the size, between 8 and 28, and
   the choice is remembered the way the theme is. Those two keys are claimed even while
   the shell has focus, because that is where you are when you want them. Changing the

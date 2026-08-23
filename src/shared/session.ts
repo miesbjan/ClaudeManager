@@ -18,6 +18,16 @@ const DEFAULT_RATIO = 0.5
 /** Long enough for any prompt worth composing, short enough not to bloat the session. */
 export const MAX_PROMPT = 8000
 
+/**
+ * How much of one unsaved edit is kept.
+ *
+ * Generous, because losing the end of an edit is barely better than losing it - but
+ * bounded, because this file is rewritten every few hundred milliseconds and a session
+ * that grew without limit would be a surprise nobody asked for. Anything longer is left
+ * where it is: on screen, unsaved, and said so in the status bar.
+ */
+export const MAX_DRAFT = 200_000
+
 function ratio(value: unknown): number {
   return typeof value === 'number' && value > 0 && value < 1 ? value : DEFAULT_RATIO
 }
@@ -48,6 +58,17 @@ export function sanitisePane(raw: unknown): PaneState {
     promptOpen: value.promptOpen === true,
     root: typeof value.root === 'string' && value.root !== '' ? value.root : null
   }
+}
+
+/** The unsaved edits worth keeping: text, for a file this tab actually holds. */
+function drafts(raw: unknown, files: string[]): Record<string, string> {
+  const value = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const kept: Record<string, string> = {}
+  for (const path of files) {
+    const text = value[path]
+    if (typeof text === 'string' && text !== '') kept[path] = text.slice(0, MAX_DRAFT)
+  }
+  return kept
 }
 
 function paths(raw: unknown): string[] {
@@ -82,6 +103,7 @@ function readTabs(raw: unknown): SessionTab[] {
       id: kept,
       files,
       active: typeof active === 'string' && files.includes(active) ? active : (files[0] ?? null),
+      drafts: drafts((entry as { drafts?: unknown }).drafts, files),
       pane,
       name: typeof name === 'string' && name.trim() !== '' ? name.trim() : null
     })

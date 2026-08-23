@@ -140,6 +140,16 @@ export type SessionTab = {
   id?: string | null
   files: string[]
   active: string | null
+  /**
+   * Unsaved edits, by the path they belong to.
+   *
+   * A draft is work, exactly like the half-written prompt beside it, and it used to live
+   * only in the window's memory - so a window that had to be rebuilt took it with it,
+   * silently. `beforeunload` does not stop a rebuild (measured, not assumed), and after a
+   * crash there is nothing left to ask anyway; the only way to keep an edit is to have
+   * written it down before.
+   */
+  drafts?: Record<string, string>
   pane: PaneState
   /** A name given by hand, which beats the name of the file being shown. */
   name?: string | null

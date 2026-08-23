@@ -44,7 +44,7 @@ import { sendable } from './prompt'
 import type { WebviewTag } from 'electron'
 import { createUrlReader, nextRightMode, normalizeUrl, WEB_PARTITION } from '../../shared/web'
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
-import { MAX_PROMPT } from '../../shared/session'
+import { MAX_DRAFT, MAX_PROMPT } from '../../shared/session'
 import { claimedFromShell, paneCommand, tabDigit, type PaneCommand } from '../../shared/shortcuts'
 import { TerminalPane, usePty } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
@@ -742,6 +742,18 @@ function persistSession(): void {
         id: tab.id,
         files: tab.docs.map((doc) => doc.path),
         active: shownDoc(tab)?.path ?? null,
+        /*
+         * Unsaved edits go with the tab. They are work, like the prompt beside them, and
+         * a window that has to be rebuilt used to take them with it without a word - the
+         * guard against closing over one does not stop a rebuild, and after a crash there
+         * is nobody left to ask. One too long for the file stays on screen and unsaved;
+         * losing the end of it quietly would be worse than not keeping it.
+         */
+        drafts: Object.fromEntries(
+          tab.docs
+            .filter((doc) => doc.draft !== null && doc.draft.length <= MAX_DRAFT)
+            .map((doc) => [doc.path, doc.draft as string])
+        ),
         name: tab.name,
         pane: {
           terminal: tab.terminalOpen,
@@ -1254,8 +1266,6 @@ function dressTray(waiting: Attention | null): void {
     quitAsk: T('tray.quitAsk'),
     quitConfirm: T('tray.quitConfirm'),
     cancel: T('tray.cancel'),
-    hidden: T('tray.hidden'),
-    hiddenBody: T('tray.hiddenBody'),
     closeAsk: T('close.ask'),
     closeQuit: T('close.quit'),
     closeKeep: T('close.keep')
@@ -2504,6 +2514,23 @@ paletteInput.addEventListener('keydown', (event) => {
 
 /* ---------- the raw view and saving ---------- */
 
+/**
+ * The session is written after an edit as well, not only after a command.
+ *
+ * An unsaved edit is the one thing in the window that exists nowhere else, and the window
+ * can be rebuilt without asking - so it has to be written down while it is being typed.
+ * Held for a moment first: this is a keystroke, and the file underneath is rewritten on a
+ * delay of its own, so a message per character would be two delays doing one job.
+ */
+let draftSave: number | null = null
+function persistDraftSoon(): void {
+  if (draftSave !== null) window.clearTimeout(draftSave)
+  draftSave = window.setTimeout(() => {
+    draftSave = null
+    persistSession()
+  }, 400)
+}
+
 raw.addEventListener('input', () => {
   const tab = tabs[activeIndex]
   const doc = shownDoc(tab)
@@ -2516,6 +2543,7 @@ raw.addEventListener('input', () => {
     doc.forceSave = false
   }
   renderStatus(tab, doc)
+  persistDraftSoon()
 })
 
 /**
@@ -2567,6 +2595,7 @@ async function saveDraft(): Promise<void> {
   doc.source = text
   doc.mtimeMs = result.mtimeMs
   doc.draft = null
+  persistSession()
   doc.staleOnDisk = false
   doc.forceSave = false
   // The preview has to catch up with what was just written, without a change flash:
@@ -2975,6 +3004,8 @@ window.addEventListener('unhandledrejection', (event) => {
 
 async function start(): Promise<void> {
   restoring = true
+  /** How many unsaved edits came back with the session, to be said once at the end. */
+  let recovered = 0
   render()
   const startup = await window.api.getStartupFiles()
   setLang(startup.lang, false)
@@ -2993,6 +3024,19 @@ async function start(): Promise<void> {
     const shown = saved.active ? tab.docs.findIndex((doc) => samePath(doc.path, saved.active!)) : -1
     tab.docIndex = shown >= 0 ? shown : 0
     tab.name = saved.name ?? null
+    /*
+     * An edit that was never saved comes back as an edit, not as the file: that is what
+     * the person left on screen, and the file underneath it is exactly what they had not
+     * decided about yet.
+     */
+    for (const doc of tab.docs) {
+      const draft = saved.drafts?.[doc.path]
+      if (draft !== undefined && draft !== '') {
+        doc.draft = draft
+        doc.raw = true
+        recovered += 1
+      }
+    }
     tab.terminalOpen = saved.pane.terminal
     tab.ratio = clampRatio(saved.pane.ratio)
     tab.runCommand = saved.pane.run ?? null
@@ -3040,7 +3084,8 @@ async function start(): Promise<void> {
    * that comes back has its scrollback replayed rather than its own, so it is worth
    * knowing that this is a new window rather than the one you were looking at.
    */
-  if (startup.rebuilt) status.textContent = T('window.rebuilt')
+  if (recovered > 0) insist(T('draft.recovered', { count: recovered }))
+  else if (startup.rebuilt) status.textContent = T('window.rebuilt')
 }
 
 void start()

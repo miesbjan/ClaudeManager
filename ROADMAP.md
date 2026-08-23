@@ -467,29 +467,6 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 - **Skutečným rizikem je rozlézání rozsahu**, ne nic z výše uvedeného. Disciplína je
   ten produkt; kód je ta snadná část.
 
-## Otevřené otázky
-
-Věci, u kterých neznáme odpověď, ne věci, které bychom chtěli udělat. Každá se dá zavřít
-jen měřením na běžící aplikaci; do té doby se o ně nic neopírá.
-
-- **Blokuje `beforeunload` programový reload?** Okno se po pádu rendereru samo přestavuje
-  (`webContents.reload()`) a v devu ho přestavuje HMR. Zároveň máme `beforeunload`, který
-  má zabránit zavření s neuloženým draftem. Jestli ten handler zruší i tenhle reload, je
-  reload s neuloženým draftem tiše zablokovaný; jestli ne, draft se tiše ztratí. Obojí je
-  špatně a nevíme, které z toho platí.
-- **Uvolní `win.hide()` globální `Alt+W`?** Registruje se na `focus`, ruší na `blur`.
-  Když schování okna `blur` nevyvolá, drží schovaná aplikace globální zkratku a bere ji
-  celému systému.
-- **Co má dělat druhá instance, když okno neexistuje?** Dnes neudělá nic - ani okno, ani
-  otevření souborů, které jí kdo předal. Není jasné, jestli se do toho stavu dá dostat
-  (`window-all-closed` aplikaci ukončuje), takže není jasné, jestli je co opravovat.
-- **Vzít shellu i `Ctrl+O`?** `Ctrl+T`, `Ctrl+G` a `Ctrl+P` už bereme. `Ctrl+O` je v
-  Claude Code přepínač transcriptu; otázka je, jestli otevírání souboru z terminálu
-  převáží tuhle jednu ztrátu, nebo jestli má zůstat u `Ctrl+Shift+O`.
-- **Má `scripts/desktop-if-changed.mjs` pojmenovat instanci, která blokuje build?** Build
-  padá na běžící aplikaci, typicky schované v traye, a hlášení to neřekne. Drobnost, ale
-  stála už několik minut hledání.
-
 ## Pravidla údržby
 
 - Electron je zamčený na verzi a povyšuje se vědomě dvakrát ročně, ne při každém
@@ -504,6 +481,29 @@ jen měřením na běžící aplikaci; do té doby se o ně nic neopírá.
 
 ## Decision log
 
+- **23. 8. 2026** — Otevřené otázky zavřené, každá jinak, protože každá si o jinou odpověď
+   říkala.
+   **`beforeunload` programový reload nezablokuje** - změřeno na běžící aplikaci: okno se
+   přestavělo a neuložený draft zmizel bez hlášky. Po pádu rendereru je navíc pozdě se na
+   cokoli ptát, takže jediná cesta je mít draft zapsaný předem. Neuložené úpravy se teď
+   ukládají do session jako rozdělaný prompt, a po přestavění okna se vrátí i s hláškou, že
+   jsou pořád neuložené. Cena: session soubor nese text úprav, na jeden soubor nejvýš 200 kB;
+   delší úprava zůstane jen na obrazovce, protože ztratit její konec je horší než ji neuložit.
+   **Globální `Alt+W` a druhá instance** se zavřely konstrukcí, ne měřením: zkratka se ruší
+   i ve `hideWindow` a na události `hide`, takže nezáleží na tom, jestli schování vyvolá
+   `blur`; a druhá instance okno postaví, když žádné není, takže nezáleží na tom, jestli se
+   do toho stavu dá dostat. Zjišťovat odpověď by stálo víc než ji nepotřebovat.
+   **`Ctrl+O` shellu nebereme.** `Ctrl+T`, `Ctrl+G` a `Ctrl+P` jsou tři otázky, na které
+   tahle aplikace existuje odpovídat - jiné místo, které místo, který soubor. "Otevřít další
+   soubor" je ta samá otázka jako `Ctrl+P`, kterou už bereme, takže by se platilo podruhé za
+   totéž: v Claude Code je `Ctrl+O` přepínač transcriptu, který se používá. Zůstává
+   `Ctrl+Shift+O`.
+   **Build teď řekne, co ho blokuje** - vypíše pid a cestu běžících instancí, když nemůže
+   přepsat exe na ploše.
+- **23. 8. 2026** — Systémové upozornění při schování do traye zrušeno. Jednu větu se dalo
+   říct jednou za session, jenže notifikace se musí odkliknout nebo přečkat a zůstane v
+   centru oznámení - cena placená pokaždé za informaci, kterou nese ikona v traye, její
+   tooltip a panel `?` předem.
 - **23. 8. 2026** — Revize kódu na jednu třídu chyb, po zkušenosti s "Claude spadl": stav se
    změnil mezi zahájením operace a jejím dokončením, nebo existovaly dvě pravdy o jedné věci.
    Prošlo se to v pěti nezávislých průchodech (asynchronní pořadí, tiché selhání, rozcházející

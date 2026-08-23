@@ -69,7 +69,6 @@ const DEV_ICON = join(__dirname, '../../build/icon.ico')
  */
 let tray: Tray | null = null
 let quitting = false
-let announcedHiding = false
 
 /**
  * Whether the window is holding anything that closing it would kill - an agent in one
@@ -89,8 +88,6 @@ let trayText = {
   quitAsk: 'Quit Project Console? Anything running in it will stop.',
   quitConfirm: 'Quit',
   cancel: 'Cancel',
-  hidden: 'Project Console is still running',
-  hiddenBody: 'Sessions carry on. Click the tray icon to come back.',
   closeAsk: 'Something is running in a shell. Close it, or leave it running?',
   closeQuit: 'Close and stop it',
   closeKeep: 'Keep it running'
@@ -213,12 +210,21 @@ function askThenQuit(): void {
   })
 }
 
-/** Out of the way, still running, and said once - see `announcedHiding`. */
+/**
+ * Out of the way, still running.
+ *
+ * Said nothing about it on purpose. It used to raise a system notification the first time,
+ * which has to be dismissed or waited out and lands in the notification centre either
+ * way - a cost paid every session for one sentence. The tray icon is the answer to where
+ * the window went, its tooltip says so, and the `?` panel says it in advance.
+ *
+ * The accelerator goes with the window. Whether hiding produces a blur, and therefore
+ * whether the handler that gives it up runs, is not something to depend on: a hidden
+ * application holding a system-wide key would be taking it from everything else.
+ */
 function hideWindow(): void {
+  globalShortcut.unregister('Alt+W')
   win?.hide()
-  if (!tray || announcedHiding) return
-  announcedHiding = true
-  tray.displayBalloon({ title: trayText.hidden, content: trayText.hiddenBody })
 }
 
 function refreshTray(): void {
@@ -518,6 +524,8 @@ function createWindow(): void {
     }
   })
   win.on('blur', () => globalShortcut.unregister('Alt+W'))
+  // Belt to the same brace as `hideWindow`: hidden windows hold no global keys.
+  win.on('hide', () => globalShortcut.unregister('Alt+W'))
 
   win.on('close', (event) => {
     persistNow()
@@ -940,11 +948,15 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.on('second-instance', (_event, argv) => {
     const files = collectFileArgs(argv)
-    if (win) {
-      // Starting it again is how anyone comes back to a window hidden in the tray.
-      showWindow()
-      if (files.length > 0) win.webContents.send('files:open', files)
-    }
+    /*
+     * Starting it again is how anyone comes back to a window hidden in the tray - and if
+     * there is no window at all, starting it again should be exactly that: a window.
+     * Whether the application can be running without one was never established; this
+     * makes the answer not matter, which is cheaper than finding out.
+     */
+    if (!win) createWindow()
+    showWindow()
+    if (files.length > 0) win?.webContents.send('files:open', files)
   })
 
   app.whenReady().then(() => {

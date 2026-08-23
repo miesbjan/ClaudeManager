@@ -63,6 +63,34 @@ function makeShortcut(desktop) {
   return true
 }
 
+/**
+ * Which copies of the application are running, so a build that cannot hand over its
+ * result says what is holding it rather than only that something is.
+ *
+ * The usual answer is an instance hidden in the tray, which is the one place nobody
+ * looks - and that answer has cost several minutes more than once. Best effort: if the
+ * query itself fails, the message above still stands on its own.
+ */
+function runningApps() {
+  try {
+    const out = execFileSync(
+      'powershell',
+      [
+        '-NoProfile',
+        '-Command',
+        "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Project Console.exe' -and $_.CommandLine -notmatch '--type=' } | ForEach-Object { $_.ProcessId.ToString() + '  ' + $_.ExecutablePath }"
+      ],
+      { encoding: 'utf8' }
+    )
+    return out
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
 function copyPortable(desktop) {
   const source = newestPortable()
   if (!source) {
@@ -77,6 +105,7 @@ function copyPortable(desktop) {
   } catch (error) {
     // Most often the copy on the desktop is the running app and cannot be replaced.
     console.warn(`[desktop] could not replace ${target}: ${error.message}`)
+    for (const line of runningApps()) console.warn(`[desktop] running: ${line}`)
     console.warn('[desktop] close the running app and repeat with: npm run desktop -- --exe')
     return false
   }

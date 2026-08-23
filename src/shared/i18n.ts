@@ -51,8 +51,6 @@ const en = {
   'tray.quitAsk': 'Quit Project Console? Anything running in it will stop.',
   'tray.quitConfirm': 'Quit',
   'tray.cancel': 'Cancel',
-  'tray.hidden': 'Project Console is still running',
-  'tray.hiddenBody': 'Sessions carry on. Click the tray icon to come back.',
   'tray.waiting': '{count} waiting',
   /*
    * Asked when a shell is running that was not recognised as an agent. Recognising one
@@ -99,6 +97,7 @@ const en = {
   'web.onlyLocal': 'Only addresses on this machine can be shown here.',
   'web.another': 'The shell printed {url}. The pane is left as it is; type it in to go there.',
   'web.gone': 'The page in the pane stopped. Press ↻ to load it again.',
+  'draft.recovered': 'Unsaved edits came back in {count} file(s). They are still unsaved.',
   'window.rebuilt': 'The window stopped and was rebuilt. The shells kept running.',
   'place.shellStayed': 'The place moved, but its shell is busy and stayed in {dir}.',
   'prompt.noShell': 'No shell would start here, so nothing was sent and the prompt is still yours.',
@@ -196,8 +195,6 @@ const cs: Record<StringKey, string> = {
   'tray.quitAsk': 'Ukončit Project Console? Co v něm běží, se zastaví.',
   'tray.quitConfirm': 'Ukončit',
   'tray.cancel': 'Zrušit',
-  'tray.hidden': 'Project Console běží dál',
-  'tray.hiddenBody': 'Session pokračují. Kliknutím na ikonu v traye se vrátíš.',
   'tray.waiting': 'čeká {count}',
   'close.ask': 'V shellu něco běží. Zavřít okno, nebo to nechat běžet?',
   'close.quit': 'Zavřít a zastavit',
@@ -239,6 +236,7 @@ const cs: Record<StringKey, string> = {
   'web.onlyLocal': 'Zobrazit lze jen adresu na tomto stroji.',
   'web.another': 'Shell vypsal {url}. Panel zůstal, jak byl; napiš tu adresu, jestli tam chceš jít.',
   'web.gone': 'Stránka v panelu skončila. Znovu ji načteš tlačítkem ↻.',
+  'draft.recovered': 'V {count} souborech se vrátily neuložené úpravy. Pořád jsou neuložené.',
   'window.rebuilt': 'Okno spadlo a postavilo se znovu. Shelly běží dál.',
   'place.shellStayed': 'Místo se přesunulo, ale shell má rozdělanou práci a zůstal v {dir}.',
   'prompt.noShell': 'Tady se nepodařilo nastartovat shell, takže se nic neposlalo a prompt ti zůstal.',

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { MAX_PROMPT, sanitisePane, sanitiseSession } from '../src/shared/session.ts'
+import { MAX_DRAFT, MAX_PROMPT, sanitisePane, sanitiseSession } from '../src/shared/session.ts'
 
 describe('sanitisePane', () => {
   it('keeps what it is given', () => {
@@ -116,6 +116,34 @@ describe('sanitiseSession', () => {
     const session = sanitiseSession({ tabs: [{ files: [] }, { files: ['a.md'] }], activeTab: 0 })
     assert.equal(session.tabs.length, 1)
     assert.deepEqual(session.tabs[0].files, ['a.md'])
+  })
+
+  /*
+   * An unsaved edit is work, and the window it lived in can be rebuilt without warning.
+   * Kept with the tab that holds the file, capped, and only for files that tab has.
+   */
+  it('keeps unsaved edits, for the files the tab holds', () => {
+    const session = sanitiseSession({
+      tabs: [
+        {
+          files: ['a.md', 'b.md'],
+          drafts: { 'a.md': 'half a sentence', 'c.md': 'not open here', 'b.md': '' }
+        }
+      ],
+      activeTab: 0
+    })
+    assert.deepEqual(session.tabs[0].drafts, { 'a.md': 'half a sentence' })
+  })
+
+  it('caps one edit rather than the file', () => {
+    const long = 'x'.repeat(MAX_DRAFT + 500)
+    const session = sanitiseSession({ tabs: [{ files: ['a.md'], drafts: { 'a.md': long } }] })
+    assert.equal(session.tabs[0].drafts?.['a.md'].length, MAX_DRAFT)
+  })
+
+  it('has no edits to keep when the file says nothing about them', () => {
+    const session = sanitiseSession({ tabs: [{ files: ['a.md'] }], activeTab: 0 })
+    assert.deepEqual(session.tabs[0].drafts, {})
   })
 
   /*
