@@ -391,9 +391,11 @@ Files passed on the command line are opened too, so the app works as a handler f
   terminal tab does. A tab that is nowhere has a shell in the home directory and nothing
   for `Ctrl+P` to search, which was the one thing left that made an empty tab useless.
 - **A tab over a directory.** *Open folder* - or a folder dropped into the window -
-  makes a tab that is a place with nothing open in it yet. The directory is what the
-  shell starts in, what `Ctrl+P` searches, what Run detects a project from, and what the
-  tab is called. Opening a file into that tab does not move it: the place was chosen, not
+  makes a tab that is a place with nothing open in it yet, and with its shell already
+  running: a place is a directory and the shell in it, so arriving somewhere and then
+  having to ask for the shell was two gestures for one intention. The directory is what
+  the shell starts in, what `Ctrl+P` searches, what Run detects a project from, and what
+  the tab is called. Opening a file into that tab does not move it: the place was chosen, not
   derived, so it outranks the file's own directory everywhere.
 
   Such a tab is remembered with nothing in it, which is the part that had to change in

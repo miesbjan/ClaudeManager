@@ -916,3 +916,7 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   a font fungovaly „samy" jen proto, že pro ně xterm žádné mapování nemá. Musí se tedy
   odmítnout i na straně terminálu, a ta podmínka je v `shared/shortcuts.ts`, aby se obě
   strany nemohly rozejít.
+- **23. 8. 2026** - Místo otevřené přes `Ctrl+G`, tlačítko nebo přetažením má shell
+  rovnou otevřený, jako tab z `Ctrl+T`. Dvě cesty ke stejné věci se chovaly různě a
+  nebylo pro to jiné vysvětlení než že se to zapomnělo dodělat; místo je adresář a shell
+  v něm, takže dojít někam a pak si teprve říct o shell jsou dva pohyby na jeden záměr.

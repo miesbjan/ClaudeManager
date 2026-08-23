@@ -2336,6 +2336,15 @@ async function useFolder(root: string): Promise<void> {
   const current = tabs[activeIndex]
   const tab = current && current.docs.length === 0 && current.root === null ? current : createTab()
   tab.root = root
+  /*
+   * With its shell open, like a tab made with Ctrl+T. A place is a directory and the
+   * shell running in it, so arriving somewhere and then having to ask for the shell was
+   * two gestures for one intention - and it made the two ways of opening a place behave
+   * differently for no reason anybody could see.
+   */
+  tab.terminalOpen = true
+  // A pane blown up to the whole tab would hide the shell that was just asked for.
+  tab.zoom = null
   activeIndex = tabs.indexOf(tab)
   // The place decides what Run offers, exactly as a document's directory used to.
   tab.project = await window.api.detectProject(root)
