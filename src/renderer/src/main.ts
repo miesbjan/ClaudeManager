@@ -358,6 +358,12 @@ function reveal(tab: Tab): void {
 /**
  * The directory a tab counts as being in: what it was opened over, what its project
  * turned out to be, or - for a tab that is only a file - where that file lives.
+ *
+ * One answer, for everything that asks. It used to be worked out in three places in
+ * three slightly different orders, and the differences showed: the shell was started in
+ * the directory the tab was opened over while the reading of what an agent had spent was
+ * looked up under the project root. For a tab over part of a bigger project those are
+ * different directories, so the numbers belonged to another session, or to none.
  */
 function placeOf(tab: Tab | undefined): string {
   return tab?.root ?? tab?.project?.root ?? shownDoc(tab)?.dir ?? tab?.docs[0]?.dir ?? ''
@@ -1017,12 +1023,20 @@ document.getElementById('find-close')?.addEventListener('click', closeFind)
  */
 const USAGE_POLL_MS = 4000
 
-function shellCwd(tab: Tab): string {
-  return tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
-}
+
+
+/**
+ * Which reading is the current one.
+ *
+ * Two of these can be in flight at once - the timer and every repaint start one - and
+ * the older answer arriving last used to win, putting one tab's numbers under another
+ * tab's name. The pattern is the same as the one guarding the place dialog.
+ */
+let usageQuery = 0
 
 async function refreshUsage(): Promise<void> {
   const tab = tabs[activeIndex]
+  const ticket = ++usageQuery
   if (!tab || !shells.has(tab.id)) {
     usageLabel.hidden = true
     usageLabel.textContent = ''
@@ -1036,8 +1050,13 @@ async function refreshUsage(): Promise<void> {
    */
   if (!document.hasFocus()) return
 
-  const usage = await window.api.readUsage(shellCwd(tab))
-  if (!usage) return
+  const usage = await window.api.readUsage(placeOf(tab))
+  /*
+   * Nothing to show, and the old value stays: between two turns there is nothing new to
+   * find and a readout that blanks itself is worse than one a minute old. A reading for
+   * a tab nobody is looking at any more is thrown away instead.
+   */
+  if (!usage || ticket !== usageQuery || tabs[activeIndex] !== tab) return
 
   usageLabel.hidden = false
   usageLabel.textContent =
@@ -1591,7 +1610,7 @@ async function openShell(tab: Tab): Promise<void> {
   }
   if (!pane) {
     // The chosen place first: a file opened in it does not move the tab somewhere else.
-    const cwd = tab.root ?? tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
+    const cwd = placeOf(tab)
     pane = new TerminalPane(
       tab.id,
       cwd,
@@ -2613,6 +2632,7 @@ async function openFolder(): Promise<void> {
 async function useFolder(root: string): Promise<void> {
   const current = tabs[activeIndex]
   const tab = current && current.docs.length === 0 && current.root === null ? current : createTab()
+  const cameFrom = placeOf(tab)
   tab.root = root
   /*
    * With its shell open, like a tab made with Ctrl+T. A place is a directory and the
@@ -2624,11 +2644,30 @@ async function useFolder(root: string): Promise<void> {
   // A pane blown up to the whole tab would hide the shell that was just asked for.
   tab.zoom = null
   activeIndex = tabs.indexOf(tab)
+
+  /*
+   * A shell already running here was started somewhere else - an empty tab taken over by
+   * this place had one in the home directory - and a place whose shell is in a different
+   * directory is not that place: Run would build the wrong thing, and every path printed
+   * in it resolves against the wrong root. So the shell follows the place.
+   *
+   * Unless something is running in it, which is nobody's to end from here. Then the
+   * shell stays and says so, which is at least true, and `Ctrl+`` twice is the way to
+   * get a shell in the new place once whatever it was doing has finished.
+   */
+  const pane = shells.get(tab.id)
+  const moved = pane !== undefined && cameFrom !== '' && cameFrom !== root
+  const busy = moved && interruptsWork(tab.activity)
+  if (moved && !busy) {
+    pane.dispose()
+    shells.delete(tab.id)
+  }
+
   // The place decides what Run offers, exactly as a document's directory used to.
   tab.project = await window.api.detectProject(root)
   render()
   persistSession()
-  status.textContent = root
+  status.textContent = busy ? T('place.shellStayed', { dir: cameFrom }) : root
 }
 
 async function pickFiles(): Promise<void> {
