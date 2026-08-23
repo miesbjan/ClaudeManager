@@ -936,3 +936,9 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   Server se kvůli tomu nezavírá - pravá strana přejde na „obojí", což je jedno `Alt+W`
   od kterékoli varianty, takže volba zůstane tam, kde ji člověk udělal. Totéž platí pro
   zvětšený panel: zoom na shell nebo server se ruší, na dokument se nechává.
+- **23. 8. 2026** - `Alt+1/2/3` panel otevřou, ne jen zaostří. „Jdi na server" je
+  otázka, na kterou se nedá odpovědět tím, že se nestane nic - a přesně to se dělo,
+  když ten panel nebyl vidět: `focusPane` zkontroloval `visiblePanes()` a mlčky se
+  vrátil. Je to ta samá díra jako u otevírání souboru za běžícím serverem, jen z druhé
+  strany. Nová klávesa se kvůli tomu nepřidávala: `Alt+3` je teď to jedno „ukaž server",
+  `Alt+1` otevře zavřený shell, a nic se za to nezavírá - pravá strana jde na „obojí".

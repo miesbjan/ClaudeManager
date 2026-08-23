@@ -123,7 +123,7 @@ panes**, with tmux's arrows and `z`:
 | Input                     | Action                                    |
 | ------------------------- | ----------------------------------------- |
 | `Alt+←` / `Alt+→`         | move focus to the pane in that direction  |
-| `Alt+1` / `Alt+2` / `Alt+3` | focus the shell / document / dev server |
+| `Alt+1` / `Alt+2` / `Alt+3` | go to the shell / document / dev server, opening it if it is not up |
 | `Alt+Shift+←` / `Alt+Shift+→` | move the divider by 5 %               |
 | `Alt+Z`                   | zoom the focused pane to the whole tab, and back |
 | `Alt+W`                   | right side: document, dev server, both     |
@@ -403,6 +403,11 @@ Files passed on the command line are opened too, so the app works as a handler f
   two places: a tab with no files used to be dropped both when reading the session file
   and when restoring it in the window. A tab that is a directory holds nothing by design,
   and the directory is the one thing it is.
+- **Going to a pane opens it.** `Alt+1`, `Alt+2` and `Alt+3` are "take me to the shell,
+  the document, the dev server" - so they bring that pane up rather than doing nothing
+  when it is not on screen. `Alt+3` is therefore the one key for "show me the server",
+  even from a tab that was showing only the document; `Alt+1` opens a shell that was
+  closed. Nothing is taken away for it: the right side goes to showing both.
 - **Opening a file shows it.** If the right side was on the dev server, or a pane was
   blown up to the whole tab, opening a document used to do everything except put it on
   screen: the tab was renamed, the window title changed, the status bar said it was

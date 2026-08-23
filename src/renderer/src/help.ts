@@ -76,7 +76,7 @@ const EN: HelpSection[] = [
     rows: [
       {
         keys: 'Alt+← / → / 1 / 2 / 3',
-        action: 'focus a pane: by side, or shell / doc / server'
+        action: 'go to a pane: by side, or shell / doc / server'
       },
       { keys: 'Alt+Shift+← / →', action: 'move the divider' },
       { keys: 'Alt+Z', action: 'zoom the focused pane, and back' },
@@ -144,7 +144,7 @@ const CS: HelpSection[] = [
     rows: [
       {
         keys: 'Alt+← / → / 1 / 2 / 3',
-        action: 'fokus na panel: podle strany, nebo shell / dokument / server'
+        action: 'jdi na panel: podle strany, nebo shell / dokument / server'
       },
       { keys: 'Alt+Shift+← / →', action: 'posunout dělič' },
       { keys: 'Alt+Z', action: 'zvětšit zaostřený panel a zpět' },

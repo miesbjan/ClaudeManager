@@ -287,20 +287,37 @@ async function openFiles(paths: string[], activate = true, into?: Tab): Promise<
 }
 
 /**
- * Whatever it takes for the document to be on screen.
+ * Whatever it takes for a pane to be on screen.
  *
- * Opening a file did everything except show it when the right side was on the dev server
- * or a pane was blown up: the tab was renamed, the title changed, the status bar said it
- * was loaded, and the document was behind the server the whole time. An action whose only
- * evidence is somewhere other than where you are looking reads as a broken application.
+ * Opening a file used to do everything except show it when the right side was on the dev
+ * server or a pane was blown up: the tab was renamed, the title changed, the status bar
+ * said it was loaded, and the document was behind the server the whole time. An action
+ * whose only evidence is somewhere other than where you are looking reads as a broken
+ * application. `Alt+1`, `Alt+2` and `Alt+3` had the same hole from the other side - they
+ * asked to go to a pane and did nothing at all when that pane was not up.
  *
- * The server is not taken away for it - it goes to showing both, which is one `Alt+W`
- * from either arrangement, and the choice is left where it was made.
+ * Nothing is taken away for it. The right side goes to showing both, which is one
+ * `Alt+W` from either arrangement, so the choice stays where it was made; only a zoom on
+ * some other pane has to go, since that is what a zoom is.
  */
+function showPane(tab: Tab | undefined, which: PaneName): void {
+  if (!tab) return
+  if (which === 'terminal' && !tab.terminalOpen) {
+    tab.terminalOpen = true
+    void openShell(tab)
+  }
+  if (which === 'document' && tab.rightMode === 'web') tab.rightMode = 'both'
+  /*
+   * The web pane with no address is the pane plus its address bar, which is the way to
+   * type one in - so asking for the server before there is one is a fair question.
+   */
+  if (which === 'web' && tab.rightMode === 'doc') tab.rightMode = 'both'
+  if (tab.zoom !== null && tab.zoom !== which) tab.zoom = null
+}
+
+/** The document, by whatever route it was opened. */
 function reveal(tab: Tab): void {
-  if (tab.rightMode === 'web') tab.rightMode = 'both'
-  // A shell or a server blown up to the whole tab hides the document just as well.
-  if (tab.zoom !== null && tab.zoom !== 'document') tab.zoom = null
+  showPane(tab, 'document')
 }
 
 /**
@@ -1462,7 +1479,12 @@ function runPaneCommand(command: PaneCommand): void {
     return
   }
   if (command.type === 'focusIndex') {
-    focusPane(command.index === 1 ? 'terminal' : command.index === 2 ? 'document' : 'web')
+    const which = command.index === 1 ? 'terminal' : command.index === 2 ? 'document' : 'web'
+    // Asking to go somewhere is asking to see it; a pane out of sight is not an answer.
+    showPane(tab, which)
+    applyLayout()
+    focusPane(which)
+    persistSession()
     return
   }
   if (command.type === 'web') {
