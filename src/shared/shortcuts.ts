@@ -47,17 +47,20 @@ export function tabDigit(event: KeyLike): number | null {
  * therefore never see.
  *
  * Most of what the app claims needs no announcement here, because xterm has no meaning
- * for it: `Ctrl+``, `Ctrl+=` and the rest simply fall through to the window. These two
- * are different - Ctrl+T and Ctrl+G are control characters on the wire (0x14 and 0x07),
- * so xterm swallows them, sends them to the shell and stops the event. Refusing them in
- * the terminal is what lets them reach the window at all.
+ * for it: `Ctrl+``, `Ctrl+=` and the rest simply fall through to the window. These three
+ * are different - Ctrl+T, Ctrl+G and Ctrl+P are control characters on the wire (0x14,
+ * 0x07 and 0x10), so xterm swallows them, sends them to the shell and stops the event.
+ * Refusing them in the terminal is what lets them reach the window at all.
  *
- * Both are bound in Claude Code, and taken anyway: going to another place is the thing
- * this application is for, and having to leave the shell to do it defeats the point.
+ * All three are bound in Claude Code, and taken anyway: another place, which place, and
+ * which file are the three questions this application exists to answer, and having to
+ * leave the shell to ask one of them defeats the point. What each costs is in the
+ * decision log; Ctrl+P costs the least of them, since it recalls history there and the
+ * up arrow does the same thing.
  */
 export function claimedFromShell(event: KeyLike): boolean {
   if (!event.ctrlKey || event.altKey || event.metaKey) return false
-  return event.code === 'KeyT' || event.code === 'KeyG'
+  return event.code === 'KeyT' || event.code === 'KeyG' || event.code === 'KeyP'
 }
 
 /**

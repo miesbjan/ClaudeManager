@@ -2437,6 +2437,12 @@ window.addEventListener('keydown', (event) => {
     newTab()
     return
   }
+  if (event.code === 'KeyP') {
+    event.preventDefault()
+    if (palette.hidden) void openPalette()
+    else closePalette()
+    return
+  }
   if (event.code === 'KeyG') {
     event.preventDefault()
     if (place.hidden) openPlace()
@@ -2465,10 +2471,6 @@ window.addEventListener('keydown', (event) => {
   } else if (key === 'o') {
     event.preventDefault()
     void pickFiles()
-  } else if (event.code === 'KeyP') {
-    event.preventDefault()
-    if (palette.hidden) void openPalette()
-    else closePalette()
   } else if (key === 'w') {
     event.preventDefault()
     void closeDoc()

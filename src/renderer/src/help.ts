@@ -92,8 +92,8 @@ const EN: HelpSection[] = [
     rows: [
       { keys: 'Ctrl+V / Ctrl+Shift+C', action: 'paste / copy the selection' },
       {
-        keys: 'Ctrl+Shift+O, P, W, R, D',
-        action: 'the app shortcuts above; Ctrl+T, G, 1…9 as they are'
+        keys: 'Ctrl+Shift+O, W, R, D',
+        action: 'the app shortcuts above; Ctrl+P, T, G, 1…9 as they are'
       },
       { keys: 'everything else', action: 'goes to the shell untouched' }
     ]
@@ -157,8 +157,8 @@ const CS: HelpSection[] = [
     rows: [
       { keys: 'Ctrl+V / Ctrl+Shift+C', action: 'vložit / kopírovat výběr' },
       {
-        keys: 'Ctrl+Shift+O, P, W, R, D',
-        action: 'zkratky aplikace výše; Ctrl+T, G, 1…9 i bez shiftu'
+        keys: 'Ctrl+Shift+O, W, R, D',
+        action: 'zkratky aplikace výše; Ctrl+P, T, G, 1…9 i bez shiftu'
       },
       { keys: 'cokoli dalšího', action: 'jde nedotčené do shellu' }
     ]

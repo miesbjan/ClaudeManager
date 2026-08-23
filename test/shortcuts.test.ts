@@ -18,9 +18,10 @@ function press(overrides: Partial<KeyLike>): KeyLike {
  * window never hears about them. They have to be refused in the terminal by name.
  */
 describe('claimedFromShell', () => {
-  it('takes the two keys the app needs from inside the shell', () => {
+  it('takes the three keys the app needs from inside the shell', () => {
     assert.equal(claimedFromShell(press({ code: 'KeyT', altKey: false, ctrlKey: true })), true)
     assert.equal(claimedFromShell(press({ code: 'KeyG', altKey: false, ctrlKey: true })), true)
+    assert.equal(claimedFromShell(press({ code: 'KeyP', altKey: false, ctrlKey: true })), true)
   })
 
   it('leaves everything else to the shell', () => {
