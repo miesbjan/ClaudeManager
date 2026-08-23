@@ -239,10 +239,17 @@ function finishRename(index: number, name: string): void {
   persistSession()
 }
 
-/** A fresh place, with nothing open in it yet. */
-function createTab(): Tab {
+/**
+ * A fresh place, with nothing open in it yet.
+ *
+ * A restored tab brings its own name from the session file, because a shell belongs to a
+ * tab by that name and outlives the window: handing out new names in file order would
+ * hand a rebuilt window somebody else's shell. `keepName` also moves the counter past
+ * anything restored, so a tab opened afterwards cannot collide with one.
+ */
+function createTab(keepName?: string | null): Tab {
   const tab: Tab = {
-    id: 'tab-' + nextTabId++,
+    id: keepName ?? 'tab-' + nextTabId++,
     docs: [],
     docIndex: -1,
     name: null,
@@ -268,6 +275,12 @@ function createTab(): Tab {
   }
   tabs.push(tab)
   return tab
+}
+
+/** Keep the counter clear of every name already in use, whoever handed it out. */
+function reserveName(name: string | null | undefined): void {
+  const number = typeof name === 'string' ? Number(name.replace('tab-', '')) : Number.NaN
+  if (Number.isInteger(number) && number >= nextTabId) nextTabId = number + 1
 }
 
 /**
@@ -426,24 +439,43 @@ window.api.onAsk(({ id, kind }) => {
   void question.then((answer) => window.api.answerAsk(id, answer))
 })
 
+/**
+ * Closes a tab, asking first about anything running in it and anything unsaved.
+ *
+ * The questions take as long as a person takes, and the window keeps working while they
+ * are up: another tab can be closed, tabs can be reordered. So the tab is held by
+ * identity and its position is looked up again afterwards - the index this was called
+ * with describes where the tab was, not which tab it is, and acting on the stale one
+ * closed a tab nobody had asked about and threw away its unsaved files unasked.
+ */
 async function closeTab(index: number): Promise<void> {
   const tab = tabs[index]
   if (!tab) return
   if (!(await confirmInterrupt(tab))) return
   if (!(await confirmDiscard(tab.docs))) return
+  const at = indexOfId(tab.id)
+  // Somebody else closed it while the question was up; there is nothing left to do.
+  if (at < 0) return
   for (const doc of tab.docs) unwatchUnlessOpenElsewhere(doc.path, doc)
+  /*
+   * The shell is ended by name rather than through the pane. After a rebuilt window only
+   * the tab on screen has one, so a tab closed without ever having been looked at would
+   * have left its shell running with nobody to show it and nobody to end it.
+   */
   shells.get(tab.id)?.dispose()
   shells.delete(tab.id)
+  window.api.terminal.kill(tab.id)
   signalReaders.delete(tab.id)
   urlReaders.delete(tab.id)
   const silence = silenceTimers.get(tab.id)
   if (silence) window.clearTimeout(silence)
   silenceTimers.delete(tab.id)
-  tabs.splice(index, 1)
+  tabs.splice(at, 1)
   if (tabs.length === 0) activeIndex = -1
-  else if (index < activeIndex) activeIndex--
-  else if (index === activeIndex) activeIndex = Math.min(index, tabs.length - 1)
+  else if (at < activeIndex) activeIndex--
+  else if (at === activeIndex) activeIndex = Math.min(at, tabs.length - 1)
   render()
+  reportTaskbar()
   persistSession()
 }
 
@@ -460,9 +492,16 @@ async function closeDoc(): Promise<void> {
     return
   }
   if (!(await confirmDiscard([doc]))) return
+  /*
+   * By identity, not by position: the question can be answered long after it was asked,
+   * and Ctrl+PageDown in the meantime would otherwise throw away a different file than
+   * the one that was asked about.
+   */
+  const at = tab.docs.indexOf(doc)
+  if (at < 0) return
   unwatchUnlessOpenElsewhere(doc.path, doc)
-  const next = indexAfterClose(tab.docs.length, tab.docIndex, tab.docIndex)
-  tab.docs.splice(tab.docIndex, 1)
+  const next = indexAfterClose(tab.docs.length, at, tab.docIndex)
+  tab.docs.splice(at, 1)
   tab.docIndex = next
   render()
   persistSession()
@@ -646,11 +685,16 @@ function renderStatus(tab: Tab, doc: Doc): void {
 }
 
 function persistSession(): void {
+  /*
+   * A place is worth remembering even with nothing open in it, and so is a tab holding a
+   * shell - whatever runs in one is the work, and a tab left out of the file is a tab
+   * whose shell nobody claims after a rebuild, which ends it. An empty box is neither.
+   */
+  const worth = tabs.filter((tab) => tab.docs.length > 0 || tab.root !== null || tab.terminalOpen)
   window.api.saveSession({
-    tabs: tabs
-      // A place is worth remembering even with nothing open in it; an empty box is not.
-      .filter((tab) => tab.docs.length > 0 || tab.root !== null)
+    tabs: worth
       .map((tab) => ({
+        id: tab.id,
         files: tab.docs.map((doc) => doc.path),
         active: shownDoc(tab)?.path ?? null,
         name: tab.name,
@@ -667,7 +711,9 @@ function persistSession(): void {
           root: tab.root
         }
       })),
-    activeTab: Math.max(activeIndex, 0)
+    // An index into what is being written, not into what is on screen: the two differ
+    // whenever an empty box sits in front of the tab you are in.
+    activeTab: Math.max(worth.indexOf(tabs[activeIndex]), 0)
   })
 }
 
@@ -781,19 +827,34 @@ function hideContextMenu(): void {
 async function closeOthers(keep: number): Promise<void> {
   const kept = tabs[keep]
   if (!kept) return
-  const others = tabs.filter((tab) => tab !== kept)
+  const asked = tabs.filter((tab) => tab !== kept)
   // Several tabs at once: one question about all of them, not one each.
-  const busy = others.filter((tab) => interruptsWork(tab.activity)).length
+  const busy = asked.filter((tab) => interruptsWork(tab.activity)).length
   if (busy > 0 && (await ask(T('close.busyMany', { count: busy }), 'close.stop')) !== 0) return
-  if (!(await confirmDiscard(others.flatMap((tab) => tab.docs)))) return
-  for (const tab of others) {
+  if (!(await confirmDiscard(asked.flatMap((tab) => tab.docs)))) return
+  /*
+   * Only what was asked about: a tab opened while the question was up was never part of
+   * it, and sweeping the whole list closed it without a word - along with whatever had
+   * been started in it.
+   */
+  const going = asked.filter((tab) => tabs.includes(tab))
+  if (!tabs.includes(kept)) return
+  // Removed first, so a file open in two of them is not read as "open elsewhere".
+  tabs.splice(0, tabs.length, ...tabs.filter((tab) => !going.includes(tab)))
+  for (const tab of going) {
     for (const doc of tab.docs) unwatchUnlessOpenElsewhere(doc.path, doc)
     shells.get(tab.id)?.dispose()
     shells.delete(tab.id)
+    window.api.terminal.kill(tab.id)
+    signalReaders.delete(tab.id)
+    urlReaders.delete(tab.id)
+    const silence = silenceTimers.get(tab.id)
+    if (silence) window.clearTimeout(silence)
+    silenceTimers.delete(tab.id)
   }
-  tabs.splice(0, tabs.length, kept)
-  activeIndex = 0
+  activeIndex = tabs.indexOf(kept)
   render()
+  reportTaskbar()
   persistSession()
 }
 
@@ -2692,9 +2753,12 @@ async function start(): Promise<void> {
   setTheme(startup.theme, false)
   terminalFont = startup.font
 
+  // Names first, so a tab restored without one cannot be given a name still to come.
+  for (const saved of startup.tabs) reserveName(saved.id)
+
   // One place at a time, each with the files it held and the file that was on screen.
   for (const saved of startup.tabs) {
-    const tab = createTab()
+    const tab = createTab(saved.id)
     await openFiles(saved.files, false, tab)
     const shown = saved.active ? tab.docs.findIndex((doc) => samePath(doc.path, saved.active!)) : -1
     tab.docIndex = shown >= 0 ? shown : 0
@@ -2718,11 +2782,14 @@ async function start(): Promise<void> {
 
   /*
    * A place whose every file has vanished is not worth restoring as an empty one - but a
-   * tab opened over a directory holds nothing by design, and the directory is the thing
-   * it was. Only a tab that is neither goes.
+   * tab opened over a directory holds nothing by design, and a tab with a shell open
+   * holds whatever is running in it, which is the work. Only a tab that is none of the
+   * three goes; dropping one with a shell would leave that shell unclaimed, and
+   * unclaimed is how a shell gets ended.
    */
   for (let i = tabs.length - 1; i >= 0; i--) {
-    if (tabs[i].docs.length === 0 && tabs[i].root === null) tabs.splice(i, 1)
+    const tab = tabs[i]
+    if (tab.docs.length === 0 && tab.root === null && !tab.terminalOpen) tabs.splice(i, 1)
   }
   activeIndex = tabs.length === 0 ? -1 : Math.min(startup.activeTab, tabs.length - 1)
   /*

@@ -100,6 +100,8 @@ describe('sanitiseSession', () => {
     })
     assert.equal(session.tabs.length, 2)
     assert.deepEqual(session.tabs[0], {
+      // A file from back then carries no name for its tab; the window gives it one.
+      id: null,
       files: ['C:/x/a.md'],
       active: 'C:/x/a.md',
       pane: sanitisePane({ terminal: true, ratio: 0.35 }),
@@ -114,6 +116,55 @@ describe('sanitiseSession', () => {
     const session = sanitiseSession({ tabs: [{ files: [] }, { files: ['a.md'] }], activeTab: 0 })
     assert.equal(session.tabs.length, 1)
     assert.deepEqual(session.tabs[0].files, ['a.md'])
+  })
+
+  /*
+   * The name of a tab is what a shell belongs to, and shells outlive the window: a
+   * rebuilt window asks for them back by it. Handing the names out again in file order
+   * would give a tab somebody else's shell, so what the file says is kept.
+   */
+  it('keeps the name each tab was written under', () => {
+    const session = sanitiseSession({
+      tabs: [
+        { id: 'tab-7', files: ['a.md'] },
+        { id: 'tab-2', files: ['b.md'] }
+      ],
+      activeTab: 0
+    })
+    assert.deepEqual(
+      session.tabs.map((tab) => tab.id),
+      ['tab-7', 'tab-2']
+    )
+  })
+
+  it('refuses a name twice over, since one shell cannot belong to two tabs', () => {
+    const session = sanitiseSession({
+      tabs: [
+        { id: 'tab-1', files: ['a.md'] },
+        { id: 'tab-1', files: ['b.md'] }
+      ],
+      activeTab: 0
+    })
+    assert.equal(session.tabs[0].id, 'tab-1')
+    assert.equal(session.tabs[1].id, null, 'the second one is named by the window instead')
+  })
+
+  it('has no name to keep when the file was written before names were', () => {
+    const session = sanitiseSession({ tabs: [{ files: ['a.md'] }], activeTab: 0 })
+    assert.equal(session.tabs[0].id, null)
+  })
+
+  /*
+   * A tab with a shell open holds whatever runs in it. Left out of the file, that shell
+   * is unclaimed after a rebuilt window - and unclaimed is how a shell gets ended.
+   */
+  it('keeps a tab that is only a shell', () => {
+    const session = sanitiseSession({
+      tabs: [{ files: [], pane: { terminal: true } }],
+      activeTab: 0
+    })
+    assert.equal(session.tabs.length, 1)
+    assert.equal(session.tabs[0].pane.terminal, true)
   })
 
   /*

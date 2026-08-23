@@ -57,19 +57,29 @@ function paths(raw: unknown): string[] {
 function readTabs(raw: unknown): SessionTab[] {
   if (!Array.isArray(raw)) return []
   const tabs: SessionTab[] = []
+  const taken = new Set<string>()
   for (const entry of raw) {
     if (!entry || typeof entry !== 'object') continue
     const files = paths((entry as { files?: unknown }).files)
     const pane = sanitisePane((entry as { pane?: unknown }).pane)
     /*
      * A tab is a place, and a place can be a directory with nothing open in it yet -
-     * that is the whole point of opening a tab over a folder. What is worth nothing is a
-     * tab that is neither: no files and no directory is an empty box.
+     * that is the whole point of opening a tab over a folder. A tab holding a shell is
+     * worth keeping for the same reason, since whatever runs in it is the work. What is
+     * worth nothing is a tab that is none of the three: an empty box.
      */
-    if (files.length === 0 && pane.root === null) continue
+    if (files.length === 0 && pane.root === null && !pane.terminal) continue
     const active = (entry as { active?: unknown }).active
     const name = (entry as { name?: unknown }).name
+    /*
+     * A name kept from the file, and only if no earlier tab already has it: two tabs
+     * answering to one name would both be handed the same shell.
+     */
+    const id = (entry as { id?: unknown }).id
+    const kept = typeof id === 'string' && id !== '' && !taken.has(id) ? id : null
+    if (kept !== null) taken.add(kept)
     tabs.push({
+      id: kept,
       files,
       active: typeof active === 'string' && files.includes(active) ? active : (files[0] ?? null),
       pane,
@@ -86,6 +96,7 @@ function fromDocumentsPerTab(raw: Record<string, unknown>): SessionTab[] {
     unknown
   >
   return paths(raw.files).map((file) => ({
+    id: null,
     files: [file],
     active: file,
     pane: sanitisePane(panes[file]),

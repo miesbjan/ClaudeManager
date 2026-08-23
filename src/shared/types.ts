@@ -114,6 +114,20 @@ export type ProjectInfo = {
 
 /** One place, with the files it holds and which of them was on screen. */
 export type SessionTab = {
+  /**
+   * Which tab this is, kept rather than derived.
+   *
+   * A shell belongs to a tab by this name, and shells outlive the window they are shown
+   * in - so a window rebuilt from this file asks for its shells back by it. Handing the
+   * names out again in file order looked like the same thing and is not: close a tab,
+   * reorder two, drop an empty one, and every name afterwards points at a different tab
+   * than it did. That was the difference between taking a shell back and killing it, and
+   * for two tabs over one directory it was worse than either - they swapped agents.
+   *
+   * Absent in a file written before this existed, in which case the window names the tab
+   * itself and nothing is lost beyond that one restore.
+   */
+  id?: string | null
   files: string[]
   active: string | null
   pane: PaneState
