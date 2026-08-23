@@ -1472,6 +1472,22 @@ function setWebUrl(tab: Tab, url: string | null, manual = false): void {
    * again. Pressing Run hands control back, since a new run announces itself.
    */
   if (!manual && tab.webManual) return
+  /*
+   * A different address printed while this tab's page is on screen does not replace it.
+   * A dev server announces itself once; everything after that is an agent or a log
+   * mentioning a URL, and taking those threw away the running application to show a path
+   * nobody asked for, or a port with nothing behind it. It is said out loud instead, so
+   * an address worth having is one keystroke away rather than lost.
+   *
+   * With nothing on screen there is nothing to lose, so the newest address wins - which
+   * is what keeps a server restarted onto another port from leaving the pane pointing at
+   * the old one. A deliberate run is handled below: that is somebody asking to look.
+   */
+  const showing = tab.webUrl !== null && tab.rightMode !== 'doc' && !tab.webBroken
+  if (!manual && !tab.awaitingServer && showing && url !== tab.webUrl) {
+    if (tab === tabs[activeIndex]) status.textContent = T('web.another', { url })
+    return
+  }
   if (manual) tab.webManual = true
   // An address given on purpose is a request to see it, whatever happened here before.
   if (manual) tab.webBroken = false
@@ -1491,8 +1507,14 @@ function setWebUrl(tab: Tab, url: string | null, manual = false): void {
     tab.webBroken = false
     if (tab.rightMode === 'doc') tab.rightMode = 'web'
     tab.zoom = null
-    // A fresh run means a fresh server; do not leave the previous page in the pane.
-    replaceWebFrame()
+    /*
+     * A fresh run means a fresh server, so the previous page does not stay - but the
+     * element is shared by every tab, and throwing it away for a tab nobody is looking at
+     * blanked the page somebody was. The tab on screen gets a new element; a tab in the
+     * background gets one when it comes back, since nothing of it is on screen to keep.
+     */
+    if (tab === tabs[activeIndex]) replaceWebFrame()
+    else webFrameUrl = null
   } else if (!isNew) {
     return
   }
@@ -1545,12 +1567,16 @@ document.getElementById('web-reload')?.addEventListener('click', () => {
 window.api.onWebGone(() => {
   /*
    * The element is dead from here on: it is thrown away at once, because the next
-   * repaint would otherwise hand it an address and take the application with it. The
-   * tab it was showing is marked so the page is not loaded again until asked for -
-   * a page that dies on load would otherwise be reloaded for as long as the tab lived.
+   * repaint would otherwise hand it an address and take the application with it. The tab
+   * it was showing is marked so the page is not loaded again until asked for - a page
+   * that dies on load would otherwise be reloaded for as long as the tab lived.
+   *
+   * The tab it was showing is the tab on screen: the element is shared and only ever
+   * holds the active tab's page. Looking for whichever tab happened to hold that address
+   * marked the wrong one when two of them pointed at the same port, and any tab at all
+   * when the address had already been cleared.
    */
-  const dead = webFrame.getAttribute('src')
-  const tab = tabs.find((candidate) => candidate.webUrl === dead) ?? tabs[activeIndex]
+  const tab = tabs[activeIndex]
   if (tab) tab.webBroken = true
   replaceWebFrame()
   status.textContent = T('web.gone')

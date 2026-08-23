@@ -97,6 +97,7 @@ const en = {
   'run.ways': '{count} ways to run',
 
   'web.onlyLocal': 'Only addresses on this machine can be shown here.',
+  'web.another': 'The shell printed {url}. The pane is left as it is; type it in to go there.',
   'web.gone': 'The page in the pane stopped. Press ↻ to load it again.',
   'window.rebuilt': 'The window stopped and was rebuilt. The shells kept running.',
   'place.shellStayed': 'The place moved, but its shell is busy and stayed in {dir}.',
@@ -236,6 +237,7 @@ const cs: Record<StringKey, string> = {
   'run.ways': '{count} způsobů spuštění',
 
   'web.onlyLocal': 'Zobrazit lze jen adresu na tomto stroji.',
+  'web.another': 'Shell vypsal {url}. Panel zůstal, jak byl; napiš tu adresu, jestli tam chceš jít.',
   'web.gone': 'Stránka v panelu skončila. Znovu ji načteš tlačítkem ↻.',
   'window.rebuilt': 'Okno spadlo a postavilo se znovu. Shelly běží dál.',
   'place.shellStayed': 'Místo se přesunulo, ale shell má rozdělanou práci a zůstal v {dir}.',
