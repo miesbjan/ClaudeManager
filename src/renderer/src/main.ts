@@ -281,8 +281,26 @@ async function openFiles(paths: string[], activate = true, into?: Tab): Promise<
     if (!doc.error) window.api.noteOpenedFile(placeOf(tab), doc.path)
   }
   if (activeIndex < 0 && tabs.length > 0) activeIndex = 0
+  if (activate && tab) reveal(tab)
   render()
   persistSession()
+}
+
+/**
+ * Whatever it takes for the document to be on screen.
+ *
+ * Opening a file did everything except show it when the right side was on the dev server
+ * or a pane was blown up: the tab was renamed, the title changed, the status bar said it
+ * was loaded, and the document was behind the server the whole time. An action whose only
+ * evidence is somewhere other than where you are looking reads as a broken application.
+ *
+ * The server is not taken away for it - it goes to showing both, which is one `Alt+W`
+ * from either arrangement, and the choice is left where it was made.
+ */
+function reveal(tab: Tab): void {
+  if (tab.rightMode === 'web') tab.rightMode = 'both'
+  // A shell or a server blown up to the whole tab hides the document just as well.
+  if (tab.zoom !== null && tab.zoom !== 'document') tab.zoom = null
 }
 
 /**

@@ -403,6 +403,11 @@ Files passed on the command line are opened too, so the app works as a handler f
   two places: a tab with no files used to be dropped both when reading the session file
   and when restoring it in the window. A tab that is a directory holds nothing by design,
   and the directory is the one thing it is.
+- **Opening a file shows it.** If the right side was on the dev server, or a pane was
+  blown up to the whole tab, opening a document used to do everything except put it on
+  screen: the tab was renamed, the window title changed, the status bar said it was
+  loaded, and the document sat behind the server. The server is not taken away for it -
+  the right side goes to showing both, one `Alt+W` from either arrangement.
 - **Where you were.** Each file remembers its scroll position, and remembers it twice:
   once for the rendered document and once for the plain-text pane. They measure different
   things - a place in a layout and a place in the text - so keeping one number would land

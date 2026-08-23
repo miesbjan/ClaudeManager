@@ -928,3 +928,11 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   napsaného promptu tomu, kdo chtěl paletu. Šipka nahoru přitom dělá v Claude Code
   totéž, takže `Ctrl+P` je tam duplikát z emacsu a cena za zabrání je nejmenší ze všech
   tří. Po opravě ověřeno v živé session: paleta se otevře a rozepsaný prompt zůstane.
+- **23. 8. 2026** - Otevření souboru si vynutí, aby byl vidět. Do teď se dal otevřít
+  dokument do tabu, kde vpravo běžel dev server, a stalo se všechno kromě toho, že by
+  ho bylo vidět: tab se přejmenoval, titulek okna se změnil, stavová lišta hlásila
+  načteno, a dokument byl schovaný za serverem. Akce, jejíž jediný důkaz je někde jinde,
+  než se člověk kouká, se čte jako rozbitá aplikace.
+  Server se kvůli tomu nezavírá - pravá strana přejde na „obojí", což je jedno `Alt+W`
+  od kterékoli varianty, takže volba zůstane tam, kde ji člověk udělal. Totéž platí pro
+  zvětšený panel: zoom na shell nebo server se ruší, na dokument se nechává.
