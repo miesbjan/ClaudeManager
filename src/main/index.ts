@@ -90,7 +90,7 @@ let trayText = {
   cancel: 'Cancel',
   hidden: 'Project Console is still running',
   hiddenBody: 'Sessions carry on. Click the tray icon to come back.',
-  closeAsk: 'Something is running in a shell. Close it, or keep it running in the tray?',
+  closeAsk: 'Something is running in a shell. Close it, or leave it running?',
   closeQuit: 'Close and stop it',
   closeKeep: 'Keep it running'
 }
@@ -112,14 +112,44 @@ function trayIcon(): Electron.NativeImage {
  * itself. A person reading the question takes as long as they take, and a timeout on
  * that put a second, system-drawn copy of the question on the screen beside the first.
  */
-let pendingAsk: { id: number; settle: (answer: number) => void; drawn: boolean } | null = null
+let pendingAsk: {
+  id: number
+  settle: (answer: number) => void
+  drawn: boolean
+  /** The answer that changes nothing, for when the question has to be given up on. */
+  safe: number
+} | null = null
 let nextAskId = 1
 
 /** How long the window gets to draw the box before the system box takes over. */
 const ASK_DRAW_MS = 1500
 
+/**
+ * Give up on the question the window was drawing, whatever it was.
+ *
+ * A question is a promise somebody is waiting on - to close the window, to quit - and the
+ * window can vanish while it is on screen. Then the answer never comes, the promise never
+ * settles, and the intention behind it is silently dropped: a cross that stops working, a
+ * Quit that does nothing. Ending it with the safe answer is the least it can do.
+ */
+function abandonAsk(why: string): void {
+  if (!pendingAsk) return
+  note('the question on screen was abandoned (' + why + ')')
+  // The last button is the one that changes nothing; `askWindow` puts it there.
+  pendingAsk.settle(pendingAsk.safe)
+}
+
 function askWindow(kind: AskKind, fallback: { message: string; buttons: string[] }): Promise<number> {
   if (!win || win.isDestroyed()) return Promise.resolve(systemAsk(fallback))
+  /*
+   * One at a time. A second question used to take the slot and leave the first waiting for
+   * an answer that could no longer reach it - so the window kept a box nobody's reply
+   * would settle, and whatever it was asking about never happened.
+   */
+  if (pendingAsk) {
+    note('a question was asked while one was already up; the new one is refused')
+    return Promise.resolve(fallback.buttons.length - 1)
+  }
 
   const id = nextAskId++
   return new Promise<number>((resolve) => {
@@ -134,7 +164,7 @@ function askWindow(kind: AskKind, fallback: { message: string; buttons: string[]
     const timer = setTimeout(() => {
       if (pendingAsk?.id === id && !pendingAsk.drawn) settle(systemAsk(fallback))
     }, ASK_DRAW_MS)
-    pendingAsk = { id, settle, drawn: false }
+    pendingAsk = { id, settle, drawn: false, safe: fallback.buttons.length - 1 }
     win?.webContents.send('ask:show', { id, kind })
   })
 }
@@ -210,7 +240,15 @@ function refreshTray(): void {
 function ensureTray(): void {
   if (tray) return
   const icon = trayIcon()
-  if (icon.isEmpty()) return
+  if (icon.isEmpty()) {
+    /*
+     * No icon, no tray, and therefore nowhere to put a hidden window: closing it has to
+     * end the application instead. Worth a line, because everything downstream of it -
+     * the balloon, the menu, closing behaving differently - then quietly does not happen.
+     */
+    note('there is no tray icon, so closing the window will end the application')
+    return
+  }
   tray = new Tray(icon)
   tray.setToolTip('Project Console')
   tray.on('click', showWindow)
@@ -406,8 +444,12 @@ function createWindow(): void {
    * the window without losing the work is worth more than the simplicity was.
    */
   win.webContents.on('render-process-gone', (_event, details) => {
+    abandonAsk('the window went away while it was on screen')
+    if (details.reason === 'clean-exit') {
+      note('the window went away (clean-exit); leaving it alone')
+      return
+    }
     note('the window went away (' + details.reason + '); rebuilding it')
-    if (details.reason === 'clean-exit') return
     rebuilt = true
     // The shells are still running; a window is the one part of this that is cheap.
     win?.webContents.reload()
@@ -502,13 +544,19 @@ function createWindow(): void {
         buttons: [trayText.closeQuit, trayText.closeKeep]
       }).then((answer) => {
         if (answer === 0) quitNow()
-        else hideWindow()
+        /*
+         * Keeping it means keeping it where it can be found. With a tray icon that is
+         * out of the way behind it; without one there is nowhere to put it, so the
+         * window simply stays - the close was refused before the question was asked.
+         */
+        else if (tray) hideWindow()
       })
       return
     }
     quitNow()
   })
   win.on('closed', () => {
+    abandonAsk('the window closed')
     win = null
   })
 

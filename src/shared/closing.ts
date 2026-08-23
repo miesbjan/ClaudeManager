@@ -32,8 +32,14 @@ export type CloseState = {
 }
 
 export function closeAction(state: CloseState): CloseAction {
-  // Without a way back to a hidden window, hiding it would be losing it.
-  if (state.quitting || !state.tray) return 'quit'
+  if (state.quitting) return 'quit'
+  /*
+   * Without a way back to a hidden window, hiding it would be losing it - so the window
+   * goes. But going takes every shell with it, and that is worth a question first: this
+   * used to be the one path where a click meant to tidy the desktop ended an agent
+   * mid-job without asking. There is nothing to ask about when nothing is running.
+   */
+  if (!state.tray) return state.guarded || state.shells > 0 ? 'ask' : 'quit'
   if (state.guarded) return 'hide'
   /*
    * A shell nobody recognised is the case this exists for. It may be an agent whose

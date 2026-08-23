@@ -35,7 +35,21 @@ describe('closeAction', () => {
 
   // A hidden window with no tray icon is a lost window, which is worse than a lost shell.
   it('never hides without a tray icon to come back through', () => {
-    assert.equal(closeAction(state({ tray: false, guarded: true, shells: 1 })), 'quit')
-    assert.equal(closeAction(state({ tray: false, shells: 1 })), 'quit')
+    assert.notEqual(closeAction(state({ tray: false, guarded: true, shells: 1 })), 'hide')
+    assert.notEqual(closeAction(state({ tray: false, shells: 1 })), 'hide')
+  })
+
+  /*
+   * Going is the only thing it can do without a tray icon, and going takes every shell
+   * with it - so it asks first. A click meant to tidy the desktop should not be the end
+   * of an agent's job without a word.
+   */
+  it('asks before going without a tray icon, if anything is running', () => {
+    assert.equal(closeAction(state({ tray: false, guarded: true, shells: 1 })), 'ask')
+    assert.equal(closeAction(state({ tray: false, shells: 1 })), 'ask')
+  })
+
+  it('just goes without a tray icon when nothing is running', () => {
+    assert.equal(closeAction(state({ tray: false })), 'quit')
   })
 })
