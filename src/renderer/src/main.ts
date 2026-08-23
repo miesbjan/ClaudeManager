@@ -2416,6 +2416,25 @@ window.addEventListener('keydown', (event) => {
     return
   }
 
+  /*
+   * Going somewhere is not something to have to leave the shell for, and these are the
+   * two keys for it: another place, and which place. Both are bound in Claude Code -
+   * Ctrl+G opens its external editor, Ctrl+T toggles its todo list - and both are taken
+   * anyway, deliberately: this is the one workflow the application exists for, and the
+   * prompt buffer covers the same need as the editor Ctrl+G opened. See the decision log.
+   */
+  if (event.code === 'KeyT') {
+    event.preventDefault()
+    newTab()
+    return
+  }
+  if (event.code === 'KeyG') {
+    event.preventDefault()
+    if (place.hidden) openPlace()
+    else closePlace()
+    return
+  }
+
   const digit = tabDigit(event) ?? 0
 
   /*
@@ -2428,10 +2447,7 @@ window.addEventListener('keydown', (event) => {
 
   const key = event.key.toLowerCase()
 
-  if (key === 't') {
-    event.preventDefault()
-    newTab()
-  } else if (key === 'e') {
+  if (key === 'e') {
     event.preventDefault()
     toggleRaw()
   } else if (key === 's') {
@@ -2444,10 +2460,6 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault()
     if (palette.hidden) void openPalette()
     else closePalette()
-  } else if (event.code === 'KeyG') {
-    event.preventDefault()
-    if (place.hidden) openPlace()
-    else closePlace()
   } else if (key === 'w') {
     event.preventDefault()
     void closeDoc()

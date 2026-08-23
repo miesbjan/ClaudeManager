@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  claimedFromShell,
   paneCommand,
   RESIZE_STEP,
   tabDigit,
@@ -11,6 +12,24 @@ import {
 function press(overrides: Partial<KeyLike>): KeyLike {
   return { key: '', code: '', altKey: true, ctrlKey: false, shiftKey: false, ...overrides }
 }
+
+/*
+ * Ctrl+T and Ctrl+G are control characters on the wire, so xterm swallows them and the
+ * window never hears about them. They have to be refused in the terminal by name.
+ */
+describe('claimedFromShell', () => {
+  it('takes the two keys the app needs from inside the shell', () => {
+    assert.equal(claimedFromShell(press({ code: 'KeyT', altKey: false, ctrlKey: true })), true)
+    assert.equal(claimedFromShell(press({ code: 'KeyG', altKey: false, ctrlKey: true })), true)
+  })
+
+  it('leaves everything else to the shell', () => {
+    assert.equal(claimedFromShell(press({ code: 'KeyW', altKey: false, ctrlKey: true })), false)
+    assert.equal(claimedFromShell(press({ code: 'KeyC', altKey: false, ctrlKey: true })), false)
+    assert.equal(claimedFromShell(press({ code: 'KeyT', altKey: false, ctrlKey: false })), false)
+    assert.equal(claimedFromShell(press({ code: 'KeyG', altKey: true, ctrlKey: true })), false)
+  })
+})
 
 describe('paneCommand', () => {
   /*

@@ -43,6 +43,24 @@ export function tabDigit(event: KeyLike): number | null {
 }
 
 /**
+ * Keys the application takes even while the shell has focus, and which the shell must
+ * therefore never see.
+ *
+ * Most of what the app claims needs no announcement here, because xterm has no meaning
+ * for it: `Ctrl+``, `Ctrl+=` and the rest simply fall through to the window. These two
+ * are different - Ctrl+T and Ctrl+G are control characters on the wire (0x14 and 0x07),
+ * so xterm swallows them, sends them to the shell and stops the event. Refusing them in
+ * the terminal is what lets them reach the window at all.
+ *
+ * Both are bound in Claude Code, and taken anyway: going to another place is the thing
+ * this application is for, and having to leave the shell to do it defeats the point.
+ */
+export function claimedFromShell(event: KeyLike): boolean {
+  if (!event.ctrlKey || event.altKey || event.metaKey) return false
+  return event.code === 'KeyT' || event.code === 'KeyG'
+}
+
+/**
  * What a key means to the shell pane, if anything.
  *
  * Ctrl+C has to keep meaning interrupt, so copying sits on the shifted variant - the

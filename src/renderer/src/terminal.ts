@@ -2,7 +2,7 @@ import { Terminal, type IDisposable, type ILink } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { DEFAULT_FAMILY, DEFAULT_SIZE, type TerminalFont } from '../../shared/font'
 import { cellRange, findPaths, rowOf } from './paths'
-import { paneCommand, tabDigit, terminalAction } from '../../shared/shortcuts'
+import { claimedFromShell, paneCommand, tabDigit, terminalAction } from '../../shared/shortcuts'
 import '@xterm/xterm/css/xterm.css'
 
 /** Kept in step with the palette in styles.css. */
@@ -246,6 +246,8 @@ export class TerminalPane {
      * the window and the tab switch happens there.
      */
     if (tabDigit(event)) return false
+    // The same, for the two keys xterm would otherwise turn into control characters.
+    if (claimedFromShell(event)) return false
 
     const action = terminalAction(event)
     if (action === 'paste') {
