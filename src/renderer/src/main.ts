@@ -2706,6 +2706,13 @@ async function start(): Promise<void> {
   window.api.terminal.keep(tabs.map((tab) => tab.id))
   render()
   persistSession()
+  /*
+   * Said after the render, so it is not overwritten by it. A window that quietly
+   * rearranges itself looks exactly like a window that lost your work - and the shell
+   * that comes back has its scrollback replayed rather than its own, so it is worth
+   * knowing that this is a new window rather than the one you were looking at.
+   */
+  if (startup.rebuilt) status.textContent = T('window.rebuilt')
 }
 
 void start()

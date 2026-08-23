@@ -1,6 +1,7 @@
 import { spawn, type IPty } from 'node-pty'
 import { accessSync, constants, statSync } from 'node:fs'
 import { delimiter, join } from 'node:path'
+import { note } from './log'
 import { Trail } from '../shared/trail'
 import type { TerminalData, TerminalExit, TerminalStart } from '../shared/types'
 
@@ -19,7 +20,15 @@ const TRAIL_LIMIT = 256 * 1024
 /** A running shell, and what it has said. */
 type Live = {
   pty: IPty
-  /** Where it was started. What an adopting pane has to agree with. */
+  /**
+   * The directory the pane asked for. This, and not where the shell actually ended up,
+   * is what an adopting pane has to agree with: a place that does not exist falls back
+   * to the home directory, and comparing against the fallback would mean a tab over a
+   * directory that has since been deleted lost its shell - and whatever was running in
+   * it - on every rebuilt window.
+   */
+  asked: string
+  /** Where it is really running, which is the same thing unless the place was gone. */
   cwd: string
   trail: Trail
 }
@@ -102,16 +111,24 @@ export class TerminalManager {
         cwd: workingDir,
         env: shellEnv()
       })
-      const live: Live = { pty: term, cwd: workingDir, trail: new Trail(TRAIL_LIMIT) }
+      const live: Live = { pty: term, asked: cwd, cwd: workingDir, trail: new Trail(TRAIL_LIMIT) }
       term.onData((data) => {
         live.trail.add(data)
         this.onData({ id, data })
       })
       term.onExit(({ exitCode }) => {
         this.terminals.delete(id)
+        note('shell ' + id + ' ended by itself with code ' + exitCode)
         this.onExit({ id, exitCode })
       })
       this.terminals.set(id, live)
+      note(
+        'shell ' +
+          id +
+          ' started in ' +
+          workingDir +
+          (workingDir === cwd ? '' : ' (asked for ' + cwd + ', which is not a directory)')
+      )
       return { ok: true, shell: shell.file }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -136,12 +153,18 @@ export class TerminalManager {
    */
   attach(id: string, cwd: string): string | null {
     const live = this.terminals.get(id)
-    if (!live) return null
-    if (!samePlace(live.cwd, cwd)) {
+    if (!live) {
+      note('shell ' + id + ' asked for in ' + cwd + ', none running - starting one')
+      return null
+    }
+    if (!samePlace(live.asked, cwd)) {
+      note('shell ' + id + ' belongs to ' + live.asked + ', not to ' + cwd + ' - ending it')
       this.kill(id)
       return null
     }
-    return live.trail.text()
+    const trail = live.trail.text()
+    note('shell ' + id + ' taken over, ' + trail.length + ' characters replayed')
+    return trail
   }
 
   /**
@@ -151,7 +174,12 @@ export class TerminalManager {
    */
   keepOnly(ids: string[]): void {
     const wanted = new Set(ids)
-    for (const id of [...this.terminals.keys()]) if (!wanted.has(id)) this.kill(id)
+    note('the window has ' + (ids.join(', ') || 'no panes') + '; running: ' + ([...this.terminals.keys()].join(', ') || 'none'))
+    for (const id of [...this.terminals.keys()]) {
+      if (wanted.has(id)) continue
+      note('shell ' + id + ' belongs to no pane - ending it')
+      this.kill(id)
+    }
   }
 
   write(id: string, data: string): void {

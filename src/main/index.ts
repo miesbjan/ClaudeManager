@@ -27,6 +27,7 @@ import { listFiles } from './listFiles'
 import { noteOpened, rememberedIn } from './history'
 import { homeDirectory, listDirectories, queryZoxide } from './places'
 import { resolveFile } from './resolveFile'
+import { note } from './log'
 import { TerminalManager } from './terminal'
 import { loadState, saveState, terminalFont, type AppState } from './store'
 import { clampSize } from '../shared/font'
@@ -261,6 +262,8 @@ app.setName(app.isPackaged ? 'project-console' : 'project-console-dev')
 let win: BrowserWindow | null = null
 let watcher: FileWatcher | null = null
 let terminals: TerminalManager | null = null
+/** The next window is a replacement for one that died, and should say so. */
+let rebuilt = false
 
 const state: AppState = loadState()
 let session: SessionState = { tabs: state.tabs, activeTab: state.activeTab }
@@ -403,8 +406,9 @@ function createWindow(): void {
    * the window without losing the work is worth more than the simplicity was.
    */
   win.webContents.on('render-process-gone', (_event, details) => {
-    console.error('the window went away: ' + details.reason)
+    note('the window went away (' + details.reason + '); rebuilding it')
     if (details.reason === 'clean-exit') return
+    rebuilt = true
     // The shells are still running; a window is the one part of this that is cheap.
     win?.webContents.reload()
   })
@@ -442,7 +446,7 @@ function createWindow(): void {
      * disaster - which is the entire point of it living somewhere else.
      */
     guest.on('render-process-gone', (_e, details) => {
-      console.error('the page in the web pane went away: ' + details.reason)
+      note('the page in the web pane went away (' + details.reason + ')')
       win?.webContents.send('web:gone')
     })
     // A page must not be able to navigate itself somewhere off the machine.
@@ -639,7 +643,17 @@ function registerIpc(): void {
     }
 
     const activeTab = tabs.length > 0 ? Math.min(Math.max(session.activeTab, 0), tabs.length - 1) : 0
-    return { tabs, activeTab, theme: state.theme, lang: state.lang, font: terminalFont(state) }
+    // Asked once: the window that hears about it is the one that had to be rebuilt.
+    const wasRebuilt = rebuilt
+    rebuilt = false
+    return {
+      tabs,
+      activeTab,
+      theme: state.theme,
+      lang: state.lang,
+      font: terminalFont(state),
+      rebuilt: wasRebuilt
+    }
   })
 
   // Size is app state, like the theme. The family stays a hand-edited preference.

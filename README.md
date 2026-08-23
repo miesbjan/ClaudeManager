@@ -146,6 +146,12 @@ Files passed on the command line are opened too, so the app works as a handler f
 
 ## Behaviour notes
 
+- **The log.** Windows gives a packaged application no console, so the events nobody
+  can see are written to `log.txt` in `%APPDATA%\project-console`: a window that died and
+  was rebuilt, a shell started, taken over or ended and why, a page in the pane that
+  crashed. One line each, the last 200 kB kept, every failure to write ignored. It is
+  the first place to look when an agent disappears - "it just crashed" is otherwise
+  a report with no evidence behind it.
 - **Live reload.** Each open file is watched with `chokidar`
   (`awaitWriteFinish` + `atomic`, so partial writes and write-temp-then-rename
   saves are handled). An mtime/size poll every 1.5 s is a fallback for events the
@@ -213,7 +219,8 @@ Files passed on the command line are opened too, so the app works as a handler f
   died - the pane takes its shell back by tab id and replays what it printed in the
   meantime, and an agent mid-conversation comes back where it was. Shells that no tab
   claims afterwards are ended, which is the part that used to be done by killing all
-  of them.
+  of them. A rebuilt window says so in the status bar rather than quietly
+  rearranging itself, and what happened is in the log described below.
 - **Pasting into the shell.** `Ctrl+V` pastes, and so does the right button - which
   copies instead when something is selected, the way a Windows console does. `Ctrl+C`
   is left alone, because in a terminal it means interrupt, so copying is
@@ -592,6 +599,7 @@ src/
     fileWatcher.ts   chokidar watchers + poll fallback for arbitrary file paths
     terminal.ts      PTY processes behind the shell panes
     store.ts         session/window state in userData/state.json
+    log.ts           one line per invisible event, in userData/log.txt
   preload/
     index.ts         the whole renderer-to-main API surface
   renderer/

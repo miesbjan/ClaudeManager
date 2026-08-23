@@ -62,6 +62,14 @@ export type StartupPayload = {
   theme: Theme
   lang: Lang
   font: TerminalFont
+  /**
+   * This window is a replacement for one that died, rather than the first one of the
+   * session. The shells kept running and have been taken back, but the screen was
+   * rebuilt from the session file - so the tab bar may have moved and anything the
+   * window itself was holding is gone. Said out loud, because a window that silently
+   * rearranges itself is indistinguishable from a window that lost your work.
+   */
+  rebuilt: boolean
 }
 
 /** Layout of one tab: whether the shell pane is open and how wide it is. */

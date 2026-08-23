@@ -221,6 +221,10 @@ const EN_NOTES: HelpNote[] = [
   {
     title: 'Bottom right',
     body: 'this session: what the model had in front of it last turn and what it has written. Below it the five-hour window and the seven-day limit of the account.'
+  },
+  {
+    title: 'When something goes wrong',
+    body: 'a shell keeps running even when the window it was shown in dies: the new window takes it back and says so in the status bar. The events behind that - a window rebuilt, a shell started, taken over or ended, a page in the pane that crashed - are written to log.txt in %APPDATA%\\project-console, which is the place to look when an agent disappears on you.'
   }
 ]
 
@@ -264,6 +268,10 @@ const CS_NOTES: HelpNote[] = [
   {
     title: 'Vpravo dole',
     body: 'tahle session: co měl model minule před sebou a co zatím napsal. Pod tím pětihodinové okno a sedmidenní limit účtu.'
+  },
+  {
+    title: 'Když se něco pokazí',
+    body: 'shell běží dál, i když okno, ve kterém byl vidět, spadne: nové okno si ho vezme zpátky a řekne to ve stavovém řádku. Co se dělo - přestavěné okno, spuštěný, převzatý nebo ukončený shell, spadlá stránka v panelu - se píše do log.txt v %APPDATA%\\project-console, což je první místo, kam se podívat, když ti zmizel agent.'
   }
 ]
 

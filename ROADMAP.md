@@ -481,6 +481,14 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **23. 8. 2026** — Aplikace si píše `log.txt` do userData: přestavěné okno, spuštěný,
+   převzatý nebo ukončený shell i s důvodem, spadlá stránka v panelu.
+   Důvod: "Claude vlevo spadl" je hlášení, ke kterému neexistuje žádný důkaz, a
+   zabalená aplikace na Windows nemá konzoli, takže všechno, co se vypíše, se vypíše
+   nikomu. Bez záznamu se dá jen hádat, což je přesně to, co se stalo.
+   Zároveň se shell identifikuje podle adresáře, o který panel žádal, ne podle toho, kde
+   nakonec běží - jinak tab nad smazaným adresářem přišel o shell při každém přestavění
+   okna, protože se srovnávalo s náhradním domovským adresářem.
 - **23. 8. 2026** — Panel s dev serverem dostal vlastní proces (`webview` s vlastní
    `partition` místo iframe) a shelly přežívají smrt okna.
    Důvod: obojí je jedna a ta samá stížnost - "vpravo jsem přepnul port a Claude spadl".
