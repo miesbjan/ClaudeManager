@@ -103,6 +103,13 @@ export class TerminalPane {
     container.append(this.host)
     this.term.open(this.host)
     this.observer.observe(this.host)
+    /*
+     * Said out loud because this is the half of the story the main process cannot see: a
+     * terminal built here starts empty, so a pane that looks like a shell nobody has
+     * used yet is either a new shell or a new screen in front of an old one - and from
+     * the outside those are indistinguishable.
+     */
+    window.api.note('a terminal was built for ' + this.id)
 
     const trail = await window.api.terminal.attach(this.id, this.cwd)
     if (trail !== null) {
@@ -181,6 +188,7 @@ export class TerminalPane {
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
+    window.api.note('the terminal for ' + this.id + ' was thrown away, and its shell with it')
     this.observer.disconnect()
     this.linkProvider.dispose()
     this.offData()

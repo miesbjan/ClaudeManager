@@ -99,6 +99,8 @@ const en = {
   'web.onlyLocal': 'Only addresses on this machine can be shown here.',
   'web.gone': 'The page in the pane stopped. Press ↻ to load it again.',
   'window.rebuilt': 'The window stopped and was rebuilt. The shells kept running.',
+  'log.written': 'Wrote what {count} shell(s) have printed, next to the log in %APPDATA%.',
+  'log.nothing': 'No shell is running, so there was nothing to write down.',
   'web.reload': 'Reload',
   'web.placeholder': 'localhost:3000',
 
@@ -233,6 +235,8 @@ const cs: Record<StringKey, string> = {
   'web.onlyLocal': 'Zobrazit lze jen adresu na tomto stroji.',
   'web.gone': 'Stránka v panelu skončila. Znovu ji načteš tlačítkem ↻.',
   'window.rebuilt': 'Okno spadlo a postavilo se znovu. Shelly běží dál.',
+  'log.written': 'Zapsáno, co vypsalo {count} shell(ů), vedle logu v %APPDATA%.',
+  'log.nothing': 'Neběží žádný shell, takže nebylo co zapsat.',
   'web.reload': 'Načíst znovu',
   'web.placeholder': 'localhost:3000',
 

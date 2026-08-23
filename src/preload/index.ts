@@ -65,6 +65,8 @@ const api: ViewerApi = {
   readUsage: (cwd) => ipcRenderer.invoke('usage:read', cwd) as Promise<SessionUsage | null>,
   readPlanUsage: () => ipcRenderer.invoke('limits:read') as Promise<PlanUsage | null>,
   readClipboard: () => ipcRenderer.invoke('clipboard:read') as Promise<string>,
+  note: (line) => ipcRenderer.send('window:note', line),
+  dumpShells: () => ipcRenderer.invoke('terminal:dump') as Promise<string[]>,
   terminal: {
     create: (id, cwd) => ipcRenderer.invoke('terminal:create', id, cwd) as Promise<TerminalStart>,
     attach: (id, cwd) => ipcRenderer.invoke('terminal:attach', id, cwd) as Promise<string | null>,

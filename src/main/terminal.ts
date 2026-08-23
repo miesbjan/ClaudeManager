@@ -209,6 +209,21 @@ export class TerminalManager {
     }
   }
 
+  /**
+   * Everything running, and the last of what each has printed.
+   *
+   * The screen a person is looking at can lie - a program that clears it on the way out
+   * takes its own last words with it - while this cannot: it is what came off the wire.
+   */
+  dump(): Array<{ id: string; asked: string; cwd: string; text: string }> {
+    return [...this.terminals.entries()].map(([id, live]) => ({
+      id,
+      asked: live.asked,
+      cwd: live.cwd,
+      text: live.trail.text()
+    }))
+  }
+
   /** How many shells are alive. What closing the window would take with it. */
   count(): number {
     return this.terminals.size

@@ -224,7 +224,7 @@ const EN_NOTES: HelpNote[] = [
   },
   {
     title: 'When something goes wrong',
-    body: 'a shell keeps running even when the window it was shown in dies: the new window takes it back and says so in the status bar. The events behind that - a window rebuilt, a shell started, taken over or ended, a page in the pane that crashed - are written to log.txt in %APPDATA%\\project-console, which is the place to look when an agent disappears on you.'
+    body: 'a shell keeps running even when the window it was shown in dies: the new window takes it back and says so in the status bar. The events behind that - a window rebuilt, a shell started, taken over or ended, a page in the pane that crashed - are written to log.txt in %APPDATA%\\project-console. Ctrl+Shift+L adds what each shell has printed, which is the one thing a screenshot cannot show: a program that draws a screen clears up after itself on the way out.'
   }
 ]
 
@@ -271,7 +271,7 @@ const CS_NOTES: HelpNote[] = [
   },
   {
     title: 'Když se něco pokazí',
-    body: 'shell běží dál, i když okno, ve kterém byl vidět, spadne: nové okno si ho vezme zpátky a řekne to ve stavovém řádku. Co se dělo - přestavěné okno, spuštěný, převzatý nebo ukončený shell, spadlá stránka v panelu - se píše do log.txt v %APPDATA%\\project-console, což je první místo, kam se podívat, když ti zmizel agent.'
+    body: 'shell běží dál, i když okno, ve kterém byl vidět, spadne: nové okno si ho vezme zpátky a řekne to ve stavovém řádku. Co se dělo - přestavěné okno, spuštěný, převzatý nebo ukončený shell, spadlá stránka v panelu - se píše do log.txt v %APPDATA%\\project-console. Ctrl+Shift+L k tomu přidá, co který shell vypsal - tedy to jediné, co ze snímku obrazovky nevyčteš, protože program, který kreslí obrazovku, po sobě při odchodu uklidí.'
   }
 ]
 

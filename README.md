@@ -151,7 +151,14 @@ Files passed on the command line are opened too, so the app works as a handler f
   was rebuilt, a shell started, taken over or ended and why, a page in the pane that
   crashed. One line each, the last 200 kB kept, every failure to write ignored. It is
   the first place to look when an agent disappears - "it just crashed" is otherwise
-  a report with no evidence behind it.
+  a report with no evidence behind it. It also records the half of the story only the
+  window can see: a terminal built or thrown away, a size sent to a shell, an address
+  typed into the pane.
+
+  `Ctrl+Shift+L` adds what each shell has printed, one file per shell beside the log.
+  That is the one thing a screenshot cannot show: a program that draws a screen clears
+  up after itself on the way out, so the pane can look like a shell nobody ever used
+  while the last words of whatever died are still in the buffer.
 - **Live reload.** Each open file is watched with `chokidar`
   (`awaitWriteFinish` + `atomic`, so partial writes and write-temp-then-rename
   saves are handled). An mtime/size poll every 1.5 s is a fallback for events the

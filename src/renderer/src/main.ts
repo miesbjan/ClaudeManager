@@ -1453,6 +1453,7 @@ webUrlInput.addEventListener('keydown', (event) => {
   const tab = tabs[activeIndex]
   if (!tab) return
   const url = normalizeUrl(webUrlInput.value)
+  window.api.note('an address was typed: ' + webUrlInput.value + ' -> ' + String(url))
   if (!url) {
     webUrlInput.value = tab.webUrl ?? ''
     status.textContent = T('web.onlyLocal')
@@ -2607,6 +2608,17 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault()
     const doc = shownDoc(tabs[activeIndex])
     if (doc) void reloadPath(doc.path)
+  } else if (key === 'l' && event.shiftKey) {
+    /*
+     * Write down what the shells have printed. For the one thing a screenshot cannot
+     * answer: what the program in the pane said as it went. Pressed after something
+     * strange has happened, it is the difference between a report and a guess.
+     */
+    event.preventDefault()
+    void window.api.dumpShells().then((paths) => {
+      status.textContent =
+        paths.length > 0 ? T('log.written', { count: paths.length }) : T('log.nothing')
+    })
   } else if (key === 'f') {
     event.preventDefault()
     openFind()

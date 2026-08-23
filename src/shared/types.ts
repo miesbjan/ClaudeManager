@@ -244,6 +244,14 @@ export interface ViewerApi {
   /** Read the system clipboard, for pasting into a shell. */
   readClipboard(): Promise<string>
   /**
+   * Write down one line about something only the window can see - a pane built or
+   * thrown away, a layout that changed. The main process keeps the log; this is how
+   * the half of the story that happens up here gets into it.
+   */
+  note(line: string): void
+  /** Write what every shell has printed to a file each, and answer with the paths. */
+  dumpShells(): Promise<string[]>
+  /**
    * Shell panes. The renderer never names an executable - it asks for a shell in a
    * directory and the main process decides what to run.
    */

@@ -518,6 +518,20 @@ function createWindow(): void {
   else void win.loadFile(join(__dirname, '../renderer/index.html'))
 }
 
+/**
+ * A resize, recorded. Not every one of them: dragging the divider produces a size per
+ * frame, and a log that says the same thing forty times says nothing at all.
+ */
+const lastSize = new Map<string, string>()
+function resizeNoted(id: string, cols: number, rows: number): void {
+  const size = cols + 'x' + rows
+  if (lastSize.get(id) !== size) {
+    lastSize.set(id, size)
+    note('shell ' + id + ' resized to ' + size)
+  }
+  terminals?.resize(id, cols, rows)
+}
+
 function registerIpc(): void {
   ipcMain.handle('dialog:open', async (): Promise<string[]> => {
     if (!win) return []
@@ -803,13 +817,37 @@ function registerIpc(): void {
   // Keystrokes and resizes are frequent and need no answer.
   ipcMain.on('terminal:write', (_event, id: string, data: string) => terminals?.write(id, data))
   ipcMain.on('terminal:resize', (_event, id: string, cols: number, rows: number) =>
-    terminals?.resize(id, cols, rows)
+    // Written down because a size is the one thing the window sends a running program
+    // without being asked to, and a program that redraws on it can dislike the answer.
+    resizeNoted(id, cols, rows)
   )
   ipcMain.handle(
     'terminal:attach',
     (_event, id: string, cwd: string) => terminals?.attach(id, cwd) ?? null
   )
   ipcMain.on('terminal:keep', (_event, ids: string[]) => terminals?.keepOnly(ids))
+  /*
+   * Write down what every shell has printed, on request. The one question a screenshot
+   * cannot answer is what the program in the pane said as it went: a program that draws
+   * a screen clears up after itself on the way out, and its last words go with it.
+   */
+  ipcMain.handle('terminal:dump', async (): Promise<string[]> => {
+    const written: string[] = []
+    for (const shell of terminals?.dump() ?? []) {
+      const file = join(app.getPath('userData'), 'shell-' + shell.id + '.txt')
+      const head = 'shell ' + shell.id + ' in ' + shell.cwd + ' (asked for ' + shell.asked + ')'
+      try {
+        await writeFile(file, head + '\n\n' + shell.text, 'utf8')
+        written.push(file)
+      } catch (error) {
+        note('could not write ' + file + ': ' + String(error))
+      }
+    }
+    note('wrote what the shells have printed: ' + (written.join(', ') || 'nothing to write'))
+    return written
+  })
+  /** One line from the window, for the things only the window can see. */
+  ipcMain.on('window:note', (_event, line: string) => note('window: ' + line))
   ipcMain.on('terminal:kill', (_event, id: string) => terminals?.kill(id))
 
   ipcMain.handle('shell:external', (_event, url: string) => {
