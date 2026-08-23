@@ -9,6 +9,7 @@ import {
   trimPlaces,
   type RememberedFile
 } from '../shared/history'
+import { note } from './log'
 
 /**
  * The files each place keeps, on disk beside the session.
@@ -38,8 +39,12 @@ function save(): void {
   if (!places) return
   try {
     writeFileSync(file(), JSON.stringify(trimPlaces(places)))
-  } catch {
-    // A list of favourites that cannot be written is not worth a word to anyone.
+  } catch (error) {
+    /*
+     * Not worth breaking anything over - but Ctrl+P offering nothing in a place you have
+     * worked in for weeks is a puzzle, and this is the answer to it.
+     */
+    note('the files a place remembers could not be saved: ' + String(error))
   }
 }
 

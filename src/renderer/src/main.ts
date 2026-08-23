@@ -690,7 +690,19 @@ function renderStatus(tab: Tab, doc: Doc): void {
   status.textContent = parts.join('  ·  ')
 }
 
+/**
+ * True while the window is being built from the session file.
+ *
+ * Restoring reads files and looks for projects, so it takes long enough for the
+ * four-hundred-millisecond delay on saving to expire in the middle of it - and what was
+ * saved then was a window half built: tabs without their directory, without their
+ * layout, and the tabs not reached yet missing altogether. A crash or a quit at that
+ * moment wrote that over the real thing. Nothing is saved until the window is whole.
+ */
+let restoring = false
+
 function persistSession(): void {
+  if (restoring) return
   /*
    * A place is worth remembering even with nothing open in it, and so is a tab holding a
    * shell - whatever runs in one is the work, and a tab left out of the file is a tab
@@ -2817,6 +2829,7 @@ async function openDropped(paths: string[]): Promise<void> {
 /* ---------- startup ---------- */
 
 async function start(): Promise<void> {
+  restoring = true
   render()
   const startup = await window.api.getStartupFiles()
   setLang(startup.lang, false)
@@ -2870,6 +2883,7 @@ async function start(): Promise<void> {
    */
   window.api.terminal.keep(tabs.map((tab) => tab.id))
   render()
+  restoring = false
   persistSession()
   /*
    * Said after the render, so it is not overwritten by it. A window that quietly

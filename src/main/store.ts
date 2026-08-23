@@ -1,10 +1,11 @@
 import { app } from 'electron'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Lang } from '../shared/i18n'
 import { clampSize, DEFAULT_SIZE, sanitiseFamily, type TerminalFont } from '../shared/font'
 import { sanitiseSession } from '../shared/session'
 import type { SessionTab, Theme } from '../shared/types'
+import { note } from './log'
 
 export type WindowBounds = { x?: number; y?: number; width: number; height: number }
 
@@ -52,7 +53,16 @@ export function loadState(): AppState {
     let raw: Record<string, unknown>
     try {
       raw = readState(stateFile())
-    } catch {
+    } catch (error) {
+      /*
+       * Missing is the ordinary case - a first run, or a rename this reads across - and
+       * says nothing. Anything else is a file that exists and could not be read, which
+       * means the tabs that were in it are about to appear to have never existed; that is
+       * worth a line, because from the outside it looks like the application forgot.
+       */
+      if ((error as { code?: string })?.code !== 'ENOENT') {
+        note('the session file could not be read: ' + String(error))
+      }
       raw = readState(legacyStateFile())
     }
     return {
@@ -68,11 +78,40 @@ export function loadState(): AppState {
   }
 }
 
+/** Said once per run: this is written every few hundred milliseconds. */
+let saveComplained = false
+
+/**
+ * Write the session down, whole or not at all.
+ *
+ * Written beside the real file and moved into place, because the file is rewritten
+ * constantly and a write interrupted halfway - the machine going down, the process
+ * killed - used to leave broken JSON. What that costs is not one save: the next start
+ * cannot read the file, falls back to nothing, and every tab that was open appears never
+ * to have existed. A rename is the one operation that cannot be seen half-done.
+ */
 export function saveState(state: AppState): void {
+  const path = stateFile()
+  const temporary = path + '.writing'
   try {
-    writeFileSync(stateFile(), JSON.stringify(state, null, 2), 'utf8')
-  } catch {
-    // Persistence is a convenience; never break the app over it.
+    writeFileSync(temporary, JSON.stringify(state, null, 2), 'utf8')
+    renameSync(temporary, path)
+    saveComplained = false
+  } catch (error) {
+    /*
+     * Persistence is a convenience and never breaks the application - but a session that
+     * silently stops being saved is tabs, places and half-written prompts quietly not
+     * coming back, blamed on a crash hours later. Once is enough to say so.
+     */
+    if (!saveComplained) {
+      saveComplained = true
+      note('the session could not be saved: ' + String(error))
+    }
+    try {
+      unlinkSync(temporary)
+    } catch {
+      // It may not have been created at all; there is nothing to clean up then.
+    }
   }
 }
 
