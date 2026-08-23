@@ -1463,46 +1463,6 @@ webUrlInput.addEventListener('keydown', (event) => {
   if (tab.rightMode === 'doc') tab.rightMode = 'web'
   applyLayout()
   persistSession()
-
-  /*
-   * Diagnostics, and temporary: changing the address here is the one action reported to
-   * break the shell beside it, and neither the log nor a screenshot has yet caught it
-   * doing so. This records what the terminal believes it is - which is not always what
-   * the shell was told - and keeps what the shell had printed before and after, so the
-   * next occurrence can be read rather than guessed at. Remove once the cause is known.
-   */
-  const pane = shells.get(tab.id)
-  if (pane) {
-    const shape = pane.shape()
-    window.api.note(
-      'after the address changed, the terminal for ' +
-        tab.id +
-        ' is ' +
-        shape.cols +
-        'x' +
-        shape.rows +
-        ' and the shell was last told ' +
-        shape.sent
-    )
-  }
-  void window.api.dumpShells('before')
-  window.setTimeout(() => {
-    const after = shells.get(tab.id)
-    if (after) {
-      const shape = after.shape()
-      window.api.note(
-        'a moment later the terminal for ' +
-          tab.id +
-          ' is ' +
-          shape.cols +
-          'x' +
-          shape.rows +
-          ' and the shell was last told ' +
-          shape.sent
-      )
-    }
-    void window.api.dumpShells('after')
-  }, 2500)
 })
 
 /** Start the shell of the active tab if it is meant to be open but has none yet. */
@@ -1531,6 +1491,22 @@ async function openShell(tab: Tab): Promise<void> {
     applyLayout()
     const error = await pane.start(termHosts)
     if (error) status.textContent = T('shell.failed', { error })
+  }
+  /*
+   * Whether this pane belongs on screen is decided by which tab is on screen now, not by
+   * which one was when the shell was asked for. Starting a shell takes long enough for
+   * that to have changed - at startup it always has, since every restored tab with a
+   * shell open asks for one and only the last of them is the tab you end up in.
+   *
+   * It used to show itself here regardless, which left two terminals on top of each
+   * other: the one belonging to the tab you were in, and one from a tab you were not.
+   * What was on top was whatever finished last, so the pane could show an agent that
+   * belonged to somewhere else entirely - and the next repaint, a typed address for
+   * instance, would put the right one back and look exactly like the agent had died.
+   */
+  if (tabs[activeIndex]?.id !== tab.id) {
+    applyLayout()
+    return
   }
   pane.setVisible(true)
   pane.focus()

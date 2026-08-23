@@ -481,6 +481,18 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **23. 8. 2026** — Panel se po dostartování shellu zobrazí jen tehdy, když jeho tab je pořád
+   ten na obrazovce.
+   Důvod: tohle byl ten hlášený "Claude spadl" ve své druhé polovině. Spuštění shellu je
+   asynchronní a panel se na konci zobrazoval bez ohledu na to, jestli se aktivní tab
+   mezitím nezměnil - a při startu se změní vždycky, protože o shell si řekne každý
+   obnovený tab a v jednom z nich skončíš. Na obrazovce tak byly dva terminály přes sebe:
+   ten z tabu, ve kterém jsi, a ten z tabu, ve kterém nejsi. Navrch byl ten, který
+   dostartoval později, takže panel mohl ukazovat agenta z úplně jiného místa - a první
+   překreslení, třeba napsaná adresa, tam vrátilo ten správný. Vypadalo to jako pád agenta,
+   přičemž agent celou dobu běžel, jen v tabu, na který ses nekoukal.
+   Odhalily to výpisy shellů: aktivní tab měl za celou session 309 bajtů, tedy jen prompt,
+   zatímco 29 kB s běžícím Claudem patřilo tabu vedle.
 - **23. 8. 2026** — Shell startuje ve velikosti panelu, který si o něj řekl, a panel velikost
    po vzniku shellu vždy zopakuje.
    Důvod: tohle byl ten hlášený "Claude spadl". Panel se měří, jakmile je na obrazovce, což

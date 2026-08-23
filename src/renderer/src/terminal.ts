@@ -193,10 +193,6 @@ export class TerminalPane {
     return this.host.contains(document.activeElement)
   }
 
-  /** What the terminal itself believes it is, which is not always what the shell was told. */
-  shape(): { cols: number; rows: number; sent: string } {
-    return { cols: this.term.cols, rows: this.term.rows, sent: this.cols + 'x' + this.rows }
-  }
 
   dispose(): void {
     if (this.disposed) return
