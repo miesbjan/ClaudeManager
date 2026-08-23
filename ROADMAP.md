@@ -920,3 +920,11 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   rovnou otevřený, jako tab z `Ctrl+T`. Dvě cesty ke stejné věci se chovaly různě a
   nebylo pro to jiné vysvětlení než že se to zapomnělo dodělat; místo je adresář a shell
   v něm, takže dojít někam a pak si teprve říct o shell jsou dva pohyby na jeden záměr.
+- **23. 8. 2026** - `Ctrl+P` si aplikace bere i za fokusu v shellu, tedy stejně jako
+  `Ctrl+T` a `Ctrl+G`. Zůstat u „samotné `Ctrl+P` patří shellu" znamenalo, že tři klávesy
+  jedné rodiny - který soubor, další místo, kam jít - se chovaly dvěma způsoby.
+  Ověřeno, co se tím bere: v Claude Code `Ctrl+P` vytáhne předchozí prompt z historie
+  a **zahodí rozepsaný text ve vstupu** - takže dosavadní chování dokázalo sebrat půl
+  napsaného promptu tomu, kdo chtěl paletu. Šipka nahoru přitom dělá v Claude Code
+  totéž, takže `Ctrl+P` je tam duplikát z emacsu a cena za zabrání je nejmenší ze všech
+  tří. Po opravě ověřeno v živé session: paleta se otevře a rozepsaný prompt zůstane.
