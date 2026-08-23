@@ -137,6 +137,14 @@ export class TerminalManager {
         this.onData({ id, data })
       })
       term.onExit(({ exitCode }) => {
+        /*
+         * Only if this is still the shell under that name. Ending one and starting
+         * another under the same name is an ordinary thing here - a pane whose place no
+         * longer matches does exactly that - and killing a pty is not instant, so this
+         * used to arrive late and delete the replacement, leaving a tab reporting a shell
+         * that had just started and a process nobody had a handle on any more.
+         */
+        if (this.terminals.get(id) !== live) return
         this.terminals.delete(id)
         note('shell ' + id + ' ended by itself with code ' + exitCode)
         this.onExit({ id, exitCode })
@@ -205,7 +213,19 @@ export class TerminalManager {
   }
 
   write(id: string, data: string): void {
-    this.terminals.get(id)?.pty.write(data)
+    const live = this.terminals.get(id)
+    if (!live) {
+      /*
+       * Nowhere to put it. The window holds what is typed until its shell answers, so
+       * this should not happen - and if it does, whatever was typed is gone, which is
+       * exactly the kind of loss that is impossible to explain afterwards without a line
+       * like this one. The text itself is not written down; it is the person's, and some
+       * of what goes into a shell is a password.
+       */
+      note('shell ' + id + ' was written to (' + data.length + ' characters) but is not running')
+      return
+    }
+    live.pty.write(data)
   }
 
   resize(id: string, cols: number, rows: number): void {
@@ -219,12 +239,21 @@ export class TerminalManager {
     }
     try {
       live.pty.resize(cols, rows)
-    } catch {
-      // The process may have exited between the check and the call.
+    } catch (error) {
+      /*
+       * Kept rather than forgotten. The window records a size as delivered the moment it
+       * sends it and only sends one that differs from the last, so a refusal here used to
+       * mean the shell stayed the wrong shape for the rest of its life - with an agent
+       * inside drawing to a width that was not there. Putting it back means the next
+       * resize, or the next shell under this name, gets it.
+       */
+      this.pending.set(id, { cols, rows })
+      note('shell ' + id + ' refused ' + cols + 'x' + rows + ': ' + String(error))
     }
   }
 
   kill(id: string): void {
+    this.pending.delete(id)
     const live = this.terminals.get(id)
     if (!live) return
     this.terminals.delete(id)

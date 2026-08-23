@@ -1527,13 +1527,40 @@ webUrlInput.addEventListener('keydown', (event) => {
 })
 
 /** Start the shell of the active tab if it is meant to be open but has none yet. */
+/**
+ * Whether this tab has a pane with a shell behind it.
+ *
+ * A pane whose shell has ended stays on screen on purpose - the last thing it printed is
+ * worth reading - but it is not a shell any more, and every path that asks "is there one
+ * here" was answered yes by it. That is how a tab became one where Run did nothing, keys
+ * went nowhere and a composed prompt was swallowed, with no way back but closing it.
+ */
+function hasShell(tab: Tab): boolean {
+  const pane = shells.get(tab.id)
+  return pane !== undefined && !pane.isDead()
+}
+
 function ensureShell(): void {
   const tab = tabs[activeIndex]
+  /*
+   * Only when there is no pane at all. A pane whose shell has ended keeps its last
+   * screen - typing `exit` is something people mean - and it is `openShell`, reached by
+   * asking for a shell rather than by repainting, that builds a new one.
+   */
   if (tab && tab.terminalOpen && !shells.has(tab.id)) void openShell(tab)
 }
 
 async function openShell(tab: Tab): Promise<void> {
   let pane = shells.get(tab.id)
+  /*
+   * A pane that outlived its shell is thrown away and built again, which is what makes
+   * a shell that ended by itself something you can come back from.
+   */
+  if (pane?.isDead()) {
+    pane.dispose()
+    shells.delete(tab.id)
+    pane = undefined
+  }
   if (!pane) {
     // The chosen place first: a file opened in it does not move the tab somewhere else.
     const cwd = tab.root ?? tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
@@ -1550,9 +1577,15 @@ async function openShell(tab: Tab): Promise<void> {
     // Registered before the await so a second call cannot spawn a second shell.
     shells.set(tab.id, pane)
     applyLayout()
-    const error = await pane.start(termHosts)
-    if (error) status.textContent = T('shell.failed', { error })
   }
+  /*
+   * Outside the branch above, so a caller who finds a pane that is still starting waits
+   * for it too. That is what makes "the shell is ready" true when this returns, which
+   * Run and the prompt drawer both rely on - they used to be told yes and write into
+   * nothing.
+   */
+  const error = await pane.start(termHosts)
+  if (error) status.textContent = T('shell.failed', { error })
   /*
    * Whether this pane belongs on screen is decided by which tab is on screen now, not by
    * which one was when the shell was asked for. Starting a shell takes long enough for
@@ -1750,9 +1783,19 @@ async function sendRun(tab: Tab, command: string): Promise<void> {
     applyLayout()
     persistSession()
   }
+  await openShell(tab)
+  const pane = shells.get(tab.id)
+  if (!pane || pane.isDead()) {
+    /*
+     * Said out loud rather than written into a shell that is not there. The flags stay
+     * unset too: awaitingServer left behind would make the next address printed anywhere
+     * in this tab take over the pane, long after the run it belonged to.
+     */
+    status.textContent = T('run.noShell')
+    return
+  }
   tab.awaitingServer = true
   tab.webManual = false
-  await openShell(tab)
   window.api.terminal.write(tab.id, command + String.fromCharCode(13))
 }
 
@@ -1848,10 +1891,13 @@ async function sendPrompt(): Promise<void> {
     return
   }
   if (!tab.terminalOpen) tab.terminalOpen = true
-  if (!shells.has(tab.id)) await openShell(tab)
+  if (!hasShell(tab)) await openShell(tab)
   const pane = shells.get(tab.id)
-  if (!pane) return
-  pane.sendPrompt(text)
+  if (!pane || !pane.sendPrompt(text)) {
+    // Nowhere to send it: the text stays where it is, which is the whole point of it.
+    status.textContent = T('prompt.noShell')
+    return
+  }
   /*
    * Cleared, because a sent prompt is spent: it is in the shell's own history now, and a
    * buffer that keeps it would send it twice as easily as once.

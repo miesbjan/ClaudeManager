@@ -37,6 +37,19 @@ export class TerminalPane {
   private rows = 0
   private disposed = false
   private exited = false
+  /**
+   * The start of this pane, once it has been asked for.
+   *
+   * Registering a pane before its shell exists is what stops two of them being started
+   * for one tab, but it also made every later caller believe the shell was ready: they
+   * looked the pane up, found it, and wrote into a shell the main process did not have
+   * yet. Waiting on this is the difference between "a pane exists" and "a shell does".
+   */
+  private starting: Promise<string | null> | null = null
+  /** Whether the shell is up, which is what makes typing into it worth sending. */
+  private started = false
+  /** What was typed while it was not. */
+  private waiting = ''
 
   constructor(
     readonly id: string,
@@ -65,7 +78,13 @@ export class TerminalPane {
 
     this.term.onData((data) => {
       if (this.exited) return
-      window.api.terminal.write(this.id, data)
+      /*
+       * Held while the shell is still starting rather than sent into a main process that
+       * has nothing to send it to. A pane is on screen before its shell exists, so the
+       * first characters typed into a fresh tab were being dropped on the floor.
+       */
+      if (!this.started) this.waiting += data
+      else window.api.terminal.write(this.id, data)
       // A carriage return is Enter: whatever was on that line has been asked for.
       if (data.includes('\r')) this.onSubmit()
     })
@@ -90,6 +109,14 @@ export class TerminalPane {
   }
 
   /**
+   * Whether the shell behind this pane has ended. A pane that outlived its shell is
+   * a picture of one, and every way of using it has to know the difference.
+   */
+  isDead(): boolean {
+    return this.exited
+  }
+
+  /**
    * Attach to the DOM and take over the shell for this pane, starting one only if there
    * is nothing to take over. Safe to call once.
    *
@@ -99,7 +126,14 @@ export class TerminalPane {
    * terminal before it is shown - an agent mid-conversation comes back where it was
    * rather than as an empty pane.
    */
-  async start(container: HTMLElement): Promise<string | null> {
+  start(container: HTMLElement): Promise<string | null> {
+    // Asked twice, started once: the second caller gets the first one's answer.
+    this.starting ??= this.begin(container)
+    return this.starting
+  }
+
+
+  private async begin(container: HTMLElement): Promise<string | null> {
     container.append(this.host)
     this.term.open(this.host)
     this.observer.observe(this.host)
@@ -117,6 +151,8 @@ export class TerminalPane {
       this.resize()
       this.term.write(trail)
       this.term.focus()
+      this.started = true
+      this.flush()
       return null
     }
 
@@ -134,8 +170,10 @@ export class TerminalPane {
       this.term.write(`\x1b[31mCould not start a shell: ${result.error}\x1b[0m\r\n`)
       return result.error
     }
+    this.started = true
     this.resize()
     this.term.focus()
+    this.flush()
     return null
   }
 
@@ -181,12 +219,15 @@ export class TerminalPane {
    * bracketed paste the newlines are text, which is the whole reason a multi-line prompt
    * cannot simply be typed in. The submitting newline follows once the paste has ended.
    */
-  sendPrompt(text: string): void {
-    if (this.exited) return
+  sendPrompt(text: string): boolean {
+    // Answered rather than ignored: a prompt that went nowhere must not be cleared away
+    // as though it had been sent, which is what the empty field used to say it was.
+    if (this.exited) return false
     this.term.paste(text)
     window.api.terminal.write(this.id, String.fromCharCode(13))
     this.onSubmit()
     this.term.focus()
+    return true
   }
 
   hasFocus(): boolean {
@@ -257,6 +298,14 @@ export class TerminalPane {
       })
     })
     callback(links.length > 0 ? links : undefined)
+  }
+
+  /** Everything typed before the shell was there, in the order it was typed. */
+  private flush(): void {
+    if (this.waiting === '') return
+    const held = this.waiting
+    this.waiting = ''
+    window.api.terminal.write(this.id, held)
   }
 
   /** Hands the clipboard to the shell as a paste, so newlines arrive as text. */
