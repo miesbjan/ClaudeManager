@@ -43,7 +43,12 @@ export class TerminalPane {
     private readonly cwd: string,
     dark: boolean,
     font: TerminalFont = { family: DEFAULT_FAMILY, size: DEFAULT_SIZE },
-    private readonly onOpenPath: (path: string, line: number | null) => void = () => undefined
+    private readonly onOpenPath: (path: string, line: number | null) => void = () => undefined,
+    /**
+     * A command was submitted into this shell. It is what tells a run somebody is
+     * waiting for from a screen repainting itself, so the taskbar can be trusted.
+     */
+    private readonly onSubmit: () => void = () => undefined
   ) {
     this.host = document.createElement('div')
     this.host.className = 'term-host'
@@ -59,7 +64,10 @@ export class TerminalPane {
     this.term.loadAddon(this.fit)
 
     this.term.onData((data) => {
-      if (!this.exited) window.api.terminal.write(this.id, data)
+      if (this.exited) return
+      window.api.terminal.write(this.id, data)
+      // A carriage return is Enter: whatever was on that line has been asked for.
+      if (data.includes('\r')) this.onSubmit()
     })
     this.term.attachCustomKeyEventHandler((event) => this.handleKey(event))
     this.host.addEventListener('contextmenu', (event) => this.handleContextMenu(event))
@@ -144,6 +152,7 @@ export class TerminalPane {
     if (this.exited) return
     this.term.paste(text)
     window.api.terminal.write(this.id, String.fromCharCode(13))
+    this.onSubmit()
     this.term.focus()
   }
 

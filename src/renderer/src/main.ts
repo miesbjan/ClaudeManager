@@ -11,7 +11,7 @@ import {
   type ActivityEvent,
   type OutputSignals
 } from './activity'
-import { aggregateActivity, attention, justFinished, type Attention } from './taskbar'
+import { aggregateActivity, attention, countsAsFinished, type Attention } from './taskbar'
 import { paintTaskbarIcon, paintTray } from './icon'
 import { DEFAULT_FAMILY, DEFAULT_SIZE, stepSize, type TerminalFont } from '../../shared/font'
 import {
@@ -231,6 +231,8 @@ function createTab(): Tab {
     activity: 'idle',
     reporting: false,
     finished: false,
+    commandAt: null,
+    runFrom: null,
     project: null,
     runCommand: null,
     webUrl: null,
@@ -474,7 +476,10 @@ function cycleTab(step: number): void {
 
 function render(): void {
   const current = tabs[activeIndex]
-  if (current && isSeen(current)) applyActivity(current, { type: 'seen' })
+  if (current && isSeen(current)) {
+    applyActivity(current, { type: 'seen' })
+    acknowledge()
+  }
 
   paintTabs()
 
@@ -1005,11 +1010,49 @@ function isSeen(tab: Tab): boolean {
  * looking at. Being seen only settles an alert - see `nextActivity`.
  */
 function applyActivity(tab: Tab, event: ActivityEvent): void {
+  // When this run started, noted before the state moves on: output that arrives while
+  // nothing was running is the beginning of one.
+  const now = Date.now()
+  if (event.type === 'output' && tab.activity !== 'working' && tab.activity !== 'busy') {
+    tab.runFrom = now
+  }
+
   const next = nextActivity(tab.activity, event)
   if (next === tab.activity) return
-  if (justFinished(tab.activity, next)) tab.finished = true
-  if (next === 'working' || next === 'busy') tab.finished = false
+
+  const ranFor = tab.runFrom === null ? 0 : now - tab.runFrom
+  const sinceCommand = tab.commandAt === null ? null : now - tab.commandAt
+  if (countsAsFinished(tab.activity, next, ranFor, sinceCommand)) {
+    tab.finished = true
+    /*
+     * Spent only once it has actually reported something. A run that settled in front of
+     * you needed no report, and the command may well still be running - the sleep in the
+     * middle of it is quiet enough to look finished twice over.
+     */
+    if (!isSeen(tab)) tab.commandAt = null
+  }
+  /*
+   * Output starting again does not undo it. One command is two runs whenever it is quiet
+   * in the middle - the line being echoed, then the prompt coming back six seconds later
+   * - and clearing on the second one threw away the notification the first had earned.
+   * What the badge says is "something happened here that you have not seen", and more
+   * output does not make that less true. Only being in the tab does.
+   */
+  if (isSeen(tab)) tab.finished = false
   tab.activity = next
+  paintTabs()
+  reportTaskbar()
+}
+
+/**
+ * Being in a tab is the acknowledgement, so the number drops by one as you go through
+ * them. Looking at the window used to forget every tab at once, which meant three
+ * finished runs were written off by glancing at one of them.
+ */
+function acknowledge(): void {
+  const tab = tabs[activeIndex]
+  if (!tab || !tab.finished || !isSeen(tab)) return
+  tab.finished = false
   paintTabs()
   reportTaskbar()
 }
@@ -1053,11 +1096,15 @@ function reportTaskbar(): void {
     // A shell that never spoke for itself has not finished anything worth counting.
     finished: tab.finished && tab.reporting
   }))
-  const away = !document.hasFocus()
-
-  // The number of places waiting for you, on the corner of the taskbar button.
+  /*
+   * The number is a counter, not a notification: it says how many places are still
+   * waiting, so it is true whether or not the window is in front of you - that is what
+   * makes it drop by one as you visit them. The tint and the flash below are the
+   * notification, and those are only for a window nobody is looking at.
+   */
   const waiting = attention(signals)
-  void paintTaskbarIcon(away ? waiting : null)
+  void paintTaskbarIcon(waiting)
+  const away = !document.hasFocus()
   // The tray carries it too: a hidden window has no button for it to sit on.
   void dressTray(waiting)
 
@@ -1068,8 +1115,8 @@ function reportTaskbar(): void {
 }
 
 window.addEventListener('focus', () => {
-  // Coming back is the acknowledgement; what finished while you were away is old news.
-  for (const tab of tabs) tab.finished = false
+  // Coming back acknowledges the tab you come back to, and only that one.
+  acknowledge()
   reportTaskbar()
 })
 window.addEventListener('blur', reportTaskbar)
@@ -1307,8 +1354,15 @@ async function openShell(tab: Tab): Promise<void> {
   if (!pane) {
     // The chosen place first: a file opened in it does not move the tab somewhere else.
     const cwd = tab.root ?? tab.project?.root ?? shownDoc(tab)?.dir ?? tab.docs[0]?.dir ?? ''
-    pane = new TerminalPane(tab.id, cwd, darkQuery.matches, terminalFont, (path, line) =>
-      void openFromTerminal(path, line)
+    pane = new TerminalPane(
+      tab.id,
+      cwd,
+      darkQuery.matches,
+      terminalFont,
+      (path, line) => void openFromTerminal(path, line),
+      () => {
+        tab.commandAt = Date.now()
+      }
     )
     // Registered before the await so a second call cannot spawn a second shell.
     shells.set(tab.id, pane)

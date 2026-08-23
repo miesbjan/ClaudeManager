@@ -216,7 +216,7 @@ const EN_NOTES: HelpNote[] = [
   },
   {
     title: 'The icon in the taskbar',
-    body: 'carries the number of tabs waiting for you while you are looking elsewhere - green finished, amber asking for permission, red broken.'
+    body: 'carries the number of tabs waiting for you - green finished, amber asking for permission, red broken. The number drops as you visit them, one at a time: being in a tab is the acknowledgement, and looking at the window is not, since a glance at one tab says nothing about the other two. Only a run somebody asked for counts, or one long enough to have been a run at all - a screen repainting itself is neither.'
   },
   {
     title: 'Bottom right',
@@ -259,7 +259,7 @@ const CS_NOTES: HelpNote[] = [
   },
   {
     title: 'Ikona v hlavním panelu',
-    body: 'nese počet tabů, které na tebe čekají, když se díváš jinam - zelená hotovo, oranžová ptá se na povolení, červená spadl.'
+    body: 'nese počet tabů, které na tebe čekají - zelená dobehlo, oranžová ptá se na povolení, červená spadlo. Číslo klesá, jak je obcházíš: potvrzením je to, že v tabu jsi, ne že se koukáš na okno - pohled na jeden tab nic neříká o dalších dvou. Počítá se jen běh, o který někdo požádal, nebo dost dlouhý, aby to běh vůbec byl; překreslená obrazovka není ani jedno.'
   },
   {
     title: 'Vpravo dole',

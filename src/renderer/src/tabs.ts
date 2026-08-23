@@ -68,6 +68,18 @@ export type Tab = {
    * a light about it would answer a question nobody asked.
    */
   reporting: boolean
+  /**
+   * When output started flowing in this run. How long ago that was is what tells a
+   * finished run from a screen being repainted.
+   */
+  runFrom: number | null
+  /**
+   * When a command was last submitted into this shell. It is the difference between a
+   * run somebody asked for and a screen repainting itself, and it is a time rather than
+   * a flag because a shell never says when it is done: the runs that follow a command
+   * all belong to it until one of them is worth reporting.
+   */
+  commandAt: number | null
   /** Finished since you last had the window in front of you; drives the taskbar. */
   finished: boolean
   /** The project this document belongs to, if one was recognised. */

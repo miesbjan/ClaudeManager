@@ -56,12 +56,56 @@ export function attention(tabs: readonly TabSignal[]): Attention | null {
 }
 
 /**
- * Whether a step from one state to another is the moment a run ended. `waiting` counts
- * as well as `done`: not every program reports its own progress, and for those the
- * silence heuristic is the only end there is.
+ * How long output has to have been flowing before quiet is believed to mean a run
+ * ended. A TUI repaints its own input box, a prompt redraws itself after a resize, and
+ * oh-my-posh prints on every return - each of them a burst of a few milliseconds
+ * followed by silence, which is indistinguishable from a finished run by shape alone.
+ *
+ * The consequence of getting this wrong was the badge coming back seconds after being
+ * acknowledged, over and over, until the number meant nothing. This is the one number
+ * to tune, the way `SILENCE_MS` is for the dot.
+ *
+ * It is only the fallback, though. A run that follows a command somebody submitted is
+ * believed whatever the clock says, because pressing Enter in a shell is a statement of
+ * intent that no repaint can imitate - and quiet in the middle of a run breaks the
+ * timing anyway: a command that sleeps for six seconds and prints one line looks like
+ * two short bursts to anything watching output alone.
  */
-export function justFinished(before: ActivityState, after: ActivityState): boolean {
+export const MIN_RUN_MS = 5000
+
+/**
+ * How long a submitted command keeps vouching for the runs that follow it.
+ *
+ * A shell never says when it is done, so there is no moment at which the command is
+ * known to be answered: one command is two runs whenever it is quiet in the middle -
+ * the line being echoed, then the prompt coming back a minute later - and both belong
+ * to it. A window of a few minutes covers any run worth being told about while making
+ * sure a repaint an hour later is not credited to a command from breakfast.
+ */
+export const COMMAND_WINDOW_MS = 5 * 60_000
+
+/**
+ * Whether a step from one state to another is the moment a run ended, and whether that
+ * is worth telling somebody who is not looking.
+ *
+ * Three kinds of evidence, in order of how much they are worth. A program that reports
+ * its own progress is believed whatever the timing: `done` is its word, not our guess.
+ * A run that followed a submitted command is believed too - somebody pressed Enter in
+ * that shell and is owed an answer. Everything else is only the silence heuristic, and
+ * that needs the run to have lasted longer than a redraw does.
+ */
+export function countsAsFinished(
+  before: ActivityState,
+  after: ActivityState,
+  /** How long the run lasted: from its first chunk of output until it settled. */
+  ranForMs: number,
+  /** How long ago a command was submitted into this shell, or null if none was. */
+  sinceCommandMs: number | null
+): boolean {
   const wasRunning = before === 'working' || before === 'busy'
-  const hasSettled = after === 'done' || after === 'waiting'
-  return wasRunning && hasSettled
+  if (!wasRunning) return false
+  if (after === 'done') return true
+  if (after !== 'waiting') return false
+  const asked = sinceCommandMs !== null && sinceCommandMs <= COMMAND_WINDOW_MS
+  return asked || ranForMs >= MIN_RUN_MS
 }
