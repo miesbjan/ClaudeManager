@@ -29,6 +29,7 @@ const api: ViewerApi = {
   openDialog: () => ipcRenderer.invoke('dialog:open') as Promise<string[]>,
   readFile: (path) => ipcRenderer.invoke('file:read', path) as Promise<FileReadResult>,
   watch: (path) => ipcRenderer.invoke('watch:add', path) as Promise<void>,
+  keepWatching: (paths) => ipcRenderer.send('watch:keep', paths),
   unwatch: (path) => ipcRenderer.invoke('watch:remove', path) as Promise<void>,
   getStartupFiles: () => ipcRenderer.invoke('startup:files') as Promise<StartupPayload>,
   saveSession: (state: SessionState) => ipcRenderer.send('session:save', state),

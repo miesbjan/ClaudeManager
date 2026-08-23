@@ -46,7 +46,7 @@ import { createUrlReader, nextRightMode, normalizeUrl, WEB_PARTITION } from '../
 import { clampRatio, DEFAULT_RATIO, makeSplitter } from './split'
 import { MAX_PROMPT } from '../../shared/session'
 import { claimedFromShell, paneCommand, tabDigit, type PaneCommand } from '../../shared/shortcuts'
-import { TerminalPane } from './terminal'
+import { TerminalPane, usePty } from './terminal'
 import { renderTabBar, type Tab, type TabHandlers } from './tabs'
 import { activeAfterMove } from '../../shared/tabs'
 import type { TaskbarState, Theme } from '../../shared/types'
@@ -1703,6 +1703,13 @@ function visiblePanes(): PaneName[] {
 }
 
 function focusedPane(): PaneName {
+  /*
+   * The drawer sits inside the shell pane but outside the terminal, so asking the
+   * terminal was answered no and everything - zoom, the divider keys - acted on the
+   * document instead. Blowing up the document while typing a prompt took the drawer off
+   * the screen under the writer's hands.
+   */
+  if (document.activeElement === promptInput) return 'terminal'
   if (terminalHasFocus()) return 'terminal'
   const active = document.activeElement
   if (active === webFrame || active === webPane || webPane.contains(active)) return 'web'
@@ -2893,6 +2900,30 @@ async function openDropped(paths: string[]): Promise<void> {
 
 /* ---------- startup ---------- */
 
+/*
+ * Anything that goes wrong in here has nowhere to be seen: a packaged application on
+ * Windows has no console, and half of what this window does is started and not waited
+ * for. So both ways a failure can surface end up in the log, which is the one place
+ * somebody can be pointed at afterwards. It says what it can and nothing more - a
+ * message and where it came from - because this is a note to whoever reads the log, not
+ * an error report.
+ */
+window.addEventListener('error', (event) => {
+  window.api.note(
+    'the window hit an error: ' +
+      String(event.message) +
+      (event.filename ? ' (' + event.filename + ':' + event.lineno + ')' : '')
+  )
+})
+
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason as { message?: string } | string | undefined
+  window.api.note(
+    'the window dropped a promise: ' +
+      (typeof reason === 'string' ? reason : (reason?.message ?? String(reason)))
+  )
+})
+
 async function start(): Promise<void> {
   restoring = true
   render()
@@ -2900,6 +2931,8 @@ async function start(): Promise<void> {
   setLang(startup.lang, false)
   setTheme(startup.theme, false)
   terminalFont = startup.font
+  // Before any pane is built, since it is a terminal's option and not a setting.
+  usePty(startup.windowsBuild)
 
   // Names first, so a tab restored without one cannot be given a name still to come.
   for (const saved of startup.tabs) reserveName(saved.id)
@@ -2947,6 +2980,8 @@ async function start(): Promise<void> {
    * what ends them.
    */
   window.api.terminal.keep(tabs.map((tab) => tab.id))
+  // The same for watches: what this window holds, and nothing left over from the last.
+  window.api.keepWatching(tabs.flatMap((tab) => tab.docs.map((doc) => doc.path)))
   render()
   restoring = false
   persistSession()

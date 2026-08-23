@@ -15,6 +15,7 @@ import {
   type Input
 } from 'electron'
 import { existsSync, statSync } from 'node:fs'
+import { release } from 'node:os'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, normalize, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -580,6 +581,18 @@ function resizeNoted(id: string, cols: number, rows: number): void {
   terminals?.resize(id, cols, rows)
 }
 
+/**
+ * Which Windows this is, as a build number, or null when it is not Windows at all.
+ *
+ * The terminal in the window needs it: xterm turns on the behaviour ConPTY expects only
+ * when it is told what it is talking to, and the renderer is sandboxed and cannot ask.
+ */
+function windowsBuild(): number | null {
+  if (process.platform !== 'win32') return null
+  const build = Number(release().split('.')[2])
+  return Number.isInteger(build) ? build : null
+}
+
 function registerIpc(): void {
   ipcMain.handle('dialog:open', async (): Promise<string[]> => {
     if (!win) return []
@@ -677,6 +690,15 @@ function registerIpc(): void {
     watcher?.add(normalize(path))
   })
 
+  /*
+   * Everything the window is actually watching. A window that went away asked for
+   * watches it never gave up, and the rebuilt one asks only for what it has - so this is
+   * where the leftovers go, the way unclaimed shells do.
+   */
+  ipcMain.on('watch:keep', (_event, paths: string[]) => {
+    watcher?.keepOnly(paths.map((path) => normalize(path)))
+  })
+
   ipcMain.handle('watch:remove', (_event, path: string) => {
     watcher?.remove(normalize(path))
   })
@@ -714,6 +736,7 @@ function registerIpc(): void {
       theme: state.theme,
       lang: state.lang,
       font: terminalFont(state),
+      windowsBuild: windowsBuild(),
       rebuilt: wasRebuilt
     }
   })

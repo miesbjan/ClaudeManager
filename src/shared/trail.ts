@@ -36,9 +36,14 @@ export class Trail {
     }
   }
 
+  /**
+   * Everything kept, joined. Not collapsed into one chunk while doing so: that made the
+   * whole of it a single chunk, and the loop above never drops the only one it has - so
+   * the next overflow threw away everything at once and the replay after it was nearly
+   * empty.
+   */
   text(): string {
-    if (this.chunks.length > 1) this.chunks = [this.chunks.join('')]
-    return this.chunks[0] ?? ''
+    return this.chunks.join('')
   }
 
   /** How much is being kept. Bytes as far as anyone reading a log cares. */

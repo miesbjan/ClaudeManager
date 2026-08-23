@@ -63,6 +63,16 @@ export type StartupPayload = {
   lang: Lang
   font: TerminalFont
   /**
+   * The Windows build this is running on, or null anywhere else.
+   *
+   * xterm behaves differently when it knows a ConPTY is on the other end: growing the
+   * terminal adds empty rows instead of pulling rows back out of the scrollback, because
+   * ConPTY reprints the screen with its own view of it. Without that, making the terminal
+   * taller - closing the prompt drawer, a smaller font, a taller window - left the old
+   * rows and the reprinted ones on top of each other.
+   */
+  windowsBuild: number | null
+  /**
    * This window is a replacement for one that died, rather than the first one of the
    * session. The shells kept running and have been taken back, but the screen was
    * rebuilt from the session file - so the tab bar may have moved and anything the
@@ -178,6 +188,11 @@ export interface ViewerApi {
   readFile(path: string): Promise<FileReadResult>
   /** Start watching a file for external changes. */
   watch(path: string): Promise<void>
+  /**
+   * These are the files this window has open. Anything else being watched belongs to a
+   * window that no longer exists, and is let go.
+   */
+  keepWatching(paths: string[]): void
   /** Stop watching a file. */
   unwatch(path: string): Promise<void>
   /** Files to restore on launch (previous session + files passed on the command line). */

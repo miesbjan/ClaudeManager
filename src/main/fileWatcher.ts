@@ -1,6 +1,7 @@
 import chokidar, { type FSWatcher } from 'chokidar'
 import { statSync } from 'node:fs'
 import type { FileEvent } from '../shared/types'
+import { note } from './log'
 
 /** Safety net for watchers that miss events (network shares, odd rewrite patterns). */
 const POLL_INTERVAL_MS = 1500
@@ -36,13 +37,32 @@ export class FileWatcher {
       this.stamps.delete(path)
       this.onEvent({ path, type: 'unlink' })
     })
-    watcher.on('error', () => {
-      // Keep the poll fallback as the only source of truth for this file.
+    watcher.on('error', (error) => {
+      /*
+       * The poll stays the source of truth for this file, so nothing is lost beyond
+       * having to wait for it - but a watch that fails on every file, which is what a
+       * network share looks like, is worth being able to see afterwards.
+       */
+      note('watching ' + path + ' failed, polling it instead: ' + String(error))
     })
 
     this.watchers.set(path, watcher)
     this.stamps.set(path, this.stamp(path))
     this.startPolling()
+  }
+
+  /**
+   * Watch only these, and let go of everything else.
+   *
+   * Watches are asked for by the window and given up by it, so a window that goes away
+   * leaves every file it ever opened watched - a chokidar watcher each, plus the poll
+   * that keeps stat-ing them. The rebuilt window asks again for the files it actually
+   * has, so this is where the rest are let go: the same idea as the shells, which the
+   * window claims by name and which end when nobody does.
+   */
+  keepOnly(paths: string[]): void {
+    const wanted = new Set(paths)
+    for (const path of [...this.watchers.keys()]) if (!wanted.has(path)) this.remove(path)
   }
 
   remove(path: string): void {

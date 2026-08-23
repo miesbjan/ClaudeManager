@@ -1,6 +1,20 @@
 import { Terminal, type IDisposable, type ILink } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { DEFAULT_FAMILY, DEFAULT_SIZE, type TerminalFont } from '../../shared/font'
+
+/**
+ * What kind of pty is on the other end, once the main process has said.
+ *
+ * Told to every terminal built afterwards. It changes what xterm does when the terminal
+ * grows: ConPTY reprints the whole screen with its own view of it, so rows pulled back
+ * out of the scrollback end up underneath the reprint - two versions of the same screen
+ * at once. Set before any pane exists, so no terminal is built without it.
+ */
+let windowsPty: { backend: 'conpty'; buildNumber: number } | undefined
+
+export function usePty(build: number | null): void {
+  windowsPty = build === null ? undefined : { backend: 'conpty', buildNumber: build }
+}
 import { cellRange, findPaths, rowOf } from './paths'
 import { claimedFromShell, paneCommand, tabDigit, terminalAction } from '../../shared/shortcuts'
 import '@xterm/xterm/css/xterm.css'
@@ -50,6 +64,8 @@ export class TerminalPane {
   private started = false
   /** What was typed while it was not. */
   private waiting = ''
+  /** What the shell printed while this pane was still working out what it holds. */
+  private arrived = ''
 
   constructor(
     readonly id: string,
@@ -72,7 +88,8 @@ export class TerminalPane {
       lineHeight: 1.2,
       cursorBlink: true,
       scrollback: 5000,
-      theme: dark ? DARK : LIGHT
+      theme: dark ? DARK : LIGHT,
+      ...(windowsPty ? { windowsPty } : {})
     })
     this.term.loadAddon(this.fit)
 
@@ -92,7 +109,14 @@ export class TerminalPane {
     this.host.addEventListener('contextmenu', (event) => this.handleContextMenu(event))
 
     this.offData = window.api.terminal.onData(({ id, data }) => {
-      if (id === this.id) this.term.write(data)
+      if (id !== this.id) return
+      /*
+       * Held until the pane knows what it is showing. Taking a shell over asks the main
+       * process for everything it has printed and writes that in one go, and anything
+       * arriving in between is in both - so it appeared twice, with the older copy last.
+       */
+      if (!this.started) this.arrived += data
+      else this.term.write(data)
     })
     this.offExit = window.api.terminal.onExit(({ id, exitCode }) => {
       if (id !== this.id) return
@@ -300,8 +324,16 @@ export class TerminalPane {
     callback(links.length > 0 ? links : undefined)
   }
 
-  /** Everything typed before the shell was there, in the order it was typed. */
+  /**
+   * Everything held while the pane was starting, in the order it happened: what the shell
+   * printed goes on screen, what was typed goes to the shell.
+   */
   private flush(): void {
+    if (this.arrived !== '') {
+      const printed = this.arrived
+      this.arrived = ''
+      this.term.write(printed)
+    }
     if (this.waiting === '') return
     const held = this.waiting
     this.waiting = ''
