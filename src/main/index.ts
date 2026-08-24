@@ -23,6 +23,7 @@ import type { Lang } from '../shared/i18n'
 import { FileWatcher } from './fileWatcher'
 import { detectProject } from './project'
 import { readPlanUsage } from './limits'
+import { askSummary } from './summary'
 import { readUsage } from './usage'
 import { listFiles } from './listFiles'
 import { noteOpened, rememberedIn } from './history'
@@ -882,6 +883,11 @@ function registerIpc(): void {
     const image = nativeImage.createFromDataURL(dataUrl)
     if (!image.isEmpty()) win.setOverlayIcon(image, `${count} waiting`)
   })
+
+  // Only ever from the button; nothing here starts an agent on its own.
+  ipcMain.handle('summary:ask', (_event, cwd: string, prompt: string) =>
+    askSummary(normalize(cwd), prompt)
+  )
 
   ipcMain.handle('usage:read', (_event, cwd: string) => readUsage(cwd))
 

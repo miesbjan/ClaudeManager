@@ -1034,6 +1034,35 @@ body.resizing {
   line-height: 1.5;
 }
 
+/* A box that is read rather than answered: wider, and its content may scroll. */
+.modal-box--note {
+  max-width: min(680px, calc(100vw - 60px));
+}
+
+.modal-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.modal-note {
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.modal-note h1,
+.modal-note h2,
+.modal-note h3 {
+  font-size: 13px;
+  margin: 12px 0 4px;
+}
+
+.modal-note ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
 .modal-buttons {
   display: flex;
   justify-content: flex-end;

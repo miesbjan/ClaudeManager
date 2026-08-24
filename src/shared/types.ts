@@ -54,6 +54,8 @@ export type AskRequest = { id: number; kind: AskKind }
  */
 export type PlaceSuggestions = { home: string; dirs: string[]; frecent: string[] }
 
+export type SummaryResult = { ok: true; text: string } | { ok: false; error: string }
+
 export type TaskbarState = 'none' | 'working' | 'done' | 'permission' | 'alert'
 
 export type StartupPayload = {
@@ -276,6 +278,11 @@ export interface ViewerApi {
     /** Whether an agent is in one of the tabs, which is what closing must not kill. */
     holds: boolean
   ): void
+  /**
+   * Ask the agent what has been happening in this place. Runs the CLI in print mode,
+   * outside any shell, and only ever because somebody pressed the button.
+   */
+  askSummary(cwd: string, prompt: string): Promise<SummaryResult>
   /** How much the Claude session running in this directory has used, if any is. */
   readUsage(cwd: string): Promise<SessionUsage | null>
   /** How much of the subscription is used - the same numbers `/usage` reports. */

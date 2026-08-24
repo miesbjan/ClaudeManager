@@ -12,6 +12,7 @@ import type {
   ProjectInfo,
   SessionState,
   SessionUsage,
+  SummaryResult,
   StartupPayload,
   TerminalData,
   TerminalExit,
@@ -72,6 +73,8 @@ const api: ViewerApi = {
   setTaskbarBadge: (dataUrl, count) => ipcRenderer.send('taskbar:badge', dataUrl, count),
   setTray: (icon, text, tooltip, holds) =>
     ipcRenderer.send('tray:set', icon, text, tooltip, holds),
+  askSummary: (cwd, prompt) =>
+    ipcRenderer.invoke('summary:ask', cwd, prompt) as Promise<SummaryResult>,
   readUsage: (cwd) => ipcRenderer.invoke('usage:read', cwd) as Promise<SessionUsage | null>,
   readPlanUsage: () => ipcRenderer.invoke('limits:read') as Promise<PlanUsage | null>,
   readClipboard: () => ipcRenderer.invoke('clipboard:read') as Promise<string>,

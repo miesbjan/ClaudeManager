@@ -107,6 +107,12 @@ které se vědomě nestaví](ROADMAP.md#non-goals), je v roadmapě.
 - **`Alt+W`** cykluje pravou stranu: dokument, dev server, obojí vedle sebe.
   Adresu jde i napsat ručně a ta pak výstupu nepodléhá. Jen adresy na tomhle stroji.
 
+- **Kde jsme skončili** (`Ctrl+Shift+U`, tlačítko vedle Spustit): zeptá se agenta, co
+  se v tomhle místě dělo za posledních deset commitů, a ukáže odpověď v okně jako pět
+  bodů *Uděláno* a pět *Dál* — byznysově, ne po souborech. Běží v režimu, který umí jen
+  číst, a stojí to tokeny z téhož limitu, co ukazuje stavový řádek, takže se to stane
+  jen po stisku.
+
 ## Panely
 
 Ctrl patří tabům, Alt panelům, jako v tmuxu: `Alt+←` / `Alt+→` fokus, `Alt+1/2/3`

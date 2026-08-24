@@ -171,6 +171,20 @@ Files passed on the command line are opened too, so the app works as a handler f
   whole. A deletion marks the block that closed over the gap. The flash is shown
   once: a tab that changed in the background flashes when it is next opened, and
   switching away and back does not replay it.
+- **Catch me up.** Beside Run, and on `Ctrl+Shift+U`: what has been happening in this
+  place, in a box. It asks the agent - the application has no model in it and starts
+  nothing by itself - by running the same CLI the user runs, in print mode, in the
+  place's own directory, and shows what comes back as five points of *Done* and five of
+  *Next*. The question asks for the language of what the thing does rather than which
+  files changed, because a list of files is what you can already get from git and is not
+  what somebody returning after a week is missing.
+
+  It runs in plan mode, which may read anything and write nothing: a summary that
+  changes what it summarises is not a summary. The question goes in through the
+  command's input rather than as an argument - what is on PATH is a `.cmd` shim, which
+  Windows only runs through a shell, and a shell would take a sentence with quotes in it
+  apart. It costs tokens off the same allowance the status bar counts, so it happens on
+  a press and never on its own.
 - **Run.** When a document belongs to a project, the shell pane offers one button:
   start it. The project is found by walking up from the document, the way npm and git
   do, since a roadmap under `Project/.claude/docs/` belongs to `Project` - and the

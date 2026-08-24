@@ -109,3 +109,71 @@ function show(host: HTMLElement, request: ModalRequest): Promise<ModalAnswer> {
     buttons[safe]?.focus()
   })
 }
+
+/**
+ * The other shape of box: one that says something instead of asking. Same frame, same
+ * queue, same discipline about Escape - what differs is that the content is a piece of
+ * a document rather than a sentence, so it is given as markup and allowed to scroll.
+ *
+ * It exists because the answer to "where did we leave off" is a handful of points, and
+ * a handful of points scrolling past in a terminal is not something anyone reads.
+ */
+export function showNote(
+  host: HTMLElement,
+  note: { title: string; html: string; close: string }
+): Promise<void> {
+  const shown = queue.then(
+    () =>
+      new Promise<void>((resolve) => {
+        host.textContent = ''
+        host.hidden = false
+
+        const box = document.createElement('div')
+        box.className = 'modal-box modal-box--note'
+        box.setAttribute('role', 'dialog')
+        box.setAttribute('aria-label', note.title)
+
+        const heading = document.createElement('h2')
+        heading.className = 'modal-title'
+        heading.textContent = note.title
+        box.append(heading)
+
+        const body = document.createElement('div')
+        body.className = 'modal-note markdown-body'
+        // Rendered by the same sanitising renderer the document pane uses.
+        body.innerHTML = note.html
+        box.append(body)
+
+        const row = document.createElement('div')
+        row.className = 'modal-buttons'
+
+        const finish = (): void => {
+          host.hidden = true
+          host.textContent = ''
+          document.removeEventListener('keydown', onKey, true)
+          resolve()
+        }
+
+        function onKey(event: KeyboardEvent): void {
+          if (event.key !== 'Escape') return
+          event.preventDefault()
+          event.stopPropagation()
+          finish()
+        }
+
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'modal-btn modal-btn--safe'
+        button.textContent = note.close
+        button.addEventListener('click', finish)
+        row.append(button)
+
+        box.append(row)
+        host.append(box)
+        document.addEventListener('keydown', onKey, true)
+        button.focus()
+      })
+  )
+  queue = shown.catch(() => undefined)
+  return shown
+}

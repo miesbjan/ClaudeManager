@@ -91,6 +91,12 @@ const en = {
   'limits.readAt': ' · read at {time}',
 
   'run.title': '{command}\nin {root}',
+  'catchup': 'Catch me up',
+  'catchup.title': 'Where we left off',
+  'catchup.hint': 'What has been happening here, from the last {commits} commits (Ctrl+Shift+U)',
+  'catchup.asking': 'Reading the last {commits} commits…',
+  'catchup.failed': 'Could not ask: {error}',
+  'catchup.noPlace': 'This tab belongs to no directory yet.',
   'run.choose': 'choose what to run',
   'run.ways': '{count} ways to run',
 
@@ -230,6 +236,12 @@ const cs: Record<StringKey, string> = {
   'limits.readAt': ' · odečteno v {time}',
 
   'run.title': '{command}\nv {root}',
+  'catchup': 'Kde jsme skončili',
+  'catchup.title': 'Kde jsme skončili',
+  'catchup.hint': 'Co se tu dělo, z posledních {commits} commitů (Ctrl+Shift+U)',
+  'catchup.asking': 'Čtu posledních {commits} commitů…',
+  'catchup.failed': 'Nepodařilo se zeptat: {error}',
+  'catchup.noPlace': 'Tenhle tab zatím žádný adresář nemá.',
   'run.choose': 'vyber, co spustit',
   'run.ways': '{count} způsobů spuštění',
 

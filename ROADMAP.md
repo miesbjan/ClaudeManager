@@ -393,6 +393,7 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Extra   | vlastní ikona a počet čekajících tabů na ní                          |
 | Extra   | přehazování tabů tažením, vkládání do shellu                         |
 | Extra   | otázka před zavřením tabu, ve kterém se pracuje                     |
+| Extra   | „Kde jsme skončili“ — shrnutí posledních commitů od agenta          |
 
 Přidání položky na tenhle seznam je rozhodnutí, ne detail — patří k němu řádek
 v decision logu níže.
@@ -1036,3 +1037,18 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   vrátil. Je to ta samá díra jako u otevírání souboru za běžícím serverem, jen z druhé
   strany. Nová klávesa se kvůli tomu nepřidávala: `Alt+3` je teď to jedno „ukaž server",
   `Alt+1` otevře zavřený shell, a nic se za to nezavírá - pravá strana jde na „obojí".
+- **24. 8. 2026** — Tlačítko „Kde jsme skončili“: aplikace se smí zeptat agenta, když
+  si o to člověk řekne. Vypadá to jako porušení non-goalu „AI uvnitř aplikace", a není:
+  žádný model tu není, volá se to samé CLI, které uživatel pouští sám, a nikdy ne samo od
+  sebe. Hranice, která z toho plyne a musí držet: **jen na stisk, nikdy na pozadí.**
+  Začalo to návrhem feedu změněných souborů, který uživatel odmítl s tím, že ho nezajímá,
+  jestli se změnil soubor x nebo y — chce vědět, co se dělo a co dál, byznysově. To je
+  jiná otázka a odpovídá na ni jedině agent. Kdyby to bylo jen poslání promptu do shellu,
+  je to skill, ne funkce aplikace; funkcí to dělá až to, že odpověď skončí v okně jako
+  pět bodů, a ne ve výpisu terminálu mezi buildem a stack trace.
+  Tři věci, které se při tom změřily, protože je nebylo možné vyčíst: seznam povolených
+  nástrojů nepřežije cestu přes `cmd.exe`, který si rozebere závorky a hvězdičky — místo
+  něj stačí `--permission-mode plan`, jedno slovo, které shell nemá jak rozbít, a čte
+  všechno a nepíše nic; otázka se musí poslat vstupem, ne argumentem, protože argumenty
+  se přes shell nespárují uvozovkami; a print mode čeká tři vteřiny na vstup, který nikdo
+  neposílá, dokud se mu vstup nezavře.

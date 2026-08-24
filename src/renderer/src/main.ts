@@ -30,7 +30,8 @@ import { nextLang, translate, type Lang, type StringKey } from '../../shared/i18
 import { formatTokens } from '../../shared/usage'
 import { limitLevel, timeUntil } from '../../shared/limits'
 import { stepSelection, visibleEntries, type PaletteEntry } from './palette'
-import { askModal } from './modal'
+import { askModal, showNote } from './modal'
+import { COMMITS, summaryPrompt } from '../../shared/summary'
 import {
   chooseTarget,
   expandPath,
@@ -68,6 +69,7 @@ const panes = document.getElementById('panes') as HTMLElement
 const terminalPane = document.getElementById('terminal-pane') as HTMLElement
 const termHosts = document.getElementById('term-hosts') as HTMLElement
 const runButton = document.getElementById('run-btn') as HTMLButtonElement
+const catchupButton = document.getElementById('catchup-btn') as HTMLButtonElement
 const shellProject = document.getElementById('shell-project') as HTMLElement
 const webButton = document.getElementById('web-btn') as HTMLButtonElement
 const webPane = document.getElementById('web-pane') as HTMLElement
@@ -1845,6 +1847,7 @@ function renderShellBar(): void {
   const tab = tabs[activeIndex]
   const project = tab?.project ?? null
   runButton.hidden = project === null
+  catchupButton.hidden = placeOf(tab) === ''
   if (!tab || !project) {
     shellProject.textContent = ''
     return
@@ -1921,6 +1924,47 @@ async function runProject(): Promise<void> {
   await sendRun(tab, command)
 }
 
+/**
+ * What has been happening in this place, asked of the agent and shown in a box.
+ *
+ * The application composes the question and shows the answer; it has no model in it
+ * and starts nothing by itself. What it brings that a prompt typed into the shell does
+ * not is somewhere to read the answer - five points in a box, rather than five points
+ * scrolling past between a build log and a stack trace.
+ */
+let asking = false
+
+async function catchUp(): Promise<void> {
+  const tab = tabs[activeIndex]
+  const cwd = placeOf(tab)
+  if (!cwd) {
+    status.textContent = T('catchup.noPlace')
+    return
+  }
+  if (asking) return
+
+  asking = true
+  const wasLabel = catchupButton.textContent
+  catchupButton.disabled = true
+  catchupButton.textContent = T('catchup.asking', { commits: COMMITS })
+  try {
+    const answer = await window.api.askSummary(cwd, summaryPrompt(lang, COMMITS))
+    const html = answer.ok
+      ? renderMarkdown(answer.text, cwd, null)
+      : renderMarkdown(T('catchup.failed', { error: answer.error }), cwd, null)
+    await showNote(modal, {
+      title: T('catchup.title'),
+      html,
+      close: T('find.close').split(' ')[0] ?? 'OK'
+    })
+  } finally {
+    asking = false
+    catchupButton.disabled = false
+    catchupButton.textContent = wasLabel ?? T('catchup')
+  }
+}
+
+catchupButton.addEventListener('click', () => void catchUp())
 runButton.addEventListener('click', () => void runProject())
 
 function terminalHasFocus(): boolean {
@@ -2665,6 +2709,8 @@ function applyLanguage(): void {
 
   newTabButton.textContent = T('toolbar.newTab')
   newTabButton.title = T('toolbar.newTab.title')
+  catchupButton.textContent = T('catchup')
+  catchupButton.title = T('catchup.hint', { commits: COMMITS })
   openButton.textContent = T('toolbar.open')
   openButton.title = T('toolbar.open.title')
   folderButton.textContent = T('toolbar.folder')
@@ -2877,6 +2923,16 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault()
     if (palette.hidden) void openPalette()
     else closePalette()
+    return
+  }
+  /*
+   * Shifted, because this one costs something: it asks the agent a question, which is
+   * tokens off the same allowance the status bar is counting. A key that spends money
+   * should not be one letter away from one that does not.
+   */
+  if (event.code === 'KeyU' && event.shiftKey) {
+    event.preventDefault()
+    void catchUp()
     return
   }
   if (event.code === 'KeyG') {
