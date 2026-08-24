@@ -91,7 +91,7 @@ const EN: HelpSection[] = [
   {
     title: 'While the shell has focus',
     rows: [
-      { keys: 'Ctrl+V / Ctrl+Shift+C', action: 'paste / copy the selection' },
+      { keys: 'Ctrl+C / Ctrl+V', action: 'copy the selection, or interrupt / paste' },
       {
         keys: 'Ctrl+Shift+O, W, R, D',
         action: 'the app shortcuts above; Ctrl+P, T, G, 1…9 as they are'
@@ -157,7 +157,7 @@ const CS: HelpSection[] = [
   {
     title: 'Když má fokus shell',
     rows: [
-      { keys: 'Ctrl+V / Ctrl+Shift+C', action: 'vložit / kopírovat výběr' },
+      { keys: 'Ctrl+C / Ctrl+V', action: 'kopíruj výběr, nebo přeruš / vlož' },
       {
         keys: 'Ctrl+Shift+O, W, R, D',
         action: 'zkratky aplikace výše; Ctrl+P, T, G, 1…9 i bez shiftu'

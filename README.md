@@ -108,7 +108,7 @@ else closes it. It speaks whichever interface language is selected.
 | `Alt+P`                   | prompt buffer under the shell             |
 | `Ctrl+Enter`              | send the buffer to the shell              |
 | `Ctrl+=` / `Ctrl+-`       | terminal font bigger / smaller            |
-| `Ctrl+V` / `Ctrl+Shift+C` | paste / copy the selection, in the shell |
+| `Ctrl+C` / `Ctrl+V`      | copy the selection or interrupt / paste, in the shell |
 | `F12`                     | toggle DevTools                           |
 | click a path in the shell | open the file it points at, at that line   |
 | drag a tab sideways       | move it along the bar                     |
@@ -259,10 +259,14 @@ Files passed on the command line are opened too, so the app works as a handler f
   claims afterwards are ended, which is the part that used to be done by killing all
   of them. A rebuilt window says so in the status bar rather than quietly
   rearranging itself, and what happened is in the log described below.
-- **Pasting into the shell.** `Ctrl+V` pastes, and so does the right button - which
-  copies instead when something is selected, the way a Windows console does. `Ctrl+C`
-  is left alone, because in a terminal it means interrupt, so copying is
-  `Ctrl+Shift+C`; `Ctrl+Shift+V` still pastes for fingers that learned it elsewhere.
+- **Copying and pasting in the shell.** `Ctrl+V` pastes, and so does the right button -
+  which copies instead when something is selected, the way a Windows console does.
+  `Ctrl+C` is both things at once: with something selected it copies and clears the
+  selection, with nothing selected it is the interrupt the shell has always had. That is
+  what Windows Terminal and the terminal in VS Code do, and it is what fingers expect;
+  clearing the selection is what keeps the next `Ctrl+C` an interrupt again. `Ctrl+Shift+C`
+  copies unconditionally, and `Ctrl+Shift+V` still pastes for fingers that learned it
+  elsewhere.
 
   Ctrl+V used to go to the shell as the control character it is, which every agent
   running in the pane ignores - so pasting looked broken. It is claimed here now, and

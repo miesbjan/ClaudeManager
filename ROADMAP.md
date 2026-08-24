@@ -482,6 +482,15 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **24. 8. 2026** — `Ctrl+C` v shellu kopíruje, když je něco vybrané, a jinak přeruší.
+   Do teď to bylo jen přerušení a kopírovalo se `Ctrl+Shift+C` nebo pravým tlačítkem, což
+   je obhajitelné a v praxi to znamenalo, že se kopírovalo myší nebo vůbec. Windows
+   Terminal i terminál ve VS Code to mají takhle, takže to prsty čekají. Výběr se po
+   zkopírování ruší, čímž je další `Ctrl+C` zase přerušení - bez toho by zapomenutý výběr
+   spolkl tu jednu klávesu, kterou člověk mačká v rychlosti. Rozhoduje panel, ne čistá
+   funkce, protože jedině on vidí, jestli je něco vybrané.
+   Ověřeno naživo obojí: s výběrem skončil text ve schránce, bez výběru se `Start-Sleep`
+   přerušil po dvou sekundách.
 - **23. 8. 2026** — Otevřené otázky zavřené, každá jinak, protože každá si o jinou odpověď
    říkala.
    **`beforeunload` programový reload nezablokuje** - změřeno na běžící aplikaci: okno se

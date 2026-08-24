@@ -75,8 +75,17 @@ export class TerminalPane {
   private started = false
   /** What was typed while it was not. */
   private waiting = ''
-  /** What the shell printed while this pane was still working out what it holds. */
+  /**
+   * What the shell printed while this pane was asking what it already holds.
+   *
+   * Only for that question and no longer. Taking a shell over asks the main process for
+   * everything printed so far and writes it in one go, and anything arriving in between
+   * is in both - so it appeared twice, with the older copy last. Holding output any
+   * longer than that was a mistake once already: a screen that stays empty because
+   * something else did not finish is worse than a line printed twice.
+   */
   private arrived = ''
+  private replaying = false
 
   constructor(
     readonly id: string,
@@ -126,7 +135,7 @@ export class TerminalPane {
        * process for everything it has printed and writes that in one go, and anything
        * arriving in between is in both - so it appeared twice, with the older copy last.
        */
-      if (!this.started) this.arrived += data
+      if (this.replaying) this.arrived += data
       else this.term.write(data)
     })
     this.offExit = window.api.terminal.onExit(({ id, exitCode }) => {
@@ -180,14 +189,21 @@ export class TerminalPane {
      */
     window.api.note('a terminal was built for ' + this.id)
 
+    this.replaying = true
     const trail = await window.api.terminal.attach(this.id, this.cwd)
     if (trail !== null) {
       // Sized before the replay, so what is redrawn is redrawn at the right width.
       this.resize()
       this.term.write(trail)
       this.term.focus()
+    }
+    // Whatever came in while that question was outstanding goes after the replay, in
+    // the order it arrived - and from here on output goes straight to the screen.
+    this.replaying = false
+    this.releaseArrived()
+    if (trail !== null) {
       this.started = true
-      this.flush()
+      this.releaseWaiting()
       return null
     }
 
@@ -208,7 +224,7 @@ export class TerminalPane {
     this.started = true
     this.resize()
     this.term.focus()
-    this.flush()
+    this.releaseWaiting()
     return null
   }
 
@@ -348,16 +364,16 @@ export class TerminalPane {
     callback(links.length > 0 ? links : undefined)
   }
 
-  /**
-   * Everything held while the pane was starting, in the order it happened: what the shell
-   * printed goes on screen, what was typed goes to the shell.
-   */
-  private flush(): void {
-    if (this.arrived !== '') {
-      const printed = this.arrived
-      this.arrived = ''
-      this.term.write(printed)
-    }
+/** What the shell printed while its own screen was being put back. */
+  private releaseArrived(): void {
+    if (this.arrived === '') return
+    const printed = this.arrived
+    this.arrived = ''
+    this.term.write(printed)
+  }
+
+  /** What was typed before there was a shell to type into. */
+  private releaseWaiting(): void {
     if (this.waiting === '') return
     const held = this.waiting
     this.waiting = ''
@@ -403,6 +419,21 @@ export class TerminalPane {
     }
     if (action === 'copy' && this.term.hasSelection()) {
       this.copySelection()
+      return false
+    }
+    if (action === 'copyOrInterrupt') {
+      /*
+       * With nothing selected this is the interrupt, and it has to reach the shell
+       * untouched - that is the key everything running in there listens for.
+       */
+      if (!this.term.hasSelection()) return true
+      event.preventDefault()
+      this.copySelection()
+      /*
+       * And the selection goes, so the next Ctrl+C is the interrupt again. Without that,
+       * a selection left behind would swallow the one key somebody presses in a hurry.
+       */
+      this.term.clearSelection()
       return false
     }
     return true

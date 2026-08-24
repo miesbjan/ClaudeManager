@@ -81,11 +81,24 @@ export function claimedFromShell(event: KeyLike): boolean {
  * Ctrl+V pastes, and Ctrl+Shift+V stays alongside it for fingers that learned the
  * other terminals. Everything else belongs to the shell.
  */
-export function terminalAction(event: KeyLike): 'paste' | 'copy' | null {
+/**
+ * What a copy or paste key means in a terminal.
+ *
+ * `copy` is unconditional - Ctrl+Shift+C is nothing else anywhere. `copyOrInterrupt` is
+ * plain Ctrl+C, which is two things depending on whether anything is selected, and only
+ * the pane can see that: with a selection it copies, without one it is the interrupt the
+ * shell has always had. Windows Terminal and the terminal in VS Code both work this way,
+ * so it is what fingers expect - and the alternative was a copy key nobody reaches for,
+ * with the right mouse button as the only way out.
+ */
+export function terminalAction(
+  event: KeyLike
+): 'paste' | 'copy' | 'copyOrInterrupt' | null {
   if (!event.ctrlKey || event.altKey || event.metaKey) return null
   const key = event.key.toLowerCase()
   if (key === 'v') return 'paste'
-  return event.shiftKey && key === 'c' ? 'copy' : null
+  if (key !== 'c') return null
+  return event.shiftKey ? 'copy' : 'copyOrInterrupt'
 }
 
 export function paneCommand(event: KeyLike): PaneCommand | null {

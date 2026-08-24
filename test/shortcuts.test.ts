@@ -131,8 +131,13 @@ describe('terminalAction', () => {
     assert.equal(terminalAction(key({ key: 'V', ctrlKey: true, shiftKey: true })), 'paste')
   })
 
-  it('leaves Ctrl+C to the shell, because it means interrupt', () => {
-    assert.equal(terminalAction(key({ key: 'c', ctrlKey: true })), null)
+  /*
+   * Ctrl+C is two keys in one: a copy with something selected, the interrupt without.
+   * Which of them it is can only be decided where the selection is visible, so this
+   * answers with the pair and the pane picks - the way Windows Terminal does it.
+   */
+  it('reads Ctrl+C as copy-or-interrupt, and Ctrl+Shift+C as copy', () => {
+    assert.equal(terminalAction(key({ key: 'c', ctrlKey: true })), 'copyOrInterrupt')
     assert.equal(terminalAction(key({ key: 'C', ctrlKey: true, shiftKey: true })), 'copy')
   })
 
