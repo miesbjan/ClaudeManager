@@ -482,6 +482,17 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **25. 8. 2026** — `Ctrl+O` se bere shellu, čímž se ruší včerejší rozhodnutí opačné.
+   Včera to vypadalo tak, že „otevřít soubor" je ta samá otázka jako `Ctrl+P`, kterou už
+   bereme, takže by se platilo podruhé za totéž. Po jednom dni ostrého používání to byla
+   první věc, která chyběla: prsty, které mačkají `Ctrl+O`, se neptají na to samé -
+   `Ctrl+P` zná jméno, `Ctrl+O` je na koukání. Cena zůstává tatáž, přepínač transcriptu
+   v Claude Code; konzistence bez ohledu na to, kde je kurzor, je za ni.
+   Změřeno předtím i potom: s fokusem v shellu klávesa do aplikace vůbec nedorazila
+   (0x0F si vzal xterm a poslal ho Claudovi), po změně dorazí a dialog se otevře.
+   Zůstává jedna dírka, která patří k povaze věci: uvnitř stránky ve webovém panelu
+   nefunguje žádná zkratka aplikace kromě `Alt+W`, protože stránka si drží všechny
+   klávesy a běží ve vlastním procesu.
 - **25. 8. 2026** — Dialogy na otevření se otevírají v adresáři, kde ten tab je, a tlačítka
    v liště jdou od nejširšího k nejužšímu: nový tab → adresář → soubor.
    Důvod: tab *je* adresář se shellem, takže hledaný soubor je skoro vždy v něm nebo pod

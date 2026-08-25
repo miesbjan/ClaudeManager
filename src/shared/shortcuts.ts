@@ -53,11 +53,16 @@ export function tabDigit(event: KeyLike): number | null {
  * so xterm swallows them, sends them to the shell and stops the event. Refusing them in
  * the terminal is what lets them reach the window at all.
  *
- * The first three are bound in Claude Code, and taken anyway: another place, which place,
- * and which file are the three questions this application exists to answer, and having to
- * leave the shell to ask one of them defeats the point. What each costs is in the decision
+ * The first four are bound in Claude Code, and taken anyway: another place, which place,
+ * which file and open a file are what this application exists to do, and having to leave
+ * the shell to ask for one of them defeats the point. What each costs is in the decision
  * log; Ctrl+P costs the least of them, since it recalls history there and the up arrow
- * does the same thing.
+ * does the same thing, and Ctrl+O costs a transcript toggle.
+ *
+ * Ctrl+O was left alone once, on the argument that Ctrl+P already answers "which file" -
+ * and then it was the first thing missed in a day of real use, because the fingers that
+ * press it are not asking the same question: Ctrl+P knows the name, Ctrl+O is for
+ * looking. Consistency wherever the cursor happens to be beats the one binding it costs.
  *
  * The other two are moving between tabs and between the files in one. They were listed as
  * working from inside the shell and did not: xterm turned Ctrl+Tab into a tab character -
@@ -68,7 +73,12 @@ export function tabDigit(event: KeyLike): number | null {
 export function claimedFromShell(event: KeyLike): boolean {
   if (!event.ctrlKey || event.altKey || event.metaKey) return false
   if (event.code === 'Tab' || event.code === 'PageUp' || event.code === 'PageDown') return true
-  return event.code === 'KeyT' || event.code === 'KeyG' || event.code === 'KeyP'
+  return (
+    event.code === 'KeyT' ||
+    event.code === 'KeyG' ||
+    event.code === 'KeyP' ||
+    event.code === 'KeyO'
+  )
 }
 
 /**

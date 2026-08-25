@@ -133,10 +133,11 @@ arrows, digits or `z` is unused by PowerShell and the TUIs that run in it.
 
 While the shell has focus its keys belong to it — `Ctrl+W` deletes a word, `Ctrl+D`
 means end of input. The app shortcuts above then answer only to their `Ctrl+Shift`
-variants, with `Ctrl+P`, `Ctrl+T` and `Ctrl+G` as the exceptions: which file, another
-place and which place are the questions this application answers, and leaving the shell
-to ask one of them defeats the point - so they are taken even though Claude Code binds
-all three. See the decision log in [ROADMAP.md](ROADMAP.md) for what that costs. Also unshifted: ``Ctrl+` ``, `Ctrl+Tab`, `Ctrl+=`/`Ctrl+-` and `Ctrl+1`…`Ctrl+9` keep working
+variants, with `Ctrl+O`, `Ctrl+P`, `Ctrl+T` and `Ctrl+G` as the exceptions: open a file,
+which file, another place and which place are what this application is for, and leaving
+the shell to ask for one of them defeats the point - so they are taken even though Claude
+Code binds all four. Ctrl+Tab and Ctrl+PageUp/PageDown are claimed for the same reason.
+See the decision log in [ROADMAP.md](ROADMAP.md) for what that costs. Also unshifted: ``Ctrl+` ``, `Ctrl+Tab`, `Ctrl+=`/`Ctrl+-` and `Ctrl+1`…`Ctrl+9` keep working
 from either side. The digits are claimed because what a terminal makes of them is a
 handful of control characters nobody types on purpose - `Ctrl+2` is NUL, `Ctrl+3` is
 escape - while being unable to leave the pane you are typing in is felt every time.

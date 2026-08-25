@@ -22,6 +22,7 @@ describe('claimedFromShell', () => {
     assert.equal(claimedFromShell(press({ code: 'KeyT', altKey: false, ctrlKey: true })), true)
     assert.equal(claimedFromShell(press({ code: 'KeyG', altKey: false, ctrlKey: true })), true)
     assert.equal(claimedFromShell(press({ code: 'KeyP', altKey: false, ctrlKey: true })), true)
+    assert.equal(claimedFromShell(press({ code: 'KeyO', altKey: false, ctrlKey: true })), true)
   })
 
   /*
