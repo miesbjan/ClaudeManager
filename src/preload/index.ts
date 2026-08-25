@@ -36,7 +36,7 @@ ipcRenderer.setMaxListeners(64)
  * has no way to reach anything beyond this surface.
  */
 const api: ViewerApi = {
-  openDialog: () => ipcRenderer.invoke('dialog:open') as Promise<string[]>,
+  openDialog: (startIn) => ipcRenderer.invoke('dialog:open', startIn) as Promise<string[]>,
   readFile: (path) => ipcRenderer.invoke('file:read', path) as Promise<FileReadResult>,
   watch: (path) => ipcRenderer.invoke('watch:add', path) as Promise<void>,
   keepWatching: (paths) => ipcRenderer.send('watch:keep', paths),
@@ -52,7 +52,8 @@ const api: ViewerApi = {
   reveal: (path) => ipcRenderer.invoke('shell:reveal', path) as Promise<void>,
   getPathForFile: (file) => webUtils.getPathForFile(file),
   detectProject: (dir) => ipcRenderer.invoke('project:detect', dir) as Promise<ProjectInfo | null>,
-  openFolderDialog: () => ipcRenderer.invoke('dialog:folder') as Promise<string | null>,
+  openFolderDialog: (startIn) =>
+    ipcRenderer.invoke('dialog:folder', startIn) as Promise<string | null>,
   isDirectory: (path) => ipcRenderer.invoke('path:isDirectory', path) as Promise<boolean>,
   suggestPlaces: (parent, term) =>
     ipcRenderer.invoke('places:suggest', parent, term) as Promise<PlaceSuggestions>,

@@ -195,7 +195,11 @@ export type SessionUsage = {
 
 export interface ViewerApi {
   /** Native file dialog; returns selected absolute paths (may be empty). */
-  openDialog(): Promise<string[]>
+  /**
+   * Pick files to open. `startIn` is where the dialog opens - the directory the tab is
+   * already in, which is where the file being looked for nearly always is.
+   */
+  openDialog(startIn?: string): Promise<string[]>
   /** Read a file as UTF-8 text. Never throws; failures come back as ok:false. */
   readFile(path: string): Promise<FileReadResult>
   /** Start watching a file for external changes. */
@@ -232,7 +236,7 @@ export interface ViewerApi {
   /** Find the project a document belongs to; null when nothing is recognised. */
   detectProject(dir: string): Promise<ProjectInfo | null>
   /** Pick a directory for a tab to be a place over. Null when nothing was chosen. */
-  openFolderDialog(): Promise<string | null>
+  openFolderDialog(startIn?: string): Promise<string | null>
   /** Whether a dropped path is a directory rather than a file. */
   isDirectory(path: string): Promise<boolean>
   /** Directories to offer for a half-typed path, plus whatever zoxide would suggest. */

@@ -603,10 +603,18 @@ function windowsBuild(): number | null {
 }
 
 function registerIpc(): void {
-  ipcMain.handle('dialog:open', async (): Promise<string[]> => {
+  ipcMain.handle('dialog:open', async (_event, startIn?: string): Promise<string[]> => {
     if (!win) return []
     const result = await dialog.showOpenDialog(win, {
       title: 'Open file',
+      /*
+       * Where the tab already is, rather than wherever the last dialog happened to be.
+       * A tab is a place - a directory with a shell in it - so the file being looked for
+       * is almost always in that directory or below it, and starting anywhere else means
+       * clicking back to it every time. Omitted when the tab is no place yet, which is
+       * when the system's own idea of "last time" is the best answer available.
+       */
+      ...(startIn ? { defaultPath: startIn } : {}),
       properties: ['openFile', 'multiSelections'],
       // Markdown first because it is the common case, but any text file is fair game.
       filters: [
@@ -778,10 +786,12 @@ function registerIpc(): void {
    * dialog because Windows has no picker that offers both, and pretending otherwise
    * means a folder chosen in a file dialog, which cannot be done.
    */
-  ipcMain.handle('dialog:folder', async (): Promise<string | null> => {
+  ipcMain.handle('dialog:folder', async (_event, startIn?: string): Promise<string | null> => {
     if (!win) return null
     const result = await dialog.showOpenDialog(win, {
       title: 'Open folder',
+      // The same courtesy: start where the window already is, not where it once was.
+      ...(startIn ? { defaultPath: startIn } : {}),
       properties: ['openDirectory']
     })
     return result.canceled ? null : (result.filePaths[0] ?? null)

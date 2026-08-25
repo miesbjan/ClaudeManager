@@ -2779,7 +2779,7 @@ langButton.addEventListener('click', () => setLang(nextLang(lang)))
  * gets a place of its own rather than being moved out from under you.
  */
 async function openFolder(): Promise<void> {
-  const root = await window.api.openFolderDialog()
+  const root = await window.api.openFolderDialog(placeOf(tabs[activeIndex]) || undefined)
   if (root === null) return
   await useFolder(root)
 }
@@ -2826,7 +2826,8 @@ async function useFolder(root: string): Promise<void> {
 }
 
 async function pickFiles(): Promise<void> {
-  const paths = await window.api.openDialog()
+  // Opened over the place the tab is in; the file wanted is nearly always in it.
+  const paths = await window.api.openDialog(placeOf(tabs[activeIndex]) || undefined)
   if (paths.length > 0) await openFiles(paths)
 }
 
