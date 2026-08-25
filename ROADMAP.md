@@ -482,6 +482,14 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **25. 8. 2026** — Dialogy na otevření se otevírají v adresáři, kde ten tab je, a tlačítka
+   v liště jdou od nejširšího k nejužšímu: nový tab → adresář → soubor.
+   Důvod: tab *je* adresář se shellem, takže hledaný soubor je skoro vždy v něm nebo pod
+   ním; „poslední umístění", které si pamatuje systém, je přitom kdekoli, kde skončil
+   nějaký jiný dialog. A „otevřít soubor" sedělo mezi dvěma tlačítky, která obě dělají
+   místo, tedy jediná věc, co místo nedělá, byla uprostřed.
+   Ověřeno tím, že do mainu opravdu dorazí cesta toho tabu (`startIn=…\MarkdownViewer`);
+   kam nativní dialog nakonec otevře, z automatizace přečíst nejde.
 - **24. 8. 2026** — `Ctrl+C` v shellu kopíruje, když je něco vybrané, a jinak přeruší.
    Do teď to bylo jen přerušení a kopírovalo se `Ctrl+Shift+C` nebo pravým tlačítkem, což
    je obhajitelné a v praxi to znamenalo, že se kopírovalo myší nebo vůbec. Windows

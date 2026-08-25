@@ -259,6 +259,11 @@ Files passed on the command line are opened too, so the app works as a handler f
   claims afterwards are ended, which is the part that used to be done by killing all
   of them. A rebuilt window says so in the status bar rather than quietly
   rearranging itself, and what happened is in the log described below.
+- **Both dialogs open where the tab already is.** A tab is a directory with a shell in
+  it, so the file being looked for is nearly always in that directory or below it -
+  starting anywhere else means clicking back to it every time, and the place the system
+  remembers is wherever some other dialog happened to end. A tab that is no place yet
+  gets the system's answer, which is then the best one available.
 - **Copying and pasting in the shell.** `Ctrl+V` pastes, and so does the right button -
   which copies instead when something is selected, the way a Windows console does.
   `Ctrl+C` is both things at once: with something selected it copies and clears the
@@ -273,9 +278,10 @@ Files passed on the command line are opened too, so the app works as a handler f
   the browser's own paste into the hidden textarea is suppressed at the same time,
   because otherwise the clipboard arrives twice.
 - **A new place.** `Ctrl+T`, or *+ New tab* in the toolbar - the key had it to itself,
-  which is fine for anyone who knows the key and invisible to everyone else. It sits
-  beside *Open file*, because the two are the same question one step apart: a place to
-  work, and something to work on. A new tab
+  which is fine for anyone who knows the key and invisible to everyone else. The three
+  buttons run widest to narrowest: a place to work, a directory to work in, a file to
+  work on. Open file used to sit in the middle, between the two that both make a place.
+  A new tab
   comes with its shell already open, because a place is opened in order to work
   somewhere and there is nothing else in it yet; the shell starts in the home directory
   since the tab belongs to no project until a file is opened in it. Until then the tab
