@@ -10,6 +10,7 @@ import {
   sniffLocalUrl,
   WEB_PARTITION
 } from '../src/shared/web.ts'
+import { sanitisePane } from '../src/shared/session.ts'
 
 /*
  * The pane's page must be in a session of its own, because that is what puts it in a
@@ -217,19 +218,28 @@ describe('createUrlReader', () => {
 })
 
 describe('nextRightMode', () => {
-  it('cycles document, server, both', () => {
-    assert.equal(nextRightMode('doc', true), 'web')
-    assert.equal(nextRightMode('web', true), 'both')
-    assert.equal(nextRightMode('both', true), 'doc')
+  it('answers with the other one, whatever it is asked', () => {
+    assert.equal(nextRightMode('doc'), 'web')
+    assert.equal(nextRightMode('web'), 'doc')
+  })
+})
+
+describe('the arrangement that went away', () => {
+  /*
+   * Both at once is gone, and a file that remembers it is read as whichever of the two
+   * its owner was actually watching. The field for typing an address lives inside the
+   * pane, so an empty server pane is still a thing you can ask for - that is how a
+   * server started by hand gets shown at all.
+   */
+  it('reads a remembered "both" as the one that was being watched', () => {
+    assert.equal(sanitisePane({ rightMode: 'both', web: 'http://localhost:5173' }).rightMode, 'web')
+    assert.equal(sanitisePane({ rightMode: 'both' }).rightMode, 'doc')
   })
 
-  /*
-   * The field for typing an address lives inside the pane, so there has to be a way to
-   * open it empty - otherwise a server started by hand can never be shown at all.
-   */
-  it('opens an empty pane and closes it again without an address', () => {
-    assert.equal(nextRightMode('doc', false), 'web')
-    assert.equal(nextRightMode('web', false), 'doc')
-    assert.equal(nextRightMode('both', false), 'doc')
+  it('still reads the two that remain, and the flag before them', () => {
+    assert.equal(sanitisePane({ rightMode: 'web' }).rightMode, 'web')
+    assert.equal(sanitisePane({ rightMode: 'doc' }).rightMode, 'doc')
+    assert.equal(sanitisePane({ showWeb: true }).rightMode, 'web')
+    assert.equal(sanitisePane({}).rightMode, 'doc')
   })
 })

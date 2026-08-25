@@ -482,6 +482,17 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **25. 8. 2026** — Pravá strana ukazuje jednu věc: dokument, nebo dev server. Zobrazení
+   „obojí" zrušeno, s ním i pravý dělič a jeho poměr.
+   Důvod: jedna klávesa, která cykluje tři polohy, není odpověď na „ukaž mi server" -
+   mačkáš ji jednou nebo dvakrát podle stavu, který nevidíš, a k tomu dělalo `Alt+3`
+   částečně to samé. Se dvěma polohami není co počítat: `Alt+W` je ta druhá, `Alt+2` a
+   `Alt+3` jdou adresně. Uživatel to řekl přímo: když se to přepíná rychle, „obojí"
+   není potřeba.
+   Přijatý náklad: kdo chtěl dokument a server vedle sebe, ten to už nemá. Zpátky by to
+   šlo, ale stálo by to zase tu třetí polohu a druhý dělič.
+   Staré session se čtou dál: `rightMode: "both"` se přečte jako server, když byla
+   adresa, jinak jako dokument - tedy to, na co se ten člověk nejspíš koukal.
 - **25. 8. 2026** — `Ctrl+O` se bere shellu, čímž se ruší včerejší rozhodnutí opačné.
    Včera to vypadalo tak, že „otevřít soubor" je ta samá otázka jako `Ctrl+P`, kterou už
    bereme, takže by se platilo podruhé za totéž. Po jednom dni ostrého používání to byla

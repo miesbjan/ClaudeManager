@@ -32,6 +32,25 @@ function ratio(value: unknown): number {
   return typeof value === 'number' && value > 0 && value < 1 ? value : DEFAULT_RATIO
 }
 
+/**
+ * Which of the two the right side was showing, out of whatever the file says.
+ *
+ * Three shapes have been written over time: a flag, then three arrangements including
+ * both at once, now two. A file that says "both" was written when both could be on
+ * screen, and what its owner was watching is the server if there was one and the
+ * document otherwise - the other is a keystroke away either way.
+ */
+function rightModeOf(raw: unknown, hasWeb: boolean): 'doc' | 'web' {
+  const said = (raw && typeof raw === 'object' ? raw : {}) as {
+    rightMode?: unknown
+    showWeb?: unknown
+  }
+  if (said.rightMode === 'web') return 'web'
+  if (said.rightMode === 'both') return hasWeb ? 'web' : 'doc'
+  if (said.rightMode === 'doc') return 'doc'
+  return said.showWeb === true ? 'web' : 'doc'
+}
+
 /** A layout, with anything missing or nonsensical replaced by the default. */
 export function sanitisePane(raw: unknown): PaneState {
   const value = (raw && typeof raw === 'object' ? raw : {}) as Partial<PaneState>
@@ -40,14 +59,7 @@ export function sanitisePane(raw: unknown): PaneState {
     ratio: ratio(value.ratio),
     run: typeof value.run === 'string' ? value.run : null,
     web: typeof value.web === 'string' ? value.web : null,
-    // State from before the right side knew anything but "the server is showing".
-    rightMode:
-      value.rightMode === 'web' || value.rightMode === 'both' || value.rightMode === 'doc'
-        ? value.rightMode
-        : value.showWeb === true
-          ? 'web'
-          : 'doc',
-    rightRatio: ratio(value.rightRatio),
+    rightMode: rightModeOf(raw, typeof value.web === 'string'),
     webManual: value.webManual === true,
     /*
      * A half-written prompt is work, so it outlives a restart the way a draft of a file

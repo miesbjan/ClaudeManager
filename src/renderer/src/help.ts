@@ -81,7 +81,7 @@ const EN: HelpSection[] = [
       },
       { keys: 'Alt+Shift+← / →', action: 'move the divider' },
       { keys: 'Alt+Z', action: 'zoom the focused pane, and back' },
-      { keys: 'Alt+W', action: 'right side: document, dev server, both' },
+      { keys: 'Alt+W', action: 'right side: the other one of document / dev server' },
       {
         keys: 'Alt+P',
         action: 'prompt buffer under the shell; Ctrl+Enter sends it'
@@ -150,7 +150,7 @@ const CS: HelpSection[] = [
       },
       { keys: 'Alt+Shift+← / →', action: 'posunout dělič' },
       { keys: 'Alt+Z', action: 'zvětšit zaostřený panel a zpět' },
-      { keys: 'Alt+W', action: 'pravá strana: dokument, dev server, obojí' },
+      { keys: 'Alt+W', action: 'pravá strana: ten druhý z dokument / dev server' },
       { keys: 'Alt+P', action: 'prompt pod shellem; Ctrl+Enter ho odešle' }
     ]
   },

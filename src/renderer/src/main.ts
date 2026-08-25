@@ -74,7 +74,6 @@ const shellProject = document.getElementById('shell-project') as HTMLElement
 const webButton = document.getElementById('web-btn') as HTMLButtonElement
 const webPane = document.getElementById('web-pane') as HTMLElement
 const rightArea = document.getElementById('right-area') as HTMLElement
-const rightSplitter = document.getElementById('right-splitter') as HTMLElement
 /*
  * A webview, not an iframe: the page runs in a process of its own, which is what keeps a
  * dev server that misbehaves from taking this window - and every shell in it - with it.
@@ -270,7 +269,6 @@ function createTab(keepName?: string | null): Tab {
     prompt: '',
     promptOpen: false,
     rightMode: 'doc',
-    rightRatio: DEFAULT_RATIO,
     webManual: false,
     awaitingServer: false,
     webBroken: false
@@ -343,12 +341,12 @@ function showPane(tab: Tab | undefined, which: PaneName): void {
     tab.terminalOpen = true
     void openShell(tab)
   }
-  if (which === 'document' && tab.rightMode === 'web') tab.rightMode = 'both'
+  if (which === 'document') tab.rightMode = 'doc'
   /*
    * The web pane with no address is the pane plus its address bar, which is the way to
    * type one in - so asking for the server before there is one is a fair question.
    */
-  if (which === 'web' && tab.rightMode === 'doc') tab.rightMode = 'both'
+  if (which === 'web') tab.rightMode = 'web'
   if (tab.zoom !== null && tab.zoom !== which) tab.zoom = null
 }
 
@@ -763,7 +761,6 @@ function persistSession(): void {
           run: tab.runCommand,
           web: tab.webUrl,
           rightMode: tab.rightMode,
-          rightRatio: tab.rightRatio,
           webManual: tab.webManual,
           prompt: tab.prompt,
           promptOpen: tab.promptOpen,
@@ -1424,7 +1421,6 @@ function applyLayout(): void {
   rightArea.hidden = !showDoc && !showWeb
   // A divider only earns its place between two panes that are both on screen.
   splitter.hidden = !showShell || rightArea.hidden
-  rightSplitter.hidden = !showDoc || !showWeb
 
   shellButton.classList.toggle('active', shellOpen)
   /*
@@ -1439,9 +1435,6 @@ function applyLayout(): void {
     terminalPane.style.flexBasis = rightArea.hidden
       ? '100%'
       : String(clampRatio(tab.ratio) * 100) + '%'
-  }
-  if (tab && showDoc) {
-    viewer.style.flexBasis = showWeb ? String(clampRatio(tab.rightRatio) * 100) + '%' : '100%'
   }
 
   for (const [id, pane] of shells) {
@@ -1556,11 +1549,11 @@ function setWebUrl(tab: Tab, url: string | null, manual = false): void {
   if (tab === tabs[activeIndex]) applyLayout()
 }
 
-/** Document, dev server, both - one key, in that order. */
+/** The document or the dev server: one key, and it is always the other one. */
 function cycleRight(): void {
   const tab = tabs[activeIndex]
   if (!tab) return
-  tab.rightMode = nextRightMode(tab.rightMode, tab.webUrl !== null)
+  tab.rightMode = nextRightMode(tab.rightMode)
   tab.zoom = null
   applyLayout()
   persistSession()
@@ -1815,17 +1808,9 @@ function runPaneCommand(command: PaneCommand): void {
     return
   }
   if (command.type === 'resize') {
-    if (tab.zoom) return
-    // The divider that moves is the one beside the pane being worked in.
-    if (focusedPane() === 'terminal' && !splitter.hidden) {
-      tab.ratio = clampRatio(tab.ratio + command.delta)
-    } else if (!rightSplitter.hidden) {
-      tab.rightRatio = clampRatio(tab.rightRatio + command.delta)
-    } else if (!splitter.hidden) {
-      tab.ratio = clampRatio(tab.ratio + command.delta)
-    } else {
-      return
-    }
+    if (tab.zoom || splitter.hidden) return
+    // One divider, between the shell and whichever of the two the right side shows.
+    tab.ratio = clampRatio(tab.ratio + command.delta)
     applyLayout()
     shells.get(tab.id)?.resize()
     persistSession()
@@ -1986,21 +1971,6 @@ makeSplitter(splitter, panes, {
     const tab = tabs[activeIndex]
     if (!tab) return
     tab.ratio = ratio
-    persistSession()
-  }
-})
-
-makeSplitter(rightSplitter, rightArea, {
-  onChange: (ratio) => {
-    const tab = tabs[activeIndex]
-    if (!tab) return
-    tab.rightRatio = ratio
-    viewer.style.flexBasis = String(ratio * 100) + '%'
-  },
-  onCommit: (ratio) => {
-    const tab = tabs[activeIndex]
-    if (!tab) return
-    tab.rightRatio = ratio
     persistSession()
   }
 })
@@ -3099,7 +3069,6 @@ async function start(): Promise<void> {
     tab.runCommand = saved.pane.run ?? null
     tab.webUrl = saved.pane.web ?? null
     tab.rightMode = tab.webUrl === null ? 'doc' : saved.pane.rightMode
-    tab.rightRatio = clampRatio(saved.pane.rightRatio)
     tab.webManual = saved.pane.webManual
     tab.prompt = saved.pane.prompt
     tab.promptOpen = saved.pane.promptOpen

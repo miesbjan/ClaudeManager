@@ -126,7 +126,7 @@ panes**, with tmux's arrows and `z`:
 | `Alt+1` / `Alt+2` / `Alt+3` | go to the shell / document / dev server, opening it if it is not up |
 | `Alt+Shift+←` / `Alt+Shift+→` | move the divider by 5 %               |
 | `Alt+Z`                   | zoom the focused pane to the whole tab, and back |
-| `Alt+W`                   | right side: document, dev server, both     |
+| `Alt+W`                   | right side: the other one of document / dev server |
 
 These are the only keys taken from the shell, the way tmux takes a prefix; Alt with
 arrows, digits or `z` is unused by PowerShell and the TUIs that run in it.
@@ -202,9 +202,14 @@ Files passed on the command line are opened too, so the app works as a handler f
   is already on screen, is mentioned in the status bar rather than taken: a server
   announces itself once and everything after that is an agent or a log mentioning a URL,
   which used to throw away the running application to show a path nobody asked for. A run started from the Run button opens it by itself,
-  since starting something means wanting to look at it; `Alt+W` then cycles the right
-  side through document, dev server, and both at once - three columns with a divider
-  between each pair, each remembered per document.
+  since starting something means wanting to look at it. The right side shows one of the
+  two at a time: `Alt+W` is the other one, `Alt+2` is the document and `Alt+3` the
+  server, and which one it was is remembered per place.
+
+  There used to be a third arrangement with both at once, reached by one key cycling
+  through all three - which is no answer to "show me the server", since it takes one
+  press or two depending on a state you cannot see. Two arrangements need no counting,
+  and room for both at once turned out to be worth less than swapping in one keystroke.
 
   A page shown here runs in a process of its own, in a session of its own, and that is
   deliberate: as a frame of this document it was same-site with the app, shared this

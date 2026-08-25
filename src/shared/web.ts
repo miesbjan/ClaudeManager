@@ -134,17 +134,18 @@ export function createUrlReader(): (chunk: string) => string | null {
   }
 }
 
-/** What the right side of a tab shows. */
-export type RightMode = 'doc' | 'web' | 'both'
-
 /**
- * One key cycles the three arrangements. Without an address there is nothing to put
- * beside the document, so the cycle shrinks to two: open the pane to type an address
- * into, and close it again.
+ * What the right side of a tab shows. One of them at a time, on purpose.
+ *
+ * There used to be a third arrangement with both at once, reached by a key that cycled
+ * through all three - and a cycle is not an answer to "show me the server": you press it
+ * once or twice depending on a state you cannot see. With two arrangements the same key
+ * is the whole answer, and each of them has a key of its own besides. Room for both at
+ * once turned out to be worth less than being able to swap in one keystroke.
  */
-export function nextRightMode(mode: RightMode, hasUrl: boolean): RightMode {
-  if (!hasUrl) return mode === 'doc' ? 'web' : 'doc'
-  if (mode === 'doc') return 'web'
-  if (mode === 'web') return 'both'
-  return 'doc'
+export type RightMode = 'doc' | 'web'
+
+/** The other one. With two arrangements there is nothing to count. */
+export function nextRightMode(mode: RightMode): RightMode {
+  return mode === 'doc' ? 'web' : 'doc'
 }

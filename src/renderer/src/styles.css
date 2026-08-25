@@ -596,7 +596,6 @@ body.dragging::after {
 
 #terminal-pane[hidden],
 #splitter[hidden],
-#right-splitter[hidden],
 #viewer[hidden] {
   display: none;
 }
@@ -610,8 +609,7 @@ body.dragging::after {
   display: none;
 }
 
-#splitter,
-#right-splitter {
+#splitter {
   flex: 0 0 6px;
   background: var(--bg-chrome);
   border-left: 1px solid var(--border);
@@ -619,8 +617,7 @@ body.dragging::after {
   cursor: col-resize;
 }
 
-#splitter:hover,
-#right-splitter:hover {
+#splitter:hover {
   background: var(--accent);
 }
 

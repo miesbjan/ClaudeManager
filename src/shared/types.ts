@@ -93,10 +93,8 @@ export type PaneState = {
   run: string | null
   /** Address of the dev server seen in this place. */
   web: string | null
-  /** Whether the right side showed the document, the dev server, or both. */
-  rightMode: 'doc' | 'web' | 'both'
-  /** Width of the document as a fraction of the right side. */
-  rightRatio: number
+  /** Whether the right side showed the document or the dev server. */
+  rightMode: 'doc' | 'web'
   /** The address was typed by hand rather than read from the output. */
   webManual: boolean
   /**

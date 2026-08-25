@@ -58,8 +58,6 @@ export type Tab = {
   ratio: number
   /** A pane blown up to the whole tab, as tmux does with `prefix + z`. */
   zoom: 'terminal' | 'document' | 'web' | null
-  /** Width of the document as a fraction of the right side, when both are shown. */
-  rightRatio: number
   /** What happened here while you were looking elsewhere. */
   activity: ActivityState
   /**
