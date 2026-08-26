@@ -4,7 +4,7 @@
   "description": "A small per-project console for Windows: a shell, the live document you steer by, and the app you are building, side by side",
   "main": "./out/main/index.js",
   "private": true,
-  "author": "you@example.com",
+  "author": "Jan Miesbauer",
   "scripts": {
     "dev": "electron-vite dev",
     "start": "electron-vite preview",

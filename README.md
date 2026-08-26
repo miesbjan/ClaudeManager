@@ -13,6 +13,33 @@ It is not an editor: no editing, no file tree, no workspace management. Where th
 heading, and what it will deliberately never do, is written down in
 [ROADMAP.md](ROADMAP.md).
 
+## The idea
+
+An agent does the work in the shell; you steer by a document and watch the thing being
+built. Those three belong to one project, so they belong in one window - and nothing
+else does. The editor stays the editor, and the agent stays a process running outside
+this application, which has no model in it and starts nothing by itself.
+
+What makes it a tool rather than a layout is that the window notices things. The
+document reloads itself and marks what changed. The tab says when the agent in it has
+finished or is waiting for permission, the taskbar button says it while the window is
+behind something else, and the status bar says what the session has spent. Watching an
+agent is the part of the work that a terminal is worst at, and it is the part this was
+built for.
+
+## Status
+
+A personal tool, built in the open: used every day on Windows, by one person, with the
+agent it was built to watch. There are no releases, no support and no promises about
+the next commit - if it is useful to you, fork it and make it yours. Windows only; the
+shell is a real console through ConPTY, and nothing here has ever run anywhere else.
+
+The design notes in [ROADMAP.md](ROADMAP.md) and [PREHLED.md](PREHLED.md) are in Czech,
+including the decision log that says why each thing is the way it is. The code, its
+comments and this file are in English.
+
+Licensed under the [MIT licence](LICENSE): do what you like with it.
+
 ## Run
 
 ```bash
