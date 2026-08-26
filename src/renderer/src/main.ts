@@ -2378,8 +2378,8 @@ function relativeTo(root: string, path: string): string {
 
 /** How a place is named when a row has to say a file is open in another one. */
 function tabLabel(tab: Tab): string {
-  // The same order the bar uses: a name given by hand, the file on screen, the place.
-  return tab.name ?? baseName(shownDoc(tab)?.path ?? tab.root ?? '')
+  // The same order the bar uses: a name given by hand, the place, the file on screen.
+  return tab.name ?? baseName(tab.root ?? shownDoc(tab)?.path ?? '')
 }
 
 /** Where focus was when the palette took it, so closing it puts it back. */
@@ -2395,11 +2395,15 @@ let paletteReturn: HTMLElement | null = null
  */
 let paletteQuery = 0
 
+/** The tab the palette was opened over, and therefore the tab its list belongs to. */
+let paletteTab: Tab | null = null
+
 async function openPalette(): Promise<void> {
   const tab = tabs[activeIndex]
   if (!tab) return
   const root = placeOf(tab)
   const ticket = ++paletteQuery
+  paletteTab = tab
   paletteReturn = document.activeElement as HTMLElement | null
 
   // What is open here is known already, so the list is never empty while the disk is
@@ -2527,15 +2531,16 @@ function renderPalette(): void {
 
     row.addEventListener('mousedown', (event) => {
       event.preventDefault()
-      void choosePalette(entry)
+      void choosePalette(entry, paletteTab ?? undefined)
     })
     paletteList.append(row)
   })
 }
 
-async function choosePalette(entry: PaletteEntry): Promise<void> {
+async function choosePalette(entry: PaletteEntry, into?: Tab): Promise<void> {
   closePalette()
-  await openFiles([entry.path])
+  // Into the tab the palette was opened over, which is the tab its list came from.
+  await openFiles([entry.path], true, into)
 }
 
 paletteInput.addEventListener('input', () => {
@@ -2552,7 +2557,7 @@ paletteInput.addEventListener('keydown', (event) => {
   } else if (event.key === 'Enter') {
     event.preventDefault()
     const chosen = shown[paletteIndex]
-    if (chosen) void choosePalette(chosen)
+    if (chosen) void choosePalette(chosen, paletteTab ?? undefined)
   } else if (event.key === 'Escape') {
     event.preventDefault()
     closePalette()
@@ -2828,10 +2833,18 @@ async function useFolder(root: string): Promise<void> {
   status.textContent = busy ? T('place.shellStayed', { dir: cameFrom }) : root
 }
 
+
 async function pickFiles(): Promise<void> {
-  // Opened over the place the tab is in; the file wanted is nearly always in it.
-  const paths = await window.api.openDialog(placeOf(tabs[activeIndex]) || undefined)
-  if (paths.length > 0) await openFiles(paths)
+  /*
+   * The tab is decided before the dialog opens, not after it closes, and the file joins
+   * that tab whatever happened in between. The dialog opens over that tab's place - so
+   * the two would disagree if the tab on screen changed while it was up, and a file
+   * picked in one place would land in another. Which is not a hypothetical: two places
+   * can both hold a roadmap.md, and then nothing about the result looks wrong.
+   */
+  const into = tabs[activeIndex]
+  const paths = await window.api.openDialog(placeOf(into) || undefined)
+  if (paths.length > 0) await openFiles(paths, true, into)
 }
 
 newTabButton.addEventListener('click', newTab)

@@ -529,11 +529,20 @@ Files passed on the command line are opened too, so the app works as a handler f
   five files called `index.ts` are told apart. Deliberately not fuzzy: scoring guesses
   and then needs tuning, and this is not that feature. While the shell has focus the key
   is `Ctrl+Shift+P`, because plain `Ctrl+P` there belongs to the shell.
+- **What a tab is called.** The place, if it is one: a tab opened over
+  `~/source/template-designer` says *template-designer* and keeps saying it, whatever
+  is open inside. A tab that is only files is named after the file on screen, told apart
+  from other such tabs by as much of the path as it takes.
+
+  The place used to lose its name to the first file opened in it, which is how a tab over
+  a directory became *roadmap.md* - and with two places each holding a `roadmap.md`,
+  nothing on screen said which one was in front of you. Which file it is showing is in
+  the tooltip, in the status bar and in the window title.
 - **Naming a tab.** Double-click its label, or right-click it, and give the place a
-  name of its own - what you are doing there usually describes it better than whichever
-  file is on screen. It is shown as a plain name - it is what the place is called now,
-  not a note about the file it came from. An empty name goes back to being named after
-  the file, and the name is remembered with the rest of the place.
+  name of its own - what you are doing there usually describes it better than the
+  directory it lives in. It is shown as a plain name - it is what the place is called
+  now, not a note about the file it came from. An empty name goes back to the place's
+  own name, and the name is remembered with the rest of the place.
 - **A tab that is busy is not closed on one click.** Closing one where something is
   running - output flowing, the program reporting work, or an agent stopped at a
   permission question - asks first. The cross sits a few pixels from where a tab is

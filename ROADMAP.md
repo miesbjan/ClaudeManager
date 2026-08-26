@@ -482,6 +482,21 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **26. 8. 2026** — Tab si drží jméno místa, i když se v něm otevře soubor, a soubor
+   z dialogu přistane v tom tabu, ze kterého se dialog otevřel.
+   Důvod: hlášená chyba - „otevřel jsem přes Ctrl+G template designer, pak jeho roadmapu
+   a ono to přejmenovalo tab na roadmap a otevřelo to nad personal assistentem". Jméno
+   tabu se skládalo tak, že soubor vyhrával nad místem, takže místo z lišty zmizelo
+   v momentě, kdy v něm člověk něco otevřel - a dvě místa, která obě mají `roadmap.md`,
+   se pak od sebe nedaly poznat. To je ta polovina, která ten omyl zneviditelnila.
+   Druhá polovina: `pickFiles` čtl cílový tab teprve po zavření dialogu, takže mezi
+   „otevřel jsem dialog nad tímhle místem" a „soubor patří sem" mohl přijít přepnutý tab.
+   Cíl se teď rozhoduje před dialogem a předává se dovnitř; totéž pro paletu, která svůj
+   seznam skládá pro konkrétní tab.
+   Co jsem **nereprodukoval**: že by soubor přistál v jiném tabu. Zkusil jsem tu
+   posloupnost nanečisto a přistál správně; okno, ve kterém se cíl mohl rozejít, je
+   několik milisekund. Nejpravděpodobnější vysvětlení zbytku je, že dialog nabídl adresář
+   předchozího místa a vybrala se cizí `roadmap.md` - proto ta oprava jména tabu.
 - **26. 8. 2026** — `Alt+N` adresuje věc, kam jít, ne sloupec: 1 shell, 2 dev server,
    3 a dál otevřené soubory v pořadí, jak byly otevřené. Ukáže, co není vidět, a dá tam
    fokus.

@@ -238,10 +238,21 @@ export function renderTabBar(
      */
     const place = tab.root === null ? '' : baseName(tab.root)
     const empty = !tab.name && !labels[index] && place === ''
-    // A name given by hand reads as a plain name: it is what the place is called now,
-    // not a note about the file it came from.
+    /*
+     * The place first, then the file. A tab is a place, so a place that has a name keeps
+     * it: opening a file in it used to rename the tab after the file, which is how a
+     * directory called "template designer" became "roadmap.md" - and with two places
+     * each holding a roadmap.md, nothing on screen said which one you were looking at.
+     *
+     * A tab that is only a file has no place to be named after, and is named after the
+     * file, told apart from other such tabs by as much of the path as it takes. Which
+     * file is on screen is in the tooltip, the status bar and the window title.
+     *
+     * A name given by hand reads as a plain name: it is what the place is called now,
+     * not a note about the file it came from.
+     */
     label.textContent =
-      tab.name ?? (labels[index] || place || translate(lang, 'tab.empty'))
+      tab.name ?? (place || labels[index] || translate(lang, 'tab.empty'))
     if (empty) label.classList.add('unnamed')
     label.addEventListener('dblclick', (event) => {
       event.stopPropagation()
