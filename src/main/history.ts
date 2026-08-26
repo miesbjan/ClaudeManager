@@ -48,6 +48,24 @@ function save(): void {
   }
 }
 
+/**
+ * A file this place should stop offering.
+ *
+ * Opening the wrong file is a slip, and until now the place remembered it for good: it
+ * came back at the top of Ctrl+P every time, in a project it has nothing to do with.
+ * Forgetting is only about the offer - the file itself is not touched.
+ */
+export function forgetOpened(root: string, path: string): void {
+  if (root === '' || path === '') return
+  const all = load()
+  const key = placeKey(root)
+  const list = all[key]
+  if (!list) return
+  all[key] = forget(list, [path])
+  save()
+  note('the place ' + root + ' will stop offering ' + path)
+}
+
 /** A file was opened in a place: it goes to the front of that place's list. */
 export function noteOpened(root: string, path: string): void {
   if (root === '' || path === '') return

@@ -60,6 +60,7 @@ const api: ViewerApi = {
   rememberedFiles: (root) =>
     ipcRenderer.invoke('history:list', root) as Promise<RememberedFile[]>,
   noteOpenedFile: (root, path) => ipcRenderer.send('history:note', root, path),
+  forgetFileHere: (root, path) => ipcRenderer.send('history:forget', root, path),
   listFiles: (root) => ipcRenderer.invoke('files:list', root) as Promise<FileListing>,
   resolveFiles: (root, candidates) =>
     ipcRenderer.invoke('files:resolve', root, candidates) as Promise<Array<string | null>>,

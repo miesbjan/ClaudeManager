@@ -98,7 +98,8 @@ else closes it. It speaks whichever interface language is selected.
 | `Ctrl+G`                  | type where to go: a directory, by path     |
 | *Open folder*             | open a directory as a place to work in    |
 | `Ctrl+P`                  | go to a file: open here, or in the project |
-| `Ctrl+W`                  | close the current tab                     |
+| `Ctrl+W`                  | close the file; the last one closes the tab |
+| `Ctrl+P` → `Delete`      | stop offering that file in this place      |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | next / previous tab                   |
 | `Ctrl+1` … `Ctrl+9`       | jump to tab by position                   |
 | `Ctrl+F`                  | find in the document or the plain text    |

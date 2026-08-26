@@ -482,6 +482,20 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **26. 8. 2026** — Dialog na otevření dostává adresář s koncovým lomítkem, a `Ctrl+P`
+   umí soubor v tom místě zapomenout klávesou Delete.
+   To první je dokončení včerejší práce, která nefungovala: Windows si to, co dostane,
+   rozdělí na adresář a jméno do políčka, takže `C:workprojekt` otevřelo `C:work`
+   s „projekt" v políčku názvu - tedy adresář *vedle* toho, o který se žádalo, což vypadá
+   jako že se `defaultPath` ignoruje. Vyfoceno na živém dialogu; s lomítkem na konci je
+   rozdělení jednoznačné.
+   To druhé je mezera, na kterou uživatel narazil: omylem otevřený soubor si místo
+   pamatovalo navždy a `Ctrl+P` ho nabízelo první, i když do toho projektu nepatří.
+   Zapomínání existovalo v kódu, ale používalo se jen na soubory, které zmizely z disku.
+   Delete ho teď zapomene i tehdy, když na disku pořád je; se souborem samotným to nedělá
+   nic a soubor uvnitř místa se najde dál při procházení projektu.
+   Ověřeno naživo: paleta nabídla dva soubory, Delete vybraný odebral, poznámka to řekla
+   a v `places.json` zůstal jeden.
 - **26. 8. 2026** — Tab si drží jméno místa, i když se v něm otevře soubor, a soubor
    z dialogu přistane v tom tabu, ze kterého se dialog otevřel.
    Důvod: hlášená chyba - „otevřel jsem přes Ctrl+G template designer, pak jeho roadmapu

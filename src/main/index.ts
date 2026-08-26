@@ -17,7 +17,7 @@ import {
 import { existsSync, statSync } from 'node:fs'
 import { release } from 'node:os'
 import { readFile, stat, writeFile } from 'node:fs/promises'
-import { dirname, join, normalize, resolve } from 'node:path'
+import { dirname, join, normalize, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { Lang } from '../shared/i18n'
 import { FileWatcher } from './fileWatcher'
@@ -26,7 +26,7 @@ import { readPlanUsage } from './limits'
 import { askSummary } from './summary'
 import { readUsage } from './usage'
 import { listFiles } from './listFiles'
-import { noteOpened, rememberedIn } from './history'
+import { forgetOpened, noteOpened, rememberedIn } from './history'
 import { homeDirectory, listDirectories, queryZoxide } from './places'
 import { resolveFile } from './resolveFile'
 import { note } from './log'
@@ -602,6 +602,18 @@ function windowsBuild(): number | null {
   return Number.isInteger(build) ? build : null
 }
 
+/**
+ * A directory said in the way a file dialog understands as "start here".
+ *
+ * What it is given is split into a folder and a name for the box, so a directory without
+ * a separator on the end has its last part read as the name - and the dialog opens in the
+ * parent, one place next to the one that was asked for.
+ */
+function asFolder(path: string): string {
+  const full = normalize(path)
+  return full.endsWith(sep) ? full : full + sep
+}
+
 function registerIpc(): void {
   ipcMain.handle('dialog:open', async (_event, startIn?: string): Promise<string[]> => {
     if (!win) return []
@@ -613,8 +625,14 @@ function registerIpc(): void {
        * is almost always in that directory or below it, and starting anywhere else means
        * clicking back to it every time. Omitted when the tab is no place yet, which is
        * when the system's own idea of "last time" is the best answer available.
+       *
+       * With the separator on the end, because this is a folder and not a file. Windows
+       * splits what it is given into a folder and a name to put in the box, so a bare
+       * `C:\work\project` opened `C:\work` with "project" typed in - which is the
+       * folder next door to the one that was asked for, and looks like the dialog
+       * ignoring the request entirely.
        */
-      ...(startIn ? { defaultPath: startIn } : {}),
+      ...(startIn ? { defaultPath: asFolder(startIn) } : {}),
       properties: ['openFile', 'multiSelections'],
       // Markdown first because it is the common case, but any text file is fair game.
       filters: [
@@ -790,8 +808,8 @@ function registerIpc(): void {
     if (!win) return null
     const result = await dialog.showOpenDialog(win, {
       title: 'Open folder',
-      // The same courtesy: start where the window already is, not where it once was.
-      ...(startIn ? { defaultPath: startIn } : {}),
+      // The same courtesy, and the same trailing separator - see `asFolder`.
+      ...(startIn ? { defaultPath: asFolder(startIn) } : {}),
       properties: ['openDirectory']
     })
     return result.canceled ? null : (result.filePaths[0] ?? null)
@@ -825,6 +843,10 @@ function registerIpc(): void {
 
   ipcMain.on('history:note', (_event, root: string, path: string) => {
     noteOpened(normalize(root), normalize(path))
+  })
+
+  ipcMain.on('history:forget', (_event, root: string, path: string) => {
+    forgetOpened(normalize(root), normalize(path))
   })
 
   ipcMain.handle('files:list', (_event, root: string) => listFiles(normalize(root)))

@@ -243,6 +243,11 @@ export interface ViewerApi {
   rememberedFiles(root: string): Promise<RememberedFile[]>
   /** A file was opened in a place, which is what makes it remembered there. */
   noteOpenedFile(root: string, path: string): void
+  /**
+   * Stop offering this file in this place. For the one opened by mistake, which the
+   * place would otherwise keep at the top of the list for ever.
+   */
+  forgetFileHere(root: string, path: string): void
   /** Files under a directory, for the palette. Build output and dot-dirs are skipped. */
   listFiles(root: string): Promise<FileListing>
   /**

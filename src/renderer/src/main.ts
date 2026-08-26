@@ -2558,6 +2558,23 @@ paletteInput.addEventListener('keydown', (event) => {
     event.preventDefault()
     const chosen = shown[paletteIndex]
     if (chosen) void choosePalette(chosen, paletteTab ?? undefined)
+  } else if (event.key === 'Delete') {
+    /*
+     * Stop offering this one here. Opening the wrong file is a slip, and the place
+     * remembered it for good - back at the top of this list every time, in a project it
+     * has nothing to do with. The file itself is not touched, and one that is on disk
+     * under this place still turns up in the walk below; what goes is the memory of
+     * having opened it here.
+     */
+    event.preventDefault()
+    const chosen = shown[paletteIndex]
+    const root = placeOf(paletteTab ?? tabs[activeIndex])
+    if (!chosen || root === '') return
+    window.api.forgetFileHere(root, chosen.path)
+    paletteEntries = paletteEntries.filter((entry) => entry !== chosen)
+    paletteIndex = Math.min(paletteIndex, Math.max(visibleEntries(paletteEntries, paletteInput.value).length - 1, 0))
+    renderPalette()
+    paletteNote.textContent = T('palette.forgotten', { name: baseName(chosen.path) })
   } else if (event.key === 'Escape') {
     event.preventDefault()
     closePalette()
