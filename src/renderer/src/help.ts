@@ -76,8 +76,8 @@ const EN: HelpSection[] = [
     title: 'Panes (Alt, as in tmux)',
     rows: [
       {
-        keys: 'Alt+← / → / 1 / 2 / 3',
-        action: 'go to a pane: by side, or shell / doc / server'
+        keys: 'Alt+← / → / 1 / 2 / 3…9',
+        action: 'go to: by side, or shell / server / the files as opened'
       },
       { keys: 'Alt+Shift+← / →', action: 'move the divider' },
       { keys: 'Alt+Z', action: 'zoom the focused pane, and back' },
@@ -145,8 +145,8 @@ const CS: HelpSection[] = [
     title: 'Panely (Alt, jako v tmuxu)',
     rows: [
       {
-        keys: 'Alt+← / → / 1 / 2 / 3',
-        action: 'jdi na panel: podle strany, nebo shell / dokument / server'
+        keys: 'Alt+← / → / 1 / 2 / 3…9',
+        action: 'jdi na: podle strany, nebo shell / server / soubory jak šly'
       },
       { keys: 'Alt+Shift+← / →', action: 'posunout dělič' },
       { keys: 'Alt+Z', action: 'zvětšit zaostřený panel a zpět' },

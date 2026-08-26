@@ -126,6 +126,7 @@ panes**, with tmux's arrows and `z`:
 | `Alt+1` / `Alt+2` / `Alt+3` | go to the shell / document / dev server, opening it if it is not up |
 | `Alt+Shift+←` / `Alt+Shift+→` | move the divider by 5 %               |
 | `Alt+Z`                   | zoom the focused pane to the whole tab, and back |
+| `Alt+1` / `Alt+2` / `Alt+3`…`Alt+9` | go to: the shell / the dev server / the files as they were opened |
 | `Alt+W`                   | right side: the other one of document / dev server |
 
 These are the only keys taken from the shell, the way tmux takes a prefix; Alt with

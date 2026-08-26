@@ -52,6 +52,24 @@ describe('claimedFromShell', () => {
 
 describe('paneCommand', () => {
   /*
+   * A number is a thing to go to, not a column: one is the shell, two the dev server,
+   * and from three up the files open in the tab in the order they were opened. Read from
+   * the physical key, because on a Czech layout the top row types 'ěščř'.
+   */
+  it('reads every digit as somewhere to go', () => {
+    for (const digit of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+      assert.deepEqual(paneCommand(press({ code: 'Digit' + digit, altKey: true })), {
+        type: 'focusIndex',
+        index: digit
+      })
+    }
+  })
+
+  it('has nothing to say about a tenth', () => {
+    assert.equal(paneCommand(press({ code: 'Digit0', altKey: true })), null)
+  })
+
+  /*
    * The buffer sends into the shell, so the key has to work while the shell has focus -
    * which is what Alt buys: PowerShell and the TUIs in it leave Alt alone.
    */

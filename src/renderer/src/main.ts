@@ -1782,11 +1782,44 @@ function runPaneCommand(command: PaneCommand): void {
     return
   }
   if (command.type === 'focusIndex') {
-    const which = command.index === 1 ? 'terminal' : command.index === 2 ? 'document' : 'web'
-    // Asking to go somewhere is asking to see it; a pane out of sight is not an answer.
-    showPane(tab, which)
-    applyLayout()
-    focusPane(which)
+    /*
+     * One is the shell, two is the dev server, and from three up they are the files open
+     * here in the order they were opened. Asking to go somewhere is asking to see it, so
+     * whatever is asked for is brought up first - a pane out of sight is not an answer.
+     */
+    if (command.index === 1) {
+      showPane(tab, 'terminal')
+      applyLayout()
+      focusPane('terminal')
+      persistSession()
+      return
+    }
+    if (command.index === 2) {
+      showPane(tab, 'web')
+      applyLayout()
+      focusPane('web')
+      /*
+       * With no address yet the pane is its address bar, and that is the answer to being
+       * asked for: the field takes the keyboard so the first address can be typed.
+       */
+      if (!tab.webUrl) {
+        webUrlInput.focus()
+        webUrlInput.select()
+      }
+      persistSession()
+      return
+    }
+    const wanted = command.index - 2
+    const doc = tab.docs[wanted - 1]
+    if (!doc) {
+      // Nothing to go to. Said, because a key that does nothing reads as a broken key.
+      status.textContent = T('pane.noSuchFile', { index: wanted, count: tab.docs.length })
+      return
+    }
+    tab.docIndex = wanted - 1
+    showPane(tab, 'document')
+    render()
+    focusPane('document')
     persistSession()
     return
   }

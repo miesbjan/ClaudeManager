@@ -8,7 +8,7 @@
  */
 export type PaneCommand =
   | { type: 'focus'; direction: 'left' | 'right' }
-  | { type: 'focusIndex'; index: 1 | 2 | 3 }
+  | { type: 'focusIndex'; index: number }
   | { type: 'zoom' }
   | { type: 'resize'; delta: number }
   | { type: 'web' }
@@ -124,9 +124,20 @@ export function paneCommand(event: KeyLike): PaneCommand | null {
   if (event.shiftKey) return null
 
   // Digits come from the physical key: on a Czech layout the top row types 'ěščř'.
-  if (event.code === 'Digit1') return { type: 'focusIndex', index: 1 }
-  if (event.code === 'Digit2') return { type: 'focusIndex', index: 2 }
-  if (event.code === 'Digit3') return { type: 'focusIndex', index: 3 }
+  /*
+   * A number is a thing to go to, not a column: 1 is the shell, 2 is the dev server, and
+   * from 3 up they are the files open in this tab in the order they were opened. The
+   * right side shows one thing at a time, so a column number would address two different
+   * things - and what a person means by "go to the second file" is the file, not a slot.
+   *
+   * The cost, said plainly here because it is felt rather than seen: closing a file
+   * renumbers the ones after it. Ctrl+P answers the same question by name, which nothing
+   * renumbers.
+   */
+  if (event.code.startsWith('Digit')) {
+    const digit = Number(event.code.slice(5))
+    if (digit >= 1 && digit <= 9) return { type: 'focusIndex', index: digit }
+  }
 
   // Letters come from the label instead, so Alt+Z is the key marked Z on a QWERTZ.
   const letter = event.key.toLowerCase()

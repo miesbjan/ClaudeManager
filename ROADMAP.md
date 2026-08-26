@@ -482,6 +482,20 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **26. 8. 2026** — `Alt+N` adresuje věc, kam jít, ne sloupec: 1 shell, 2 dev server,
+   3 a dál otevřené soubory v pořadí, jak byly otevřené. Ukáže, co není vidět, a dá tam
+   fokus.
+   Důvod: čísla znamenala panely, ale panely jsou od zrušení „obojího" dva, takže `2` a
+   `3` adresovaly to samé místo s jiným obsahem - a člověk, který mačká „jdi na druhý
+   soubor", myslí soubor, ne slot. Tohle chtěl uživatel od začátku; ptal se přesně na to,
+   co se stane, když jsou soubory tři.
+   Přijatý náklad, řečený nahlas i v kódu: zavření souboru přečísluje ty za ním, což je
+   ta samá past jako identita podle pozice, kterou jinde v aplikaci odmítáme. Rozdíl je,
+   že tady je to jednorázový skok, ne vlastnictví shellu - a `Ctrl+P` odpovídá jménem,
+   které se nepřečísluje. Číslo, na které nikdo není otevřený, se řekne ve stavovém řádku;
+   klávesa, která nedělá nic, se čte jako rozbitá.
+   Ověřeno naživo se třemi soubory: 2 server, 3/4/5 první/druhý/třetí soubor, 1 shell,
+   a `Alt+9` řeklo „Soubor 7 tady otevřený není - v tomhle tabu jsou 3."
 - **25. 8. 2026** — Pravá strana ukazuje jednu věc: dokument, nebo dev server. Zobrazení
    „obojí" zrušeno, s ním i pravý dělič a jeho poměr.
    Důvod: jedna klávesa, která cykluje tři polohy, není odpověď na „ukaž mi server" -
