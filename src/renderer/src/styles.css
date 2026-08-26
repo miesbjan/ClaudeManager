@@ -1220,6 +1220,36 @@ body.resizing {
   color: var(--text-muted);
 }
 
+/*
+ * The way out of a file that does not belong here. Faint until the row is under the
+ * cursor or the keyboard, because it is the exception on every line and a column of
+ * crosses would read as the point of the list.
+ */
+.palette-drop {
+  flex: 0 0 auto;
+  margin-left: 4px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  line-height: 1.1;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.palette-row:hover .palette-drop,
+.palette-row.selected .palette-drop {
+  opacity: 0.75;
+}
+
+.palette-drop:hover {
+  background: color-mix(in srgb, var(--danger) 22%, transparent);
+  color: var(--text);
+  opacity: 1;
+}
+
 .palette-empty {
   padding: 4px 8px;
   color: var(--text-muted);

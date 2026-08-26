@@ -482,6 +482,20 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **26. 8. 2026** — Dvě různá „už to nechci" místo jednoho: `Ctrl+W` zavře soubor a místo
+   ho dál nabízí, `Delete` v `Ctrl+P` (nebo `×` na řádku) ho zavře **a** zapomene.
+   Důvod: uživatel to pojmenoval přesně - zavřít soubor, který jsem doiteroval, je jiná
+   věc než vyhodit soubor, který jsem otevřel omylem. Delete dělalo dosud jen to druhé
+   napůl: zapomnělo nabídku, ale soubor nechalo otevřený.
+   Křížek na řádku je kvůli dohledatelnosti: klávesa, která je jen v nápovědě, je klávesa,
+   kterou většina lidí nikdy nenajde. Je průhledný, dokud na řádku není kurzor nebo výběr,
+   protože je to výjimka na každém řádku, ne pointa seznamu.
+   Při měření se u toho našla ještě jedna chyba: `Ctrl+W` na posledním souboru zavíral
+   celý tab, tedy i místo se shellem. Místo bez otevřeného souboru je pořád to místo -
+   `Ctrl+G` přesně takové taby vyrábí - takže tab teď odchází jen tehdy, když nikdy nebyl
+   nic než soubory.
+   Ověřeno naživo: `Ctrl+W` nechal místo, shell i paměť a zavřel soubor; `×` myší soubor
+   zavřel, řekl to a v `places.json` po něm nezůstal.
 - **26. 8. 2026** — Dialog na otevření dostává adresář s koncovým lomítkem, a `Ctrl+P`
    umí soubor v tom místě zapomenout klávesou Delete.
    To první je dokončení včerejší práce, která nefungovala: Windows si to, co dostane,

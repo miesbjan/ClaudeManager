@@ -492,28 +492,45 @@ async function closeTab(index: number): Promise<void> {
  * Closes the file on screen. The tab itself goes only when its last file does, which is
  * what makes Ctrl+W safe to press without checking what else the place holds.
  */
-async function closeDoc(): Promise<void> {
-  const tab = tabs[activeIndex]
-  const doc = shownDoc(tab)
-  if (!tab || !doc) return
-  if (tab.docs.length === 1) {
-    await closeTab(activeIndex)
-    return
-  }
-  if (!(await confirmDiscard([doc]))) return
+/**
+ * Take one file out of one tab, asking first if it holds unsaved work.
+ *
+ * The tab itself is left alone, even when this was its last file: a place with nothing
+ * open is still that place. Closing the tab is a separate act with its own key.
+ */
+async function closeFileIn(tab: Tab, doc: Doc): Promise<boolean> {
+  if (!(await confirmDiscard([doc]))) return false
   /*
    * By identity, not by position: the question can be answered long after it was asked,
    * and Ctrl+PageDown in the meantime would otherwise throw away a different file than
    * the one that was asked about.
    */
   const at = tab.docs.indexOf(doc)
-  if (at < 0) return
+  if (at < 0) return false
   unwatchUnlessOpenElsewhere(doc.path, doc)
   const next = indexAfterClose(tab.docs.length, at, tab.docIndex)
   tab.docs.splice(at, 1)
   tab.docIndex = next
   render()
   persistSession()
+  return true
+}
+
+async function closeDoc(): Promise<void> {
+  const tab = tabs[activeIndex]
+  const doc = shownDoc(tab)
+  if (!tab || !doc) return
+  /*
+   * The last file takes the tab with it only when the tab is nothing else: a tab that
+   * only ever held files has nothing left to be. A place is something else - a directory
+   * with a shell in it - and closing its last file used to close the place too, shell and
+   * all, which is not what "close the file" means anywhere.
+   */
+  if (tab.docs.length === 1 && tab.root === null) {
+    await closeTab(activeIndex)
+    return
+  }
+  await closeFileIn(tab, doc)
 }
 
 /** The next file in this place, wrapping round. */
@@ -2497,6 +2514,36 @@ function closePalette(): void {
   paletteReturn = null
 }
 
+/**
+ * This file has nothing to do with this place: out of the offer, and out of the tab.
+ *
+ * Two different things go wrong with an open file and they want different answers.
+ * `Ctrl+W` closes it and the place keeps offering it, because that is a file you are
+ * finished with for now. This is the other one - opened by mistake, in a project it does
+ * not belong to - and leaving it in either the tab or the list would be leaving the
+ * mistake half undone. The file on disk is not touched either way.
+ */
+async function dropFromPlace(entry: PaletteEntry | undefined): Promise<void> {
+  const tab = paletteTab ?? tabs[activeIndex]
+  const root = placeOf(tab)
+  if (!entry || !tab || root === '') return
+
+  const open = tab.docs.find((doc) => samePath(doc.path, entry.path))
+  // Unsaved work is asked about before anything is dropped, and no means no.
+  if (open && !(await closeFileIn(tab, open))) return
+
+  window.api.forgetFileHere(root, entry.path)
+  paletteEntries = paletteEntries.filter((row) => row !== entry)
+  paletteIndex = Math.min(
+    paletteIndex,
+    Math.max(visibleEntries(paletteEntries, paletteInput.value).length - 1, 0)
+  )
+  renderPalette()
+  paletteNote.textContent = T(open ? 'palette.dropped' : 'palette.forgotten', {
+    name: baseName(entry.path)
+  })
+}
+
 function renderPalette(): void {
   const shown = visibleEntries(paletteEntries, paletteInput.value)
   paletteIndex = Math.min(paletteIndex, Math.max(shown.length - 1, 0))
@@ -2529,6 +2576,23 @@ function renderPalette(): void {
       row.append(where)
     }
 
+    /*
+     * The same as Delete, for a hand on the mouse. A key that is only in the help panel
+     * is a key most people never find, and this one undoes a slip that is otherwise
+     * permanent.
+     */
+    const drop = document.createElement('button')
+    drop.className = 'palette-drop'
+    drop.type = 'button'
+    drop.textContent = '×'
+    drop.title = T('palette.drop', { name: baseName(entry.path) })
+    drop.addEventListener('mousedown', (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      void dropFromPlace(entry)
+    })
+    row.append(drop)
+
     row.addEventListener('mousedown', (event) => {
       event.preventDefault()
       void choosePalette(entry, paletteTab ?? undefined)
@@ -2559,22 +2623,8 @@ paletteInput.addEventListener('keydown', (event) => {
     const chosen = shown[paletteIndex]
     if (chosen) void choosePalette(chosen, paletteTab ?? undefined)
   } else if (event.key === 'Delete') {
-    /*
-     * Stop offering this one here. Opening the wrong file is a slip, and the place
-     * remembered it for good - back at the top of this list every time, in a project it
-     * has nothing to do with. The file itself is not touched, and one that is on disk
-     * under this place still turns up in the walk below; what goes is the memory of
-     * having opened it here.
-     */
     event.preventDefault()
-    const chosen = shown[paletteIndex]
-    const root = placeOf(paletteTab ?? tabs[activeIndex])
-    if (!chosen || root === '') return
-    window.api.forgetFileHere(root, chosen.path)
-    paletteEntries = paletteEntries.filter((entry) => entry !== chosen)
-    paletteIndex = Math.min(paletteIndex, Math.max(visibleEntries(paletteEntries, paletteInput.value).length - 1, 0))
-    renderPalette()
-    paletteNote.textContent = T('palette.forgotten', { name: baseName(chosen.path) })
+    void dropFromPlace(shown[paletteIndex])
   } else if (event.key === 'Escape') {
     event.preventDefault()
     closePalette()

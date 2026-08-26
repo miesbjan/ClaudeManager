@@ -55,7 +55,7 @@ const EN: HelpSection[] = [
         keys: 'Ctrl+P / Ctrl+O',
         action: 'go to a file: in the project / anywhere'
       },
-      { keys: 'Ctrl+P → Delete', action: 'stop offering that file in this place' },
+      { keys: 'Ctrl+P → Delete', action: 'close that file and stop offering it here (or its ×)' },
       { keys: 'Ctrl+T / Ctrl+G', action: 'another place, here / typed out' },
       { keys: 'Ctrl+Shift+U', action: 'what has been happening in this place' },
       { keys: 'Ctrl+W', action: 'close the file; the last one closes the tab' },
@@ -125,7 +125,7 @@ const CS: HelpSection[] = [
         keys: 'Ctrl+P / Ctrl+O',
         action: 'skok na soubor: v projektu / kdekoli'
       },
-      { keys: 'Ctrl+P → Delete', action: 'přestaň ten soubor v tomhle místě nabízet' },
+      { keys: 'Ctrl+P → Delete', action: 'zavři ten soubor a přestaň ho tu nabízet (nebo jeho ×)' },
       { keys: 'Ctrl+T / Ctrl+G', action: 'další místo, zde / napsané' },
       { keys: 'Ctrl+Shift+U', action: 'co se v tomhle místě dělo' },
       { keys: 'Ctrl+W', action: 'zavřít soubor; poslední zavře tab' },

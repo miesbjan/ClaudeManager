@@ -99,7 +99,7 @@ else closes it. It speaks whichever interface language is selected.
 | *Open folder*             | open a directory as a place to work in    |
 | `Ctrl+P`                  | go to a file: open here, or in the project |
 | `Ctrl+W`                  | close the file; the last one closes the tab |
-| `Ctrl+P` → `Delete`      | stop offering that file in this place      |
+| `Ctrl+P` → `Delete`      | close that file and stop offering it here  |
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | next / previous tab                   |
 | `Ctrl+1` … `Ctrl+9`       | jump to tab by position                   |
 | `Ctrl+F`                  | find in the document or the plain text    |
@@ -272,6 +272,16 @@ Files passed on the command line are opened too, so the app works as a handler f
   starting anywhere else means clicking back to it every time, and the place the system
   remembers is wherever some other dialog happened to end. A tab that is no place yet
   gets the system's answer, which is then the best one available.
+- **Two ways to be done with a file.** `Ctrl+W` closes it and the place keeps offering
+  it: that is a file you have finished with for now. `Delete` in `Ctrl+P` - or the `×`
+  on its row, for a hand on the mouse - closes it *and* forgets it, which is the answer
+  to having opened the wrong thing in the wrong project. Neither touches the file on
+  disk, and a file that lives inside the place still turns up when the project is walked;
+  what goes is the memory of having opened it here.
+
+  Closing the last file in a place leaves the place: a directory with a shell in it is
+  still that, with nothing open. Only a tab that was never anything but files closes with
+  its last one.
 - **Copying and pasting in the shell.** `Ctrl+V` pastes, and so does the right button -
   which copies instead when something is selected, the way a Windows console does.
   `Ctrl+C` is both things at once: with something selected it copies and clears the
