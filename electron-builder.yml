@@ -1,5 +1,5 @@
-appId: cz.projectconsole.app
-productName: Project Console
+appId: cz.claudemanager.app
+productName: Claude Manager
 directories:
   output: release
   buildResources: build
@@ -32,6 +32,6 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  shortcutName: Project Console
+  shortcutName: Claude Manager
 portable:
-  artifactName: ProjectConsole-portable-${version}.exe
+  artifactName: ClaudeManager-portable-${version}.exe

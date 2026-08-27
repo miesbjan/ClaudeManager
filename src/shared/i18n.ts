@@ -46,9 +46,9 @@ const en = {
     'Still watching - the document loads automatically if the file reappears.',
   'doc.gone': 'The file no longer exists on disk.',
 
-  'tray.show': 'Show Project Console',
+  'tray.show': 'Show Claude Manager',
   'tray.quit': 'Quit',
-  'tray.quitAsk': 'Quit Project Console? Anything running in it will stop.',
+  'tray.quitAsk': 'Quit Claude Manager? Anything running in it will stop.',
   'tray.quitConfirm': 'Quit',
   'tray.cancel': 'Cancel',
   'tray.waiting': '{count} waiting',
@@ -200,9 +200,9 @@ const cs: Record<StringKey, string> = {
   'doc.unavailable.hint': 'Sleduje se dál - jakmile se soubor objeví, načte se sám.',
   'doc.gone': 'Soubor už na disku není.',
 
-  'tray.show': 'Zobrazit Project Console',
+  'tray.show': 'Zobrazit Claude Manager',
   'tray.quit': 'Ukončit',
-  'tray.quitAsk': 'Ukončit Project Console? Co v něm běží, se zastaví.',
+  'tray.quitAsk': 'Ukončit Claude Manager? Co v něm běží, se zastaví.',
   'tray.quitConfirm': 'Ukončit',
   'tray.cancel': 'Zrušit',
   'tray.waiting': 'čeká {count}',

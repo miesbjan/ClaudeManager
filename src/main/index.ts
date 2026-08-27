@@ -14,7 +14,7 @@ import {
   Tray,
   type Input
 } from 'electron'
-import { existsSync, statSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs'
 import { release } from 'node:os'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, normalize, resolve, sep } from 'node:path'
@@ -84,9 +84,9 @@ let guarded = false
 
 /** Filled in by the renderer, which is the side that knows the language. */
 let trayText = {
-  show: 'Show Project Console',
+  show: 'Show Claude Manager',
   quit: 'Quit',
-  quitAsk: 'Quit Project Console? Anything running in it will stop.',
+  quitAsk: 'Quit Claude Manager? Anything running in it will stop.',
   quitConfirm: 'Quit',
   cancel: 'Cancel',
   closeAsk: 'Something is running in a shell. Close it, or leave it running?',
@@ -258,7 +258,7 @@ function ensureTray(): void {
     return
   }
   tray = new Tray(icon)
-  tray.setToolTip('Project Console')
+  tray.setToolTip('Claude Manager')
   tray.on('click', showWindow)
   refreshTray()
 }
@@ -303,7 +303,38 @@ protocol.registerSchemesAsPrivileged([
  * in, and both can run side by side - which matters when the app being built is also
  * the app being used.
  */
-app.setName(app.isPackaged ? 'project-console' : 'project-console-dev')
+app.setName(app.isPackaged ? 'claude-manager' : 'claude-manager-dev')
+
+/**
+ * The name changed again, and the folder Electron hands out changed with it. What was
+ * in the old one is copied across once - the session, the places a tab remembers, the
+ * settings and the last limits reading - so a rename costs nobody the tabs they had
+ * open. Copied rather than moved: the old folder stays behind untouched, which is the
+ * cheapest possible answer to a migration that went wrong. A state file already at the
+ * new name means this has happened, and nothing is touched.
+ */
+function adoptPreviousUserData(): void {
+  const carried = ['state.json', 'places.json', 'settings.json', 'limits.json']
+  const suffix = app.isPackaged ? '' : '-dev'
+  const current = app.getPath('userData')
+  try {
+    if (existsSync(join(current, 'state.json'))) return
+    const previous = join(app.getPath('appData'), 'project-console' + suffix)
+    if (!existsSync(previous)) return
+    mkdirSync(current, { recursive: true })
+    for (const name of carried) {
+      const from = join(previous, name)
+      if (existsSync(from)) copyFileSync(from, join(current, name))
+    }
+  } catch {
+    /*
+     * A failed copy is a first run with nothing in it, which is a working application.
+     * Logging it is not possible here anyway: the log lives in the folder being set up.
+     */
+  }
+}
+
+adoptPreviousUserData()
 
 let win: BrowserWindow | null = null
 let watcher: FileWatcher | null = null
@@ -407,7 +438,7 @@ function createWindow(): void {
     show: false,
     // Matches the renderer's prefers-color-scheme palette, so there is no flash.
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#16181d' : '#ffffff',
-    title: 'Project Console',
+    title: 'Claude Manager',
     ...(existsSync(DEV_ICON) ? { icon: DEV_ICON } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

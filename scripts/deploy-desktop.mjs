@@ -14,9 +14,9 @@ import { basename, join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..')
 const RELEASE = join(ROOT, 'release')
-const UNPACKED = join(RELEASE, 'win-unpacked', 'Project Console.exe')
-const SHORTCUT_NAME = 'Project Console.lnk'
-const EXE_NAME = 'Project Console.exe'
+const UNPACKED = join(RELEASE, 'win-unpacked', 'Claude Manager.exe')
+const SHORTCUT_NAME = 'Claude Manager.lnk'
+const EXE_NAME = 'Claude Manager.exe'
 
 const wantExe = process.argv.includes('--exe')
 
@@ -55,7 +55,7 @@ function makeShortcut(desktop) {
       '$s = (New-Object -ComObject WScript.Shell).CreateShortcut(' + quote(link) + ')',
       '$s.TargetPath = ' + quote(UNPACKED),
       '$s.WorkingDirectory = ' + quote(join(RELEASE, 'win-unpacked')),
-      "$s.Description = 'Project Console (latest local build)'",
+      "$s.Description = 'Claude Manager (latest local build)'",
       '$s.Save()'
     ].join('; ')
   )
@@ -78,7 +78,7 @@ function runningApps() {
       [
         '-NoProfile',
         '-Command',
-        "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Project Console.exe' -and $_.CommandLine -notmatch '--type=' } | ForEach-Object { $_.ProcessId.ToString() + '  ' + $_.ExecutablePath }"
+        "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Claude Manager.exe' -and $_.CommandLine -notmatch '--type=' } | ForEach-Object { $_.ProcessId.ToString() + '  ' + $_.ExecutablePath }"
       ],
       { encoding: 'utf8' }
     )

@@ -622,7 +622,7 @@ function render(): void {
     viewer.classList.remove('showing-raw')
     empty.hidden = false
     status.textContent = T('status.noFile')
-    document.title = 'Project Console'
+    document.title = 'Claude Manager'
     applyLayout()
     // A place with no file in it still has its shell - and now that a new tab opens
     // with one, this is the only path that reaches it.
@@ -658,7 +658,7 @@ function render(): void {
   if (showRaw) raw.scrollTop = doc.rawScrollTop
   else viewer.scrollTop = doc.scrollTop
   if (!findBar.hidden) refreshFind(false)
-  document.title = baseName(doc.path) + ' - Project Console'
+  document.title = baseName(doc.path) + ' - Claude Manager'
   renderStatus(tab, doc)
   applyLayout()
   ensureShell()
@@ -1287,8 +1287,8 @@ function dressTray(waiting: Attention | null): void {
     closeKeep: T('close.keep')
   }
   const tooltip = waiting
-    ? 'Project Console - ' + T('tray.waiting', { count: waiting.count })
-    : 'Project Console'
+    ? 'Claude Manager - ' + T('tray.waiting', { count: waiting.count })
+    : 'Claude Manager'
   void paintTray(waiting, text, tooltip, holds)
 }
 

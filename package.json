@@ -1,7 +1,7 @@
 {
-  "name": "project-console",
+  "name": "claude-manager",
   "version": "1.0.0",
-  "description": "A small per-project console for Windows: a shell, the live document you steer by, and the app you are building, side by side",
+  "description": "A per-project window for working with a coding agent on Windows: a shell, the live document you steer by, and the app you are building, side by side",
   "main": "./out/main/index.js",
   "private": true,
   "author": "Jan Miesbauer",

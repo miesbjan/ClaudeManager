@@ -807,7 +807,7 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   i `done`), a teprve pak textu seškrábanému z obrazovky. Ze stavu „čeká" pak vedou
   dvě cesty, hlášení programu a zmizení dialogu z okna, takže funguje i pro program,
   který o sobě nehlásí nic.
-- **20. 8. 2026** - Vývojový běh má vlastní `userData` (`project-console-dev`).
+- **20. 8. 2026** - Vývojový běh má vlastní `userData` (`claude-manager-dev`).
   Vyplynulo z prvního dne používání: nainstalovaná aplikace drží single-instance lock
   a sdílí `state.json`, takže dev vedle ní nenaběhne a testování přepisuje otevřené
   taby skutečné práce. Jedno jméno navíc obojí ruší.
@@ -1148,3 +1148,20 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   všechno a nepíše nic; otázka se musí poslat vstupem, ne argumentem, protože argumenty
   se přes shell nespárují uvozovkami; a print mode čeká tři vteřiny na vstup, který nikdo
   neposílá, dokud se mu vstup nezavře.
+- **27. 8. 2026** — Projekt přejmenován z „Project Console“ na **Claude Manager**, a
+  repozitář zveřejněn. Obě dosavadní jména mířila vedle: `MarkdownViewer` na GitHubu
+  popisoval techniku jednoho panelu, `Project Console` popisoval tvar, ale ani jedno
+  neřeklo, k čemu to je — a pro kolegy, kterým se odkaz posílá, je záměr to první, co
+  musí být vidět. Zvažovaný `ClaudeSessionManager` odpadl: session nespravuje, agenta
+  nespouští ani nemultiplexuje, takže by sliboval orchestraci, kterou aplikace vědomě
+  nedělá. Vědomě přijatá cena: stejné jméno nese projekt `claude-manager`, ze kterého
+  pochází nápad na stav „čeká na povolení“ — u osobního nástroje pro kolegy to je
+  přijatelné, u produktu by nebylo.
+  `%APPDATA%\project-console` se jednorázově zkopíruje do nové složky — session, místa,
+  nastavení i poslední čtení limitů. Kopie, ne přesun: stará složka zůstane, což je
+  nejlevnější odpověď na migraci, která by se nepovedla.
+- **27. 8. 2026** — README zkráceno ze 731 řádků na 118 a zbytek přesunut do
+  `docs/reference.md`. Vyčerpávající popis je správný pro toho, kdo v tom už žije, a
+  je to špatná první stránka pro někoho, kdo aplikaci nikdy neviděl: ten potřebuje
+  vědět, co to je, jak to spustit a prvních deset minut. Nic se nesmazalo — jen se
+  rozdělilo na cestu dovnitř a příručku.

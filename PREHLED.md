@@ -1,4 +1,4 @@
-# Co Project Console umí
+# Co Claude Manager umí
 
 Přehled hotového stavu k 21. 8. 2026. Kam to směřuje, je v [ROADMAP.md](ROADMAP.md),
 technické detaily a build v [README.md](README.md).

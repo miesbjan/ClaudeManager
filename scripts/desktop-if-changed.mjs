@@ -22,7 +22,7 @@ import {
 import { dirname, join, resolve } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..')
-const EXE_NAME = 'Project Console.exe'
+const EXE_NAME = 'Claude Manager.exe'
 const LOCK = join(ROOT, 'release', '.desktop-sync.lock')
 
 /** How long a lock is believed before it is treated as a crashed run. */
@@ -79,7 +79,7 @@ function newestMtime(path) {
 function builtAppRunning() {
   try {
     const paths = powershell(
-      "(Get-CimInstance Win32_Process -Filter \"Name = 'Project Console.exe'\" |" +
+      "(Get-CimInstance Win32_Process -Filter \"Name = 'Claude Manager.exe'\" |" +
         ' Select-Object -ExpandProperty ExecutablePath) -join [char]59'
     )
     const root = ROOT.toLowerCase()
