@@ -343,6 +343,84 @@ tasků a rozložení — funkce dostane jméno, ne tlačítko.
 L5 je záměrně poslední: nejdřív rozložení natvrdo a teprve pak udělat deklarativní ty
 tři věci, které se v praxi opravdu přepínají. Opačně vzniká konfigurace sama pro sebe.
 
+### L6 — Sémantická vrstva (návrh)
+
+**Proč.** Po kole zůstane commit a mlhavá vzpomínka. Jediný artefakt, který po práci
+agenta doopravdy zbyde, je kód — tak se k němu člověk vrací, protože nic jiného není.
+Za tři týdny nejde zjistit, jestli pravidlo „shell přežije zavření okna“ pořád platí,
+jinak než čtením kódu. Není to zvyk: diff je jediná věc, která nemůže lhát, a proto se
+čte i ve chvíli, kdy se práce dávno přesunula o úroveň výš. Jenže agent napíše za tři
+minuty pět set řádků a review na úrovni kódu je pak z velké části fikce — jsme nahoře
+už dneska, jen tomu chybí artefakt.
+
+**Co se staví.** Popis chování aplikace ve větách, který agent po každém kole aktualizuje,
+a tabulka pravidel spárovaná s testy. Čte se **diff toho popisu mezi koly** — ne shrnutí
+změny, ale stav chování a jeho rozdíl proti minule.
+
+**Proč extrakce z kódu, a ne specifikace dopředu.** Ručně psaná specifikace stárne mlčky:
+kód se od ní odchýlí a nikdo se to nedozví. Popis vytažený z kódu stárnout nemůže, zato
+může být sebejistě nepravdivý — a takovému se věří, protože vypadá přesně jako ten správný.
+Proti tomu jsou tři levné pojistky: podbarvení změn vyrábí aplikace ze dvou verzí souboru,
+takže **to, která věta se změnila, nelže**; řádek v tabulce pravidel je spárovaný s testem,
+který buď existuje a prochází, nebo ne; a z každé věty se dá na jeden klik sestoupit do kódu.
+
+**Co k tomu aplikace už má.** Tři funkce, které ospravedlňují celou stavbu, jsou zároveň
+tři orgány téhle smyčky: zvýraznění změn říká *co se změnilo*, tečka aktivity *kdy se
+dívat*, prompt buffer *jak zadat*. Chybí jediné — dokument, na který to míří, je plán
+(co chci), ne popis chování (co to dělá). Git diff je od 19. 8. mimo rozsah, takže
+aplikace už dnes diff neukazuje; chybí jí to, co má ukazovat místo něj.
+
+Etapy jdou od nejlevnějšího a neomylného k nejdražšímu a omylnému. Každá je použitelná
+sama a po každé se dá skončit, aniž by něco zůstalo rozdělané.
+
+1. **Popis chování** — bez kódu. `semantic/chovani.md`, vygenerovaný jednou z kódu (ne
+   z `PREHLED.md`), pak aktualizovaný agentem po každém kole, otevřený v tabu vedle plánu.
+   *Dál, když:* u dvou ze tří kol stačily podbarvené věty a scrollback zůstal zavřený.
+2. **Pravidla a mechanický diff povrchu** — bez kódu. `semantic/pravidla.md` ve tvaru
+   pravidlo · vynuceno v · hlídá test, kde test musí agent najít v `test/`, ne vymyslet.
+   K tomu skript nad `git diff` dvou souborů: `help.ts` je seznam toho, co uživatel může
+   dělat, `i18n.ts` všechno, co aplikace kdy řekne — jejich rozdíl je změna pro uživatele
+   spočítaná bez modelu.
+   *Dál, když:* tabulka ukáže nehlídané pravidlo a napíše se na něj test.
+3. **Tlačítko „Co se změnilo“** — druhá otázka vedle *Kde jsme skončili*, stejným
+   mechanismem (`askSummary` bere jakýkoli prompt), ale o tomhle kole a s ukazatelem
+   u každé věty. Jediné místo, kde popis vzniká v procesu, který neviděl tu konverzaci —
+   do té doby se čte agentova zpráva o sobě samém.
+   *Dál, když:* aspoň jednou se ta odpověď rozejde s tím, co agent tvrdil v kole.
+4. **Sestup na jeden klik** — `resolveLocal` si nechá `#L41` a klik jde do
+   `openFromTerminal`; checkbox v renderovaném dokumentu přestane být `disabled`
+   a odškrtnutí se zapíše do zdroje. Přepnutí `[ ]` ↔ `[x]` je čistá funkce, tedy s testem.
+   *Dál, když:* rozhodnutí se ratifikují klikem a otázky před kolem se odklikávají
+   v dokumentu místo psaní do shellu.
+5. **Snímky** — jedno tlačítko, dva zdroje, jeden výstup do `semantic/snimky/`: `capturePage()`
+   na `webview`, když pravá strana ukazuje dev server, jinak `desktopCapturer` a vybrané
+   okno. Porovnání skládá agent do markdownu a vykreslí se v dokumentu přes `mdasset://`.
+   Pro tenhle repozitář je zdrojem vždy okno, ne panel: `electron-vite dev` otevře druhou
+   instanci aplikace, ne stránku na localhostu.
+   *Dál, když:* za týden sáhneš po před/po aspoň dvakrát sám od sebe.
+6. **Obrázek rozdílu** — `nativeImage` PNG dekóduje, takže porovnání dvou bitmap a výroba
+   třetí je pár desítek řádků a žádná nová závislost. Jádro je čistá funkce, tedy s testem.
+   *Dál, když:* díváš se na rozdílový obrázek dřív než na ty dva původní.
+7. **Panel se snímky** — třetí režim pravé strany (`rightMode: 'doc' | 'web' | 'shots'`),
+   seznam dvojic, přepnutí před/po na stejném místě. Jediná věc, kterou soubor v panelu
+   neumí, a jediná etapa, která mění uložený stav — tedy i obnovu starých session, cyklus
+   `Alt+W`, řádky v `?` a oba jazyky. Proto poslední.
+
+**L6 nejspíš zruší půlku L4.** „Feed změn“ v šuplíku je syntaktická odpověď na tutéž
+otázku, na kterou tady odpovídá etapa 1 — které soubory se změnily versus co se změnilo
+v chování. Až bude L6 v provozu, ať se feed nestaví, dokud někdo neřekne, co k tomu
+druhému ještě potřebuje.
+
+**Co se v L6 vědomě nestaví:** vlastní schéma pro kartu kola a renderer nad ním — soubor
+v panelu, který se sám překresluje a barví změny, dělá totéž zadarmo; fronta rozhodnutí
+přes projekty — tab je místo a okno je na jeden projekt; mapa domény a stavové diagramy —
+renderer HTML neparsuje a mermaid by ten zákaz musel zrušit; typy kol jako šablony —
+typ práce jen předpovídá, které sekce zůstanou prázdné, a prázdná sekce je odpověď,
+ne chybějící funkce.
+
+Dlouhá verze záměru žije mimo repozitář ve třech návrhových artefaktech (odkazy jsou
+soukromé): sémantické panely, typy kol, životní cyklus změny.
+
 ## Tři funkce, které ospravedlňují celou stavbu
 
 Všechno ostatní na seznamu je reimplementace editoru. Tyhle ne:
@@ -394,6 +472,10 @@ Hotový produkt jsou tyhle věci a nic víc:
 | Extra   | přehazování tabů tažením, vkládání do shellu                         |
 | Extra   | otázka před zavřením tabu, ve kterém se pracuje                     |
 | Extra   | „Kde jsme skončili“ — shrnutí posledních commitů od agenta          |
+| L6      | popis chování a tabulka pravidel jako soubory v repozitáři            |
+| L6      | tlačítko „Co se změnilo“ — chování z kódu, mimo běžící session        |
+| L6      | odkaz v dokumentu otevře soubor na řádku; odškrtnutí se zapíše        |
+| L6      | snímek panelu nebo okna, obrázek rozdílu, panel se snímky             |
 
 Přidání položky na tenhle seznam je rozhodnutí, ne detail — patří k němu řádek
 v decision logu níže.
@@ -1165,3 +1247,47 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
   je to špatná první stránka pro někoho, kdo aplikaci nikdy neviděl: ten potřebuje
   vědět, co to je, jak to spustit a prvních deset minut. Nic se nesmazalo — jen se
   rozdělilo na cestu dovnitř a příručku.
+- **28. 8. 2026** — Přibyla **L6, sémantická vrstva**: popis chování v repozitáři, který
+  agent po každém kole aktualizuje, a tabulka pravidel spárovaná s testy. Důvod je
+  pojmenovaný v L6 a stojí na jednom pozorování: po kole zbyde jen kód, tak se čte kód —
+  ne ze zvyku, ale protože je to jediný artefakt, který nemůže lhát. Vrstva se buduje
+  tak, aby ta její část, která lhát umí, přišla až nad dvěma, které to neumí: podbarvení
+  změn se počítá ze dvou verzí souboru a řádek s testem se ověří spuštěním.
+  Není to porušení „žádná AI uvnitř aplikace“: tlačítko „Co se změnilo“ je přesně ten
+  precedens, který založilo „Kde jsme skončili“ 24. 8. — omezená otázka jen ke čtení,
+  položená na stisk, agent pořád vlastní proces venku.
+  Je to naopak druhá polovina rozhodnutí z 19. 8., kterým git diff vypadl i pro čtení:
+  tehdy se zjistilo, že diff se čte jinde; tady se dodává to, co se má číst místo něj.
+- **28. 8. 2026** — **L6 jde před L4 a L5**, čímž se poprvé porušuje pevné pořadí vrstev
+  z 18. 8. Důvod: obě odložené vrstvy čekají na potřebu, která se za tři týdny provozu
+  neozvala — šuplík nemá druhý obsah a konfigurace nemá co konfigurovat — kdežto tohle
+  se v provozu ozývá po každém kole. Navíc se ukázalo, že L6 pravděpodobně jednu půlku
+  L4 zruší: „feed změn“ odpovídá na tutéž otázku o úroveň níž, takže se nemá stavět,
+  dokud po etapě 1 někdo neřekne, co k tomu druhému ještě chybí.
+- **28. 8. 2026** — Rešerše okolí, aby se nestavělo, co už existuje. Spec-driven nástroje
+  (GitHub Spec Kit, AWS Kiro, Tessl, OpenSpec) jdou opačným směrem — specifikace první,
+  kód odvozený — a tuhle půlku už repozitář ručně má v ROADMAPě a decision logu, takže
+  by přidaly jen údržbu. Nástroje typu CodeRabbit dělají lépe uspořádaný **diff změny**,
+  ne popis stavu, a visí na pull requestech, které tenhle projekt nemá. Google Antigravity
+  postavil přesně ty panely, o kterých byla řeč — plány, walkthrough, nahrávky prohlížeče
+  místo čtení logů — a je z toho IDE, tedy to, čemu se tady vyhýbáme. Chromatic řeší
+  vizuální stavy dobře, ale chce komponenty a stories, které tenhle renderer nemá.
+  Nejstarší předek je living documentation z BDD; z něj plyne jediné tvrdé poučení, které
+  se do L6 promítlo: spojení pravidla na test musí být **vyrobené, ne napsané** — dokument,
+  který se na testy jen odkazuje textem, shnije do roka.
+  Věc, která se v rešerši jako produkt nenašla: **diff extrahovaného popisu chování mezi
+  koly.** Specifikaci diffují lidem psanou, kód diffují nástroje, popis se extrahuje jednou.
+  Tahle kombinace je prázdné místo — a je to shodou okolností přesně to, co panel s živým
+  dokumentem a podbarvením změn umí ukázat dneska.
+- **28. 8. 2026** — Vizuální panel je přijatý jako etapa, ne odmítnutý jako IDE. Dřívější
+  formulace „tohle není editor“ je rozpočet, ne zákaz, a správná otázka zní: co panel umí,
+  co soubor v existujícím panelu neumí. Jediná poctivá odpověď je **přepnout dva obrázky
+  na stejném místě** — dva vedle sebe markdown zvládne, přepnutí ne — a to je důvod dost
+  dobrý na jeden režim pravé strany, ale až po snímcích samotných, protože ty jsou užitečné
+  i bez něj.
+  Při rozboru se našlo omezení, které mění zdroj snímku: pro tenhle repozitář webový panel
+  nikdy neukáže vlastní aplikaci, protože `electron-vite dev` otevře druhou instanci okna,
+  ne stránku na localhostu — a i kdyby se na renderer dev server někdo dostal, běžel by bez
+  preloadu, tedy rozbitý. Snímek okna proto bere `desktopCapturer` a vybírá se podle titulku;
+  že vedle sebe běží nainstalovaná a vývojová instance, je stav, který si aplikace vyrábí
+  sama od 20. 8. vlastním `userData` pro vývojový běh.
