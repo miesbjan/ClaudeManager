@@ -2,6 +2,51 @@
 
 Kam projekt směřuje — a stejně důležité, kam ne.
 
+## Hned dál — Panel session (návrh)
+
+**Proč.** Z terminálu jde do rozhodování zlomek řádků. Příkazy, výpisy nástrojů
+a myšlení agenta zaberou většinu místa, ale vidět chceš tři věci: co jsi zadal, co ti
+agent odpověděl a co se změnilo v souborech. Claude Code na to má vlastní režim
+(brief), jenže je za přepínačem na účtu a k tomuhle účtu nedošel.
+
+**Co se staví.** Panel, který čte transcript běžící session a vykreslí z něj jen
+zapnuté kategorie. Session zůstává v terminálu a píše se do ní dál — panel je druhý
+pohled na tu samou session, ne druhá session. Terminál se pak dá zmenšit na tři řádky
+a nekoukat do něj.
+
+**Odkud data.** `~/.claude/projects/<slug>/<sessionId>.jsonl`, jeden JSON na řádek,
+zapisuje se průběžně během kola (měřeno: 294 → 325 řádků za jedno kolo). Ten soubor
+už obsahuje všechno, co panel potřebuje, a to, co chceš vidět, je v něm zhruba
+desetina záznamů.
+
+**Kategorie, které se zapínají a vypínají.**
+
+- moje zadání — `type: user`, kde `message.content` je řetězec
+- odpovědi agenta — `type: assistant`, bloky `text`
+- myšlení — `type: assistant`, bloky `thinking`
+- volání nástrojů — bloky `tool_use`, s podfiltrem podle jména nástroje
+- výsledky nástrojů — bloky `tool_result`
+- zápisy do souborů — `tool_use` se jménem `Edit` nebo `Write`, plus záznamy
+  `file-history-snapshot`
+- subagenti — cokoli s `isSidechain: true`
+- režie — `mode`, `permission-mode`, `attachment`, `ai-title`, `last-prompt`, `system`
+
+Výchozí stav zapíná tři: zadání, odpovědi, zápisy do souborů.
+
+**Co je na tom křehké.** Formát je vnitřní a nikdo ho negarantuje, takže panel povoluje
+známé typy a neznámé mlčky přeskakuje — obráceně ho rozbije první nový záznam. Ne každý
+záznam má `timestamp`. Čte se od posledního offsetu, ne celý soubor, a poslední řádek
+může být rozepsaný. Dvě session nad jedním projektem znamenají dva soubory a přepínač.
+
+**Co v panelu nebude.** Dotaz na schválení oprávnění — pro ten v transcriptu záznam
+není. Poznat se dá jen odhadem: `tool_use`, ke kterému dlouho nepřišel `tool_result`.
+Panel to smí ukázat jako „čeká na potvrzení", ne jako fakt.
+
+**Zruší „feed změn" z L4.** Kategorie „zápisy do souborů" je ta samá věc, jen se zapíná
+spolu se zbytkem. Feed se nemá stavět zvlášť.
+
+*Dál, když:* celé kolo odsleduješ z panelu a do terminálu sáhneš jen napsat zadání.
+
 ## Co to je
 
 **Konzole projektu**: jeden tab na jeden projekt, v něm shell s běžícím agentem,
