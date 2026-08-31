@@ -370,23 +370,29 @@ dívat*, prompt buffer *jak zadat*. Chybí jediné — dokument, na který to m�
 (co chci), ne popis chování (co to dělá). Git diff je od 19. 8. mimo rozsah, takže
 aplikace už dnes diff neukazuje; chybí jí to, co má ukazovat místo něj.
 
-Etapy jdou od nejlevnějšího a neomylného k nejdražšímu a omylnému. Každá je použitelná
-sama a po každé se dá skončit, aniž by něco zůstalo rozdělané.
+Etapy jdou od nejlevnějšího a neomylného k nejdražšímu a omylnému, s jedinou vědomou
+výjimkou u etapy 2. Každá je použitelná sama a po každé se dá skončit, aniž by něco
+zůstalo rozdělané.
 
 1. **Popis chování** — bez kódu. `semantic/chovani.md`, vygenerovaný jednou z kódu (ne
    z `PREHLED.md`), pak aktualizovaný agentem po každém kole, otevřený v tabu vedle plánu.
    *Dál, když:* u dvou ze tří kol stačily podbarvené věty a scrollback zůstal zavřený.
-2. **Pravidla a mechanický diff povrchu** — bez kódu. `semantic/pravidla.md` ve tvaru
+2. **Tlačítko „Co se změnilo“** — druhá otázka vedle *Kde jsme skončili*, stejným
+   mechanismem (`askSummary` bere jakýkoli prompt), ale o tomhle kole a s ukazatelem
+   u každé věty. Jediné místo, kde popis vzniká v procesu, který neviděl tu konverzaci —
+   do té doby se čte agentova zpráva o sobě samém.
+   Předsunuto před tabulku pravidel 31. 8. 2026, čímž se poprvé porušuje pořadí od
+   nejlevnějšího k nejdražšímu: tohle stojí kód a tabulka ne. Důvod je past popsaná níže —
+   každé kolo běžící na sebehodnocení přidává nezkontrolovanou základnu, takže nezávislé
+   čtení je tím cennější, čím dřív přijde. Než tlačítko bude, dá se ta otázka položit rukou
+   ve druhém tabu; chybí jí jen pohodlí, ne nezávislost.
+   *Dál, když:* aspoň jednou se ta odpověď rozejde s tím, co agent tvrdil v kole.
+3. **Pravidla a mechanický diff povrchu** — bez kódu. `semantic/pravidla.md` ve tvaru
    pravidlo · vynuceno v · hlídá test, kde test musí agent najít v `test/`, ne vymyslet.
    K tomu skript nad `git diff` dvou souborů: `help.ts` je seznam toho, co uživatel může
    dělat, `i18n.ts` všechno, co aplikace kdy řekne — jejich rozdíl je změna pro uživatele
    spočítaná bez modelu.
    *Dál, když:* tabulka ukáže nehlídané pravidlo a napíše se na něj test.
-3. **Tlačítko „Co se změnilo“** — druhá otázka vedle *Kde jsme skončili*, stejným
-   mechanismem (`askSummary` bere jakýkoli prompt), ale o tomhle kole a s ukazatelem
-   u každé věty. Jediné místo, kde popis vzniká v procesu, který neviděl tu konverzaci —
-   do té doby se čte agentova zpráva o sobě samém.
-   *Dál, když:* aspoň jednou se ta odpověď rozejde s tím, co agent tvrdil v kole.
 4. **Sestup na jeden klik** — `resolveLocal` si nechá `#L41` a klik jde do
    `openFromTerminal`; checkbox v renderovaném dokumentu přestane být `disabled`
    a odškrtnutí se zapíše do zdroje. Přepnutí `[ ]` ↔ `[x]` je čistá funkce, tedy s testem.
@@ -410,6 +416,32 @@ sama a po každé se dá skončit, aniž by něco zůstalo rozdělané.
    seznam dvojic, přepnutí před/po na stejném místě. Jediná věc, kterou soubor v panelu
    neumí, a jediná etapa, která mění uložený stav — tedy i obnovu starých session, cyklus
    `Alt+W`, řádky v `?` a oba jazyky. Proto poslední.
+
+**Čím tyhle vrstvy historicky umíraly.** Zvednout práci nad kód se zkouší zhruba každých
+patnáct let — CASE, UML a MDA, BDD, dnes spec-driven development — a většinou to prohraje.
+Přežily jen artefakty, které o kód nesoupeřily o autoritu: ADR říká proč, changelog popisuje
+změnu, design doc obhájí rozhodnutí a smí zestárnout. Co chtělo být pravdou o kódu, umřelo
+na údržbu, protože ta daň nemá horní hranici a kód ten spor vyhraje vždycky — je to ten, co
+běží. Odtud šest pastí a to, čím proti nim tahle vrstva stojí:
+
+- **Soupeření o autoritu.** Šipka vede kód → popis. Kdyby se popis začal psát dopředu a kód
+  ho následoval, je vrstva mrtvá — a bude to vypadat jako zralost, ne jako návrat na hřbitov.
+- **Úplnost.** Pravidlo „každé chování musí být zapsané" dělá z údržby neohraničenou práci.
+  Popis je záměrně neúplný a nemá stačit na regeneraci ničeho.
+- **Neúměrnost.** Postup s pevnou spodní hranicí se u malé změny přeskočí, a to je přesně
+  tam, kde je nejvíc potřeba. Proto je plán u bugfixu jedna věta a proto nikdy nedostane
+  podsložky. Naměřeno jinde: 3,5 hodiny přes Spec Kit proti 23 minutám běžného promptování.
+- **Rituál bez pojistky.** Brána, kterou vždycky odklikneš, vyrábí pocit kontroly. Plán, se
+  kterým jsi nikdy nenesouhlasil, se má zrušit, ne vylepšit.
+- **Dvě pravdy.** Druhý seznam úkolů ani druhý popis chování se nezakládá.
+- **Artefakt bez čtenáře.** Tenhle je tichý: píše se poctivě, nic nehlásí chybu a nikdo ho
+  neotevře. Proto sedí v panelu vedle shellu, ne ve složce, kam se musí zajít.
+
+A jedna past, kterou žádná z těch pojistek nechytá: **popis píše ta věc, kterou popisuje.**
+Podbarvení, testy i klik do kódu chrání věty, které se právě změnily. Nezměněné nehlídá nic,
+jejich množství roste každým kolem, a nepravdivá věta se stane základnou, proti které se
+počítá příští rozdíl — tedy zmizí z dohledu. Odtud dvě opatření výše: nezávislé čtení jde
+před tabulku pravidel, a prověřenost se píše u každé věty, ne do sekce na konci.
 
 **Co k tomu přibylo z porovnání s Antigravity.** Návrhy, ne etapy — žádný z nich zatím
 nemá kritérium „Dál, když". Plán kola psaný jako **navržený rozdíl popisu chování**, takže
@@ -579,6 +611,31 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **31. 8. 2026** — Nezávislé čtení se předsouvá před tabulku pravidel a prověřenost se
+   píše u každé věty. Obojí míří na jednu past, kterou dosavadní pojistky nechytaly.
+   Popis chování píše ta věc, kterou popisuje: aktualizuje ho agent, který právě odpracoval
+   kolo, v té session, kde ho odpracoval — je to tedy jeho vzpomínka v kostýmu extrakce.
+   To L6 vědělo. Co nevědělo: **podbarvení, testy i klik do kódu chrání jen věty, které se
+   právě změnily.** Nezměněné nehlídá nic, jejich množství roste každým kolem, a nepravdivá
+   věta se stane základnou, proti které se počítá příští rozdíl — tedy zmizí z dohledu.
+   Tvrzení „podbarvení nelže" tím zůstává doslova pravdivé a přitom bezcenné, protože
+   odpovídá na otázku, která přestala být ta důležitá.
+   **Etapy 2 a 3 si mění místo,** čímž se poprvé porušuje pořadí od nejlevnějšího
+   k nejdražšímu: tlačítko stojí kód, tabulka ne. Platí se to proto, že každé kolo běžící
+   na sebehodnocení přidává nezkontrolovanou základnu, takže nezávislé čtení je tím
+   cennější, čím dřív přijde.
+   **Prověřenost se značí u věty, ne v sekci na konci.** `[ověřeno]`, `[odvozeno]`,
+   `[mezera]` — převzato z Reversy, kde je to `CONFIRMED / INFERRED / GAP`. Sekce na konci
+   odpovídá jen za to, co se řešilo teď; značka u věty přežije do dalších kol, a v tom je
+   celý rozdíl.
+   Přijatý náklad: značky přibývají u vět, kterých se kolo dotkne, ne hromadně — hromadné
+   doplnění by podbarvilo celý dokument, tedy přesně to, čemu se tady vyhýbáme. Nějakou
+   dobu proto bude soubor smíšený a věta bez značky znamená „psáno před tímhle pravidlem",
+   ne „ověřeno".
+   Zapsaná je k tomu i sekce o tom, čím tyhle vrstvy historicky umíraly, a jedna věta do
+   `CLAUDE.md`: když dolehne cena, obětuje se plán, nikdy popis. Rozhodnutí, které je dnes
+   samozřejmé, pod tlakem za tři měsíce po ruce nebude.
+   Neověřeno provozem. Kód se tímhle kolem nezměnil.
 - **31. 8. 2026** — Kolo dostává plán jako soubor a končí dvěma zápisy, ne jedním.
    Vzniklo porovnáním s Google Antigravity, které na tutéž diagnózu — diff přestal být
    použitelnou plochou na review, protože agent napíše pět set řádků za tři minuty —

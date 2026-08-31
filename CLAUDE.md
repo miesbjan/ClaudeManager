@@ -17,6 +17,9 @@ terminálu ho nevypisuj — v souboru se sám překreslí a podbarví se, co se 
   nedělej", přepsaná věta „tohle jinak".
 - **U bugfixu a refaktoru je plán jedna věta.** Zvláštní režim pro ně není a nebude —
   liší se jen tím, které sekce vyjdou prázdné, a prázdno je odpověď.
+- **Když dolehne cena, obětuje se plán, nikdy popis chování.** Plán chytá špatný směr a bez
+  něj přijdeš o jedno kolo; popis je to, kvůli čemu celá vrstva existuje. V opačném pořadí
+  zbyde obřad před prací a žádný doklad po ní.
 
 ## Popis chování — na konci každého kola
 
@@ -33,8 +36,12 @@ píše:
   počítá proti poslednímu načtení, takže tři zápisy za sebou ukážou jen ten poslední.
 - **Když se chování nezměnilo, soubor nech být** a napiš to do závěru. Prázdno je platný
   výsledek, ne nedodělaná práce — u refaktoru je to ta hlavní kontrola.
-- **Netvrď nic, co jsi neověřil v kódu.** Co ověřit nejde, patří do sekce
-  „Co se z kódu nepotvrdilo“, ne mezi tvrzení.
+- **U každé věty je vidět, jak je prověřená.** `[ověřeno]` jsi četl v kódu a platí to,
+  `[odvozeno]` jsi usoudil, `[mezera]` z kódu zjistit nejde. Značka zůstává, dokud ji někdo
+  znovu neověří — věta odvozená v desátém kole má být viditelně odvozená i ve čtyřicátém,
+  protože nezměněné věty nehlídá jinak nic. Doplňuj je **jen u vět, kterých se kolo dotklo**;
+  hromadné doplnění podbarví celý dokument. Věta bez značky je psaná před tímhle pravidlem,
+  ne ověřená. Sekce „Co se z kódu nepotvrdilo“ zůstává na to, co nemá vlastní větu.
 
 Ta pravidla popisuje `ROADMAP.md`, sekce **L6 — Sémantická vrstva**, spolu s tím, proč
 to takhle je a co má přijít dál.
