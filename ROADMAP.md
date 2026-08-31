@@ -392,6 +392,11 @@ sama a po každé se dá skončit, aniž by něco zůstalo rozdělané.
    a odškrtnutí se zapíše do zdroje. Přepnutí `[ ]` ↔ `[x]` je čistá funkce, tedy s testem.
    *Dál, když:* rozhodnutí se ratifikují klikem a otázky před kolem se odklikávají
    v dokumentu místo psaní do shellu.
+
+   Tahle etapa má druhou polovinu, kterou ukázalo až porovnání s Antigravity: zapisovatelný
+   checkbox je zároveň **plánovací brána**. Když plán kola přistane jako soubor v panelu,
+   je odškrtnutí věty „tohle nedělej" a přepsání věty „tohle jinak" — tedy schvalování před
+   prací, ne jen ratifikace po ní. Nestaví se na to nic zvlášť, je to tentýž checkbox.
 5. **Snímky** — jedno tlačítko, dva zdroje, jeden výstup do `semantic/snimky/`: `capturePage()`
    na `webview`, když pravá strana ukazuje dev server, jinak `desktopCapturer` a vybrané
    okno. Porovnání skládá agent do markdownu a vykreslí se v dokumentu přes `mdasset://`.
@@ -405,6 +410,16 @@ sama a po každé se dá skončit, aniž by něco zůstalo rozdělané.
    seznam dvojic, přepnutí před/po na stejném místě. Jediná věc, kterou soubor v panelu
    neumí, a jediná etapa, která mění uložený stav — tedy i obnovu starých session, cyklus
    `Alt+W`, řádky v `?` a oba jazyky. Proto poslední.
+
+**Co k tomu přibylo z porovnání s Antigravity.** Návrhy, ne etapy — žádný z nich zatím
+nemá kritérium „Dál, když". Plán kola psaný jako **navržený rozdíl popisu chování**, takže
+se schvaluje v tom tvaru, ve kterém se pak čte výsledek, a slib jde s výsledkem porovnat
+mechanicky, bez modelu. **Signál, že kolo skončilo bez zápisu** — shell dohrál a popis se od
+začátku kola nezměnil; obojí aplikace pozná z věcí, které už sleduje, a je to odpověď na
+jedinou skutečnou výhodu jejich artefaktů, totiž že vznikají samy. A **výřez z okna do
+šuplíku** místo výběru prvku v DOMu: obdélník na bitmapě platí na web, Electron i nativní
+okno stejně, kdežto picker by byl jediný kus workflow, který se chová jinak podle typu
+projektu.
 
 **L6 nejspíš zruší půlku L4.** „Feed změn“ v šuplíku je syntaktická odpověď na tutéž
 otázku, na kterou tady odpovídá etapa 1 — které soubory se změnily versus co se změnilo
@@ -564,6 +579,30 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **31. 8. 2026** — Kolo dostává plán jako soubor a končí dvěma zápisy, ne jedním.
+   Vzniklo porovnáním s Google Antigravity, které na tutéž diagnózu — diff přestal být
+   použitelnou plochou na review, protože agent napíše pět set řádků za tři minuty —
+   odpovídá artefakty vázanými na běh agenta, kterého vlastní. My agenta nevlastníme,
+   takže místo jeho běhu měníme to, kolem čeho se sedí.
+   **Plán kola je soubor, ne výpis do terminálu.** Claude Code plánovací bránu má; co chybí,
+   není brána, ale to, že plán vyjede do TUI, kde je úzký, neklikací a za tři obrazovky
+   výstupu pryč. Jako soubor v panelu dostane živý reload, podbarvení změn a `Ctrl+F`
+   zadarmo. Je to pravidlo v `CLAUDE.md`, ne funkce.
+   **Kolo končí zápisem do popisu chování a odškrtnutím v roadmapě.** Bez toho druhého znáš
+   stav a ne směr: popis chování odpovídá „co to dělá", plán „co teď", a „co dál"
+   neodpovídal ani jeden. Druhý seznam úkolů se nezakládá — dva seznamy se rozejdou a pak
+   neplatí ani jeden; když se v roadmapě špatně hledá, co je na řadě, je odpověď pět řádků
+   nahoře v ní.
+   **Co se vědomě nebere:** mission control nad mnoha agenty a workspaci, protože okno je na
+   jeden projekt a fronta rozhodnutí přes projekty je v L6 jednou odmítnutá; a agentem řízené
+   ověřování v prohlížeči, protože by rozbilo jeden workflow bez větví podle typu projektu
+   a platilo by jen na web, ne na nativní okno.
+   Přijatý náklad: plán kola je další soubor, který musí někdo udržovat, a když se přestane
+   používat, zůstane po něm zastaralý `semantic/plan.md`. Druhý náklad je poctivější říct
+   nahlas: jejich doklad vzniká sám jako vedlejší produkt práce, náš stojí na disciplíně.
+   Silnější artefakt za cenu toho, že se na něj musí myslet — signál z L6 je jediné, co tu
+   výměnu zlevňuje.
+   Neověřeno provozem: tohle je zápis záměru, ne hotová věc. Kód se tímhle kolem nezměnil.
 - **26. 8. 2026** — Dvě různá „už to nechci" místo jednoho: `Ctrl+W` zavře soubor a místo
    ho dál nabízí, `Delete` v `Ctrl+P` (nebo `×` na řádku) ho zavře **a** zapomene.
    Důvod: uživatel to pojmenoval přesně - zavřít soubor, který jsem doiteroval, je jiná
