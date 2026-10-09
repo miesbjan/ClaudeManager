@@ -35,6 +35,7 @@ souboru mezi koly je to, co se čte místo diffu kódu.
 - Neuložená úprava se nedá zavřít mlčky: soubor, tab i okno se zeptají a stavový řádek řekne, který soubor to drží.
 - Rozdělaná úprava se pamatuje mezi spuštěními do dvou set tisíc znaků; delší zůstane jen na obrazovce.
 - `Ctrl+F` hledá v dokumentu, `Ctrl+R` ho načte znovu.
+- Lišta hledání patří oknu a přepnutím tabu se nezavře. Po přepnutí tabu nebo novém načtení souboru jen znovu podbarví zásahy a dokument nechá, kde byl; na zásah skočí až psaní do pole, `Enter`, `Shift+Enter` nebo tlačítka ↑ a ↓ v liště. [ověřeno]
 - Odkaz na jiný soubor ten soubor otevře; číslo řádku za `#` se cestou ztratí a soubor se otevře od začátku.
 - Obrázek zapsaný relativní cestou se zobrazí.
 - Smazaný soubor zůstane otevřený jako nedostupný a načte se sám, jakmile se objeví zpátky.

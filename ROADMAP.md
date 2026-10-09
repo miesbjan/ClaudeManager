@@ -656,6 +656,14 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **9. 10. 2026** — Otevřené hledání po překreslení dokument neposouvá. Lišta hledání patří
+  oknu, ne tabu, a po každém překreslení se hledalo znovu i se skokem na aktuální zásah.
+  Přepnutí tabu nebo zápis agenta do souboru tak posunuly dokument k zásahu z hledání,
+  které uživatel zadal dávno a třeba v jiném tabu. Ten skok se pak uložil jako místo, kde
+  četl, takže se dokument vracel pořád na stejné místo a nebylo vidět proč. Zásahy se po
+  překreslení dál přepočítají a podbarví, protože ukazují do obsahu, který se vyměnil.
+  Skáče se na ně jen při psaní do pole, při `Enter` a `Shift+Enter` a z tlačítek ↑ a ↓.
+  Lišta dál zůstává otevřená napříč taby.
 - **31. 8. 2026** — Nezávislé čtení se předsouvá před tabulku pravidel a prověřenost se
    píše u každé věty. Obojí míří na jednu past, kterou dosavadní pojistky nechytaly.
    Popis chování píše ta věc, kterou popisuje: aktualizuje ho agent, který právě odpracoval

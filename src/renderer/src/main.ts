@@ -657,7 +657,7 @@ function render(): void {
 
   if (showRaw) raw.scrollTop = doc.rawScrollTop
   else viewer.scrollTop = doc.scrollTop
-  if (!findBar.hidden) refreshFind(false)
+  if (!findBar.hidden) refreshFind(false, false)
   document.title = baseName(doc.path) + ' - Claude Manager'
   renderStatus(tab, doc)
   applyLayout()
@@ -986,13 +986,17 @@ let matchIndex = -1
 
 const searchingRaw = (): boolean => !raw.hidden
 
-function showMatch(): void {
+/**
+ * `bringIntoView` is whether to go to the match. Only someone typing a query or stepping
+ * through the hits has asked to go there; a repaint has not.
+ */
+function showMatch(bringIntoView = true): void {
   const total = searchingRaw() ? rawMatches.length : matches.length
   findCount.textContent = total === 0 ? '0/0' : matchIndex + 1 + '/' + total
 
   if (searchingRaw()) {
     const found = rawMatches[matchIndex]
-    if (!found) return
+    if (!found || !bringIntoView) return
     /*
      * The selection is set so that leaving the search puts the caret on the match, but
      * Chromium paints no selection in a field that does not have focus - and focus has
@@ -1008,15 +1012,20 @@ function showMatch(): void {
 
   paintMatches(matches, matchIndex)
   const current = matches[matchIndex]
-  if (current) scrollToMatch(viewer, current)
+  if (current && bringIntoView) scrollToMatch(viewer, current)
 }
 
 /**
  * Recomputes the matches. Ranges point into the rendered document, so a live
  * reload invalidates them - hence this also runs after every render while the bar
  * is open, keeping the position rather than jumping back to the first hit.
+ *
+ * After a render the matches are only repainted, not gone to. The bar belongs to the
+ * window and stays open across tabs, so going to the match dragged every document you
+ * switched to, and every file an agent rewrote, to a hit from a search typed long ago -
+ * and the scroll that caused was then remembered as where you had been reading.
  */
-function refreshFind(fromStart: boolean): void {
+function refreshFind(fromStart: boolean, bringIntoView = true): void {
   const query = findInput.value
   matches = query && !searchingRaw() ? findInElement(content, query) : []
   rawMatches = query && searchingRaw() ? matchRanges(raw.value, query) : []
@@ -1024,7 +1033,7 @@ function refreshFind(fromStart: boolean): void {
   if (total === 0) matchIndex = -1
   else if (fromStart || matchIndex < 0) matchIndex = 0
   else matchIndex = Math.min(matchIndex, total - 1)
-  showMatch()
+  showMatch(bringIntoView)
 }
 
 function stepFind(delta: number): void {
