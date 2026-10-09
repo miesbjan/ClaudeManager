@@ -105,6 +105,8 @@ souboru mezi koly je to, co se čte místo diffu kódu.
 ## Vzhled, jazyk, paměť
 
 - Motiv je Auto, Světlý nebo Tmavý a platí i na nativní části okna.
+- Horní lištu s tlačítky schová a zase ukáže `Ctrl+B`, ze shellu `Ctrl+Shift+B`, nebo šipka na pravém konci řádku s taby; okno si to pamatuje mezi spuštěními a zkratky fungují i bez lišty. [ověřeno]
+- Když je lišta schovaná a není otevřený žádný tab, řádek s taby zůstane vidět jen se šipkou. [ověřeno]
 - Rozhraní mluví česky nebo anglicky; klávesy, cesty a výstup shellu se nepřekládají.
 - Panel `?` ukáže všechny zkratky a pod nimi i to, co se v okně děje bez stisku klávesy.
 - Mezi spuštěními se pamatují otevřené soubory, aktivní tab, rozložení panelů, šířky děličů, jména tabů, rozepsaný prompt a pozice okna.

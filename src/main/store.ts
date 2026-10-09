@@ -19,6 +19,8 @@ export type AppState = {
   lang: Lang
   /** Terminal font size. The family is a preference and lives in settings.json. */
   fontSize: number
+  /** The row of buttons at the top is put away. */
+  toolbarHidden: boolean
 }
 
 const THEMES: Theme[] = ['system', 'light', 'dark']
@@ -27,7 +29,8 @@ const DEFAULT_STATE: AppState = {
   activeTab: 0,
   theme: 'system',
   lang: 'en',
-  fontSize: DEFAULT_SIZE
+  fontSize: DEFAULT_SIZE,
+  toolbarHidden: false
 }
 
 function stateFile(): string {
@@ -71,7 +74,8 @@ export function loadState(): AppState {
       maximized: raw.maximized === true,
       theme: THEMES.includes(raw.theme as Theme) ? (raw.theme as Theme) : 'system',
       lang: raw.lang === 'cs' ? 'cs' : 'en',
-      fontSize: clampSize(raw.fontSize)
+      fontSize: clampSize(raw.fontSize),
+      toolbarHidden: raw.toolbarHidden === true
     }
   } catch {
     return { ...DEFAULT_STATE }

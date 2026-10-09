@@ -69,7 +69,7 @@ const EN: HelpSection[] = [
       { keys: 'Ctrl+R', action: 'reload the document' },
       { keys: 'Ctrl+E / Ctrl+S', action: 'rendered or as written / save' },
       { keys: 'Ctrl+D', action: 'theme: Auto / Light / Dark' },
-      { keys: 'Ctrl+`', action: 'show or hide the shell' },
+      { keys: 'Ctrl+` / Ctrl+B', action: 'show or hide the shell / the toolbar' },
       { keys: 'Ctrl+= / Ctrl+-', action: 'terminal font, from anywhere' }
     ]
   },
@@ -94,7 +94,7 @@ const EN: HelpSection[] = [
     rows: [
       { keys: 'Ctrl+C / Ctrl+V', action: 'copy the selection, or interrupt / paste' },
       {
-        keys: 'Ctrl+Shift+W, R, D',
+        keys: 'Ctrl+Shift+W, R, D, B',
         action: 'the app shortcuts above; Ctrl+O, P, T, G, 1…9 as they are'
       },
       { keys: 'everything else', action: 'goes to the shell untouched' }
@@ -139,7 +139,7 @@ const CS: HelpSection[] = [
       { keys: 'Ctrl+R', action: 'načíst dokument znovu' },
       { keys: 'Ctrl+E / Ctrl+S', action: 'vykreslený nebo zdroj / uložit' },
       { keys: 'Ctrl+D', action: 'motiv: Auto / Světlý / Tmavý' },
-      { keys: 'Ctrl+`', action: 'ukázat nebo schovat shell' },
+      { keys: 'Ctrl+` / Ctrl+B', action: 'ukázat nebo schovat shell / horní lištu' },
       { keys: 'Ctrl+= / Ctrl+-', action: 'písmo terminálu, odkudkoli' }
     ]
   },
@@ -161,7 +161,7 @@ const CS: HelpSection[] = [
     rows: [
       { keys: 'Ctrl+C / Ctrl+V', action: 'kopíruj výběr, nebo přeruš / vlož' },
       {
-        keys: 'Ctrl+Shift+W, R, D',
+        keys: 'Ctrl+Shift+W, R, D, B',
         action: 'zkratky aplikace výše; Ctrl+O, P, T, G, 1…9 i bez shiftu'
       },
       { keys: 'cokoli dalšího', action: 'jde nedotčené do shellu' }

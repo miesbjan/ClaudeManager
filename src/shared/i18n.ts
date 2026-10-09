@@ -26,6 +26,8 @@ const en = {
   'toolbar.theme.dark': 'Theme: Dark',
   'toolbar.lang.title': 'Interface language',
   'toolbar.help.title': 'Keyboard shortcuts',
+  'toolbar.hide.title': 'Hide the toolbar (Ctrl+B)',
+  'toolbar.show.title': 'Show the toolbar (Ctrl+B)',
 
   'empty.title': 'No document open.',
   'empty.body': 'Open a folder to work in, or a file to read - by button, or by dropping either into this window.',
@@ -181,6 +183,8 @@ const cs: Record<StringKey, string> = {
   'toolbar.theme.dark': 'Motiv: Tmavý',
   'toolbar.lang.title': 'Jazyk rozhraní',
   'toolbar.help.title': 'Klávesové zkratky',
+  'toolbar.hide.title': 'Schovat horní lištu (Ctrl+B)',
+  'toolbar.show.title': 'Ukázat horní lištu (Ctrl+B)',
 
   'empty.title': 'Nic není otevřené.',
   'empty.body': 'Otevři adresář, ve kterém chceš pracovat, nebo soubor ke čtení - tlačítkem, nebo přetažením do okna.',

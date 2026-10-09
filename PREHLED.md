@@ -135,6 +135,8 @@ tab a zpět. Jakmile má fokus shell, ostatní klávesy jdou nedotčené jemu �
 ## Vzhled, jazyk, paměť
 
 - **Motiv** Auto / Světlý / Tmavý (`Ctrl+D`), platí i na nativní části okna.
+- **Horní lišta** s tlačítky se schová a vrátí `Ctrl+B` (ze shellu `Ctrl+Shift+B`) nebo
+  šipkou na pravém konci řádku s taby. Pamatuje se mezi spuštěními.
 - **Jazyk rozhraní** EN/CS, tlačítko ukazuje, na co přepne. Klávesy, cesty a výstup
   shellu se nepřekládají.
 - **`?`** ukáže všechny zkratky a pod nimi i to, co se děje bez klávesy.

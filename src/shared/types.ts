@@ -63,6 +63,8 @@ export type StartupPayload = {
   activeTab: number
   theme: Theme
   lang: Lang
+  /** The row of buttons at the top is put away; every one of them has a key as well. */
+  toolbarHidden: boolean
   font: TerminalFont
   /**
    * The Windows build this is running on, or null anywhere else.
@@ -219,6 +221,8 @@ export interface ViewerApi {
   setLang(lang: Lang): Promise<void>
   /** Remember the terminal font size, the way the theme is remembered. */
   setTerminalFontSize(size: number): void
+  /** Remember whether the toolbar is put away, the way the theme is remembered. */
+  setToolbarHidden(hidden: boolean): void
   /**
    * Write a file the user has open. `seenMtimeMs` is the modification time the
    * renderer last read: if the file has moved on since, the write is refused rather

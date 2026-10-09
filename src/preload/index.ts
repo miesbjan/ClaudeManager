@@ -46,6 +46,7 @@ const api: ViewerApi = {
   setTheme: (theme: Theme) => ipcRenderer.invoke('theme:set', theme) as Promise<void>,
   setLang: (lang) => ipcRenderer.invoke('lang:set', lang) as Promise<void>,
   setTerminalFontSize: (size) => ipcRenderer.send('font:size', size),
+  setToolbarHidden: (hidden) => ipcRenderer.send('toolbar:hidden', hidden),
   writeFile: (path, content, seenMtimeMs) =>
     ipcRenderer.invoke('file:write', path, content, seenMtimeMs) as Promise<FileWriteResult>,
   openExternal: (url) => ipcRenderer.invoke('shell:external', url) as Promise<void>,

@@ -110,6 +110,7 @@ const findBar = document.getElementById('find') as HTMLElement
 const findInput = document.getElementById('find-input') as HTMLInputElement
 const findCount = document.getElementById('find-count') as HTMLElement
 const helpButton = document.getElementById('help-btn') as HTMLButtonElement
+const toolbarToggle = document.getElementById('toolbar-toggle') as HTMLButtonElement
 const help = document.getElementById('help') as HTMLElement
 const promptPane = document.getElementById('prompt-pane') as HTMLElement
 const promptInput = document.getElementById('prompt-input') as HTMLTextAreaElement
@@ -2779,6 +2780,29 @@ function stepFontSize(by: number): void {
 
 themeButton.addEventListener('click', cycleTheme)
 
+/* ---------- toolbar ---------- */
+
+let toolbarHidden = false
+
+/**
+ * The toolbar is how the window is learned and not how it is used: every button on it
+ * has a key, and once those are in the fingers the row is only height taken from the
+ * shell and the document. Put away, it leaves its toggle at the end of the tab row.
+ */
+function setToolbarHidden(hidden: boolean, persist = true): void {
+  toolbarHidden = hidden
+  document.body.classList.toggle('toolbar-hidden', hidden)
+  paintToolbarToggle()
+  if (persist) window.api.setToolbarHidden(hidden)
+}
+
+function paintToolbarToggle(): void {
+  toolbarToggle.textContent = toolbarHidden ? '▾' : '▴'
+  toolbarToggle.title = T(toolbarHidden ? 'toolbar.show.title' : 'toolbar.hide.title')
+}
+
+toolbarToggle.addEventListener('click', () => setToolbarHidden(!toolbarHidden))
+
 /**
  * Text that is written once into the markup rather than redrawn - buttons, titles,
  * placeholders - has to be set again when the language changes. Everything else
@@ -2806,6 +2830,7 @@ function applyLanguage(): void {
   themeButton.title = T('toolbar.theme.title')
   themeButton.textContent = T(THEME_LABELS[theme])
   helpButton.title = T('toolbar.help.title')
+  paintToolbarToggle()
 
   findInput.placeholder = T('find.placeholder')
   webUrlInput.placeholder = T('web.placeholder')
@@ -3083,6 +3108,13 @@ window.addEventListener('keydown', (event) => {
   } else if (key === 'd') {
     event.preventDefault()
     cycleTheme()
+  } else if (key === 'b') {
+    /*
+     * From the shell only with Shift, like the rest of this list: plain Ctrl+B is how
+     * Claude Code sends a running command to the background.
+     */
+    event.preventDefault()
+    setToolbarHidden(!toolbarHidden)
   } else if (digit >= 1 && digit <= 9) {
     event.preventDefault()
     selectTab(digit - 1)
@@ -3159,6 +3191,7 @@ async function start(): Promise<void> {
   const startup = await window.api.getStartupFiles()
   setLang(startup.lang, false)
   setTheme(startup.theme, false)
+  setToolbarHidden(startup.toolbarHidden, false)
   terminalFont = startup.font
   // Before any pane is built, since it is a terminal's option and not a setting.
   usePty(startup.windowsBuild)

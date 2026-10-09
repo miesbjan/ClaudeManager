@@ -211,21 +211,62 @@ body.dragging::after {
   font-weight: 600;
 }
 
+/*
+ * The tabs share their row with the button that puts the toolbar away and brings it
+ * back, so the button is in the same place whichever way the toolbar is.
+ */
+#tabrow {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-chrome);
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
 #tabbar {
   display: flex;
   align-items: stretch;
   gap: 2px;
   padding: 0 6px;
-  background: var(--bg-chrome);
-  border-bottom: 1px solid var(--border);
   overflow-x: auto;
   scrollbar-width: thin;
-  flex: 0 0 auto;
-  min-height: 0;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 #tabbar:empty {
   display: none;
+}
+
+/*
+ * With no tabs the row has nothing in it but the button, which is only worth a row of
+ * its own while it is the way back to a toolbar that is put away.
+ */
+body:not(.toolbar-hidden) #tabrow:has(> #tabbar:empty) {
+  display: none;
+}
+
+body.toolbar-hidden #toolbar {
+  display: none;
+}
+
+#toolbar-toggle {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  /* The small triangles are drawn at half the size of a letter; this makes them a target. */
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#toolbar-toggle:hover {
+  color: var(--accent);
 }
 
 .tab {

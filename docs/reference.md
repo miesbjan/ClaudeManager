@@ -25,6 +25,7 @@ else closes it. It speaks whichever interface language is selected.
 | `Ctrl+F`                  | find in the document or the plain text    |
 | `Ctrl+R`                  | force reload of the current file          |
 | `Ctrl+D`                  | switch theme: Auto → Light → Dark         |
+| `Ctrl+B`                  | hide or show the toolbar                  |
 | ``Ctrl+` ``               | show or hide the shell pane               |
 | `Alt+P`                   | prompt buffer under the shell             |
 | `Ctrl+Enter`              | send the buffer to the shell              |
@@ -522,6 +523,12 @@ Files passed on the command line are opened too, so the app works as a handler f
   follows the Windows setting; the other two force the palette. The choice is
   applied through `nativeTheme.themeSource`, so it also covers native chrome such
   as scrollbars and dialogs, and it is remembered between launches.
+- **Toolbar.** `Ctrl+B` (from the shell `Ctrl+Shift+B`, since Claude Code uses
+  `Ctrl+B` itself) or the arrow at the right end of the tab row puts the toolbar away
+  and brings it back, and the choice is remembered between launches. Everything on it
+  but *Open folder*, the language and `?` has a key of its own; those three are one
+  click on the arrow away. With no tab open the arrow keeps the row to itself, so the
+  toolbar can always be brought back with the mouse.
 - **The icon, and the number on it.** The icon is a drawing in `src/shared/icon.ts`,
   not a binary blob: `npm run icon` renders it into `build/icon.ico` with Electron's
   own Chromium, so there is no image library to install and the committed `.ico` can

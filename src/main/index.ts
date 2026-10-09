@@ -801,6 +801,7 @@ function registerIpc(): void {
       activeTab,
       theme: state.theme,
       lang: state.lang,
+      toolbarHidden: state.toolbarHidden,
       font: terminalFont(state),
       windowsBuild: windowsBuild(),
       rebuilt: wasRebuilt
@@ -810,6 +811,11 @@ function registerIpc(): void {
   // Size is app state, like the theme. The family stays a hand-edited preference.
   ipcMain.on('font:size', (_event, size: number) => {
     state.fontSize = clampSize(size)
+    persistSoon()
+  })
+
+  ipcMain.on('toolbar:hidden', (_event, hidden: boolean) => {
+    state.toolbarHidden = hidden === true
     persistSoon()
   })
 

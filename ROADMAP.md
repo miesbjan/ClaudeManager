@@ -656,6 +656,15 @@ mezi jedním a druhým; ve skutečnosti jde o dělbu práce.
 
 ## Decision log
 
+- **9. 10. 2026** — Horní lišta se dá schovat: `Ctrl+B`, ze shellu `Ctrl+Shift+B`, nebo
+  šipka na pravém konci řádku s taby. Vyplynulo z používání: lišta slouží k tomu, aby se
+  okno dalo naučit, a kdo už zná klávesy, ten ji nepoužívá a jen bere výšku shellu
+  i dokumentu. Šipka je v řádku s taby, ne v liště, aby byla na stejném místě v obou
+  stavech. Bez otevřeného tabu zůstane řádek jen se šipkou, protože *Otevřít složku*,
+  jazyk a `?` vlastní klávesu nemají. Samotné `Ctrl+B` v shellu zůstává Claude Code, které
+  jím posílá běžící příkaz na pozadí; ze shellu se lišta schová se Shiftem jako ostatní
+  zkratky aplikace. Panel `?` je na limitu 28 řádků, takže zkratka přibyla do řádku
+  k ``Ctrl+` ``, který taky něco schovává a ukazuje.
 - **9. 10. 2026** — Otevřené hledání po překreslení dokument neposouvá. Lišta hledání patří
   oknu, ne tabu, a po každém překreslení se hledalo znovu i se skokem na aktuální zásah.
   Přepnutí tabu nebo zápis agenta do souboru tak posunuly dokument k zásahu z hledání,
